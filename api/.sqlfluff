@@ -1,0 +1,10 @@
+[sqlfluff]
+dialect = postgres
+exclude_rules = RF04
+
+[sqlfluff:indent]
+indent_unit = space
+tab_space_size = 4
+
+[sqlfluff:capitalisation:keywords]
+capitalisation_policy = upper
