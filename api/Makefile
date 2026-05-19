@@ -1,5 +1,4 @@
 include .env
-export
 
 .PHONY: db-seed
 db-seed:
@@ -11,10 +10,10 @@ db-reset:
 	createdb -h $(DB_HOST) -p $(DB_PORT) $(DB_NAME)
 	$(MAKE) db-seed
 
-.PHONY: cmd-poll
-cmd-poll:
+.PHONY: dev-poll
+dev-poll:
 	go run ./cmd/poll/*.go
 
-.PHONY: echo
-echo:
-	echo $(DB_DSN)
+.PHONY: dev-scheduler
+dev-scheduler:
+	go run ./cmd/scheduler/*.go
