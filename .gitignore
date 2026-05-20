@@ -3,3 +3,6 @@
 
 # Secrets
 .env
+
+# Artifacts
+build/
