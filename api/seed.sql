@@ -205,11 +205,11 @@ VALUES
     NULL
 ),
 (
-    'https://medium.com/feed/dartlang',
-    'https://medium.com/dartlang',
+    'https://dart.dev/blog/feed.xml',
+    'https://dart.dev/blog',
     NULL,
-    'Dart - Medium',
-    NULL
+    'The Dart Blog',
+    'Dart is an approachable, portable, and productive language for high-quality apps on any platform.'
 ),
 ('https://blog.golang.org/feed.atom', NULL, NULL, 'The Go Blog', NULL),
 (
