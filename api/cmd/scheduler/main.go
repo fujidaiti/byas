@@ -10,16 +10,9 @@ import (
 	"github.com/fujidaiti/paperdoll/feature/feed"
 	"github.com/go-co-op/gocron/v2"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/joho/godotenv"
 )
 
 func main() {
-	if f := os.Getenv("ENV_FILE"); len(f) > 0 {
-		godotenv.Load(f)
-	} else {
-		godotenv.Load()
-	}
-
 	dsn := os.Getenv("DB_DSN")
 	if len(dsn) == 0 {
 		panic("DB_DSN is requried.")
