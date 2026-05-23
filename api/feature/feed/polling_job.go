@@ -4,10 +4,14 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
+	"time"
 
+	"codeberg.org/readeck/go-readability/v2"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/microcosm-cc/bluemonday"
 	"github.com/mmcdole/gofeed"
 )
 
@@ -17,6 +21,7 @@ type feedRecord struct {
 }
 
 type entryRecord struct {
+	id          int
 	dedupKey    string
 	feedId      int
 	url         string
@@ -111,6 +116,11 @@ func poll(feed feedRecord, db *sql.DB, wg *sync.WaitGroup) {
 	if err != nil {
 		fmt.Print(err)
 	}
+
+	err = refreshEntryContent(feed, db)
+	if err != nil {
+		fmt.Print(err)
+	}
 }
 
 func normalizeEntry(entry *gofeed.Item, feedId int) entryRecord {
@@ -138,4 +148,108 @@ func normalizeEntry(entry *gofeed.Item, feedId int) entryRecord {
 	}
 
 	return e
+}
+
+func refreshEntryContent(feed feedRecord, db *sql.DB) error {
+	rows, err := db.Query(`
+		SELECT id, url
+		FROM entries
+		WHERE feed_id = $1 AND content IS NULL;
+	`, feed.id)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	var entries []entryRecord
+	for rows.Next() {
+		entry := entryRecord{}
+		rows.Scan(&entry.id, &entry.url)
+		entries = append(entries, entry)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		fmt.Printf("Fetching content for %s\n", entry.url)
+		st := time.Now()
+		err := fetchContent(entry, db)
+		if err != nil {
+			return err
+		}
+		// TODO: Respect Crawl-delay in robot.txt
+		if dt := time.Since(st); dt < time.Second {
+			time.Sleep(time.Second - dt)
+		}
+	}
+
+	return nil
+}
+
+const contentTemplate = `
+<!DOCTYPE html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+%s
+</body>
+</html>
+`
+
+func fetchContent(entry entryRecord, db *sql.DB) error {
+	entryUrl, err := url.Parse(entry.url)
+	if err != nil {
+		return err
+	}
+
+	res, err := http.Get(entry.url)
+	if err != nil {
+		return err
+	}
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("HTTP GET failed with status code %d", res.StatusCode)
+	}
+	defer res.Body.Close()
+
+	buf := bluemonday.UGCPolicy().SanitizeReader(res.Body)
+	if buf.Len() == 0 {
+		return fmt.Errorf("The body is empty.")
+	}
+
+	baseUrl := new(*entryUrl)
+	baseUrl.Path = ""
+	baseUrl.RawPath = ""
+	baseUrl.Fragment = ""
+	baseUrl.RawFragment = ""
+	baseUrl.RawQuery = ""
+	baseUrl.User = nil
+
+	article, err := readability.FromReader(buf, baseUrl)
+	if err != nil {
+		return err
+	}
+
+	buf.Reset()
+	err = article.RenderHTML(buf)
+	if err != nil {
+		return err
+	}
+	if buf.Len() == 0 {
+		return fmt.Errorf("Failed to extract content.")
+	}
+	content := fmt.Sprintf(contentTemplate, buf)
+
+	_, err = db.Exec(`
+		UPDATE entries
+		SET content = $1
+		WHERE id = $2;
+	`, content, entry.id)
+	if err != nil {
+		return fmt.Errorf("Failed to fetch content.")
+	}
+
+	return nil
 }
