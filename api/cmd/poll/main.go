@@ -3,8 +3,10 @@ package main
 import (
 	"database/sql"
 	"os"
+	"os/signal"
 
 	"github.com/fujidaiti/paperdoll/feature/feed"
+	"github.com/fujidaiti/paperdoll/worker"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -23,5 +25,11 @@ func main() {
 		panic(err)
 	}
 
-	feed.RefreshFeeds(db)
+	pool := worker.NewPool(16)
+	defer pool.Shutdown()
+	feed.FlushRefreshJobs(pool, db)
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt)
+	<-quit
 }

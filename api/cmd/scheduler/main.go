@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/fujidaiti/paperdoll/feature/feed"
+	"github.com/fujidaiti/paperdoll/worker"
 	"github.com/go-co-op/gocron/v2"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -31,6 +32,12 @@ func main() {
 		panic(err)
 	}
 
+	pool := worker.NewPool(16)
+	defer func() {
+		fmt.Println("Shutting down workers...")
+		pool.Shutdown()
+	}()
+
 	scheduler, err := gocron.NewScheduler()
 	if err != nil {
 		panic(err)
@@ -47,12 +54,11 @@ func main() {
 		gocron.NewTask(func() {
 			fmt.Println("--------------------------")
 			fmt.Println("Rfreshing feeds...")
-			err := feed.RefreshFeeds(db)
+			err := feed.FlushRefreshJobs(pool, db)
 			if err != nil {
 				fmt.Println(err)
 			}
 		}),
-		gocron.WithSingletonMode(gocron.LimitModeReschedule),
 	)
 	if err != nil {
 		panic(err)

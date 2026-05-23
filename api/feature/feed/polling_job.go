@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
 	"time"
 
 	"codeberg.org/readeck/go-readability/v2"
+	"github.com/fujidaiti/paperdoll/worker"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/mmcdole/gofeed"
@@ -30,7 +30,12 @@ type entryRecord struct {
 	publishedAt sql.NullTime
 }
 
-func RefreshFeeds(db *sql.DB) error {
+type refreshFeedJob struct {
+	db   *sql.DB
+	feed feedRecord
+}
+
+func FlushRefreshJobs(pool *worker.Pool, db *sql.DB) error {
 	// TODO: Create an index for next_poll_at column
 	rows, err := db.Query(`
 		SELECT id, url
@@ -59,18 +64,14 @@ func RefreshFeeds(db *sql.DB) error {
 		return nil
 	}
 
-	// TODO: Should i limit the number of go routines?
-	wg := sync.WaitGroup{}
 	for _, feed := range feeds {
-		wg.Add(1)
-		go poll(feed, db, &wg)
+		pool.Push(&refreshFeedJob{db, feed})
 	}
-	wg.Wait()
 	return nil
 }
 
-func poll(feed feedRecord, db *sql.DB, wg *sync.WaitGroup) {
-	defer wg.Done()
+func (j *refreshFeedJob) Process() {
+	feed, db := j.feed, j.db
 	fmt.Println("Fetching feed: ", feed.url)
 	// TODO: Use a custom client
 	res, err := http.Get(feed.url)
@@ -117,6 +118,7 @@ func poll(feed feedRecord, db *sql.DB, wg *sync.WaitGroup) {
 		fmt.Print(err)
 	}
 
+	// TODO: Mark the entry as queued in DB to avoid duplicate jobs for the same entry
 	err = refreshEntryContent(feed, db)
 	if err != nil {
 		fmt.Print(err)
@@ -169,6 +171,10 @@ func refreshEntryContent(feed feedRecord, db *sql.DB) error {
 	}
 	if err := rows.Err(); err != nil {
 		return err
+	}
+	if len(entries) == 0 {
+		fmt.Println("No new entries from ", feed.url)
+		return nil
 	}
 
 	for _, entry := range entries {
