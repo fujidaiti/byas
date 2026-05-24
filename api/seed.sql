@@ -15,6 +15,7 @@ CREATE TABLE entries (
     title text NOT NULL,
     description text,
     content text,
+    snapshot_at timestamptz NOT NULL,
     published_at timestamptz
 );
 

@@ -70,17 +70,18 @@ func (j *refreshFeedJob) Do(ctx context.Context) error {
 	fmt.Printf("Got %d entries from %s\n", len(raw.Items), feed.url)
 
 	// TODO: Batch insertions if the feed is too large
-	ncols := 6
+	ncols := 7
 	vals := make([]string, 0, len(raw.Items))
 	args := make([]any, 0, len(raw.Items)*ncols)
+	snapshotAt := time.Now()
 	for i, item := range raw.Items {
 		j := i * ncols
-		vals = append(vals, fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d)", j+1, j+2, j+3, j+4, j+5, j+6))
+		vals = append(vals, fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d, $%d)", j+1, j+2, j+3, j+4, j+5, j+6, j+7))
 		e := normalizeEntry(item, feed.id)
-		args = append(args, e.dedupKey, e.feedId, e.url, e.title, e.description, e.publishedAt)
+		args = append(args, e.dedupKey, e.feedId, e.url, e.title, e.description, snapshotAt, e.publishedAt)
 	}
 	sql := fmt.Sprintf(`
-		INSERT INTO entries (dedup_key, feed_id, url, title, description, published_at)
+		INSERT INTO entries (dedup_key, feed_id, url, title, description, snapshot_at, published_at)
 		VALUES %s
 		ON CONFLICT (dedup_key) DO NOTHING;
 	`, strings.Join(vals, ","))
@@ -266,9 +267,9 @@ func fetchContent(ctx context.Context, entry entryRecord, db *sql.DB) error {
 
 	_, err = db.ExecContext(ctx, `
 		UPDATE entries
-		SET content = $1
-		WHERE id = $2;
-	`, content, entry.id)
+		SET content = $1, snapshot_at = $2
+		WHERE id = $3;
+	`, content, time.Now(), entry.id)
 	if err != nil {
 		return fmt.Errorf("Failed to fetch content.")
 	}
