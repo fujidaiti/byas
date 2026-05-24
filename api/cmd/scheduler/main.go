@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -14,6 +15,9 @@ import (
 )
 
 func main() {
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
+
 	dsn := os.Getenv("DB_DSN")
 	if len(dsn) == 0 {
 		panic("DB_DSN is requried.")
@@ -32,7 +36,8 @@ func main() {
 		panic(err)
 	}
 
-	pool := worker.NewPool(16)
+	pool := &worker.Pool{}
+	pool.Start(ctx, 16)
 	defer func() {
 		fmt.Println("Shutting down workers...")
 		pool.Shutdown()
@@ -48,13 +53,12 @@ func main() {
 			fmt.Println(err)
 		}
 	}()
-
 	_, err = scheduler.NewJob(
 		gocron.DurationJob(time.Hour),
 		gocron.NewTask(func() {
 			fmt.Println("--------------------------")
 			fmt.Println("Rfreshing feeds...")
-			err := feed.FlushRefreshJobs(pool, db)
+			err := feed.FlushRefreshJobs(ctx, pool, db)
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -63,9 +67,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
 	scheduler.Start()
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt)
-	<-quit
+
+	<-ctx.Done()
 }

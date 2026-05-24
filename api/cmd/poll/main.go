@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"os"
 	"os/signal"
@@ -11,6 +12,9 @@ import (
 )
 
 func main() {
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
+
 	dsn := os.Getenv("DB_DSN")
 	if len(dsn) == 0 {
 		panic("DB_DSN is required.")
@@ -25,11 +29,10 @@ func main() {
 		panic(err)
 	}
 
-	pool := worker.NewPool(16)
+	pool := &worker.Pool{}
 	defer pool.Shutdown()
-	feed.FlushRefreshJobs(pool, db)
+	pool.Start(ctx, 16)
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt)
-	<-quit
+	feed.FlushRefreshJobs(ctx, pool, db)
+	<-ctx.Done()
 }

@@ -1,44 +1,77 @@
 package worker
 
 import (
+	"context"
+	"fmt"
 	"sync"
+	"time"
 )
 
 type Job interface {
-	Process()
+	Do(ctx context.Context) error
+	Timeout() time.Duration
 }
 
 type Pool struct {
-	workerNum int
-	jobs      chan Job
-	wg        sync.WaitGroup
+	jobs chan Job
+	wg   sync.WaitGroup
 }
 
-func NewPool(workerNum int) *Pool {
-	p := Pool{workerNum: workerNum, jobs: make(chan Job)}
+func (p *Pool) Start(ctx context.Context, workerNum int) {
+	if p.jobs != nil {
+		panic("Cannot restart the same worker pool.")
+	}
+	if workerNum <= 0 {
+		panic(fmt.Sprintf("A positive number for worker count is expected, but got %d", workerNum))
+	}
+	p.jobs = make(chan Job)
 	for range workerNum {
 		p.wg.Add(1)
-		go worker(p.jobs, &p.wg)
+		go p.worker(ctx)
 	}
-	return &p
 }
 
-func worker(c <-chan Job, wg *sync.WaitGroup) {
-	defer wg.Done()
+func (p *Pool) worker(ctx context.Context) {
+	defer p.wg.Done()
 	for {
-		job, ok := <-c
-		if !ok {
+		select {
+		case <-ctx.Done():
 			return
+
+		case job, ok := <-p.jobs:
+			if !ok {
+				return
+			}
+			process(ctx, job)
 		}
-		job.Process()
 	}
 }
 
+func process(ctx context.Context, job Job) {
+	t := job.Timeout()
+	if t > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, t)
+		defer cancel()
+	}
+	err := job.Do(ctx)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+// TODO: Pass a context to set a timeout
 func (p *Pool) Shutdown() {
 	close(p.jobs)
 	p.wg.Wait()
 }
 
-func (p *Pool) Push(job Job) {
-	p.jobs <- job
+func (p *Pool) Push(ctx context.Context, job Job) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+
+	case p.jobs <- job:
+		return nil
+	}
 }
