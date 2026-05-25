@@ -197,7 +197,7 @@ func refreshEntryContent(ctx context.Context, feed feedRecord, db *sql.DB) error
 			return err
 		}
 		// TODO: Respect Crawl-delay in robot.txt
-		if dt := time.Since(st); dt < time.Second {
+		if dt := time.Since(st); dt < 2*time.Second {
 			time.Sleep(time.Second - dt)
 		}
 	}
