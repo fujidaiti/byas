@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/fujidaiti/paperdoll/feature/feed"
+	"github.com/fujidaiti/paperdoll/feature/paper"
 	"github.com/fujidaiti/paperdoll/worker"
 	"github.com/go-co-op/gocron/v2"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -59,6 +60,18 @@ func main() {
 			fmt.Println("--------------------------")
 			fmt.Println("Rfreshing feeds...")
 			err := feed.FlushRefreshJobs(ctx, pool, db)
+			if err != nil {
+				fmt.Println(err)
+			}
+		}),
+	)
+	if err != nil {
+		panic(err)
+	}
+	_, err = scheduler.NewJob(
+		gocron.DurationJob(5*time.Minute),
+		gocron.NewTask(func() {
+			err := paper.FlushAssembleJobs(ctx, pool, db)
 			if err != nil {
 				fmt.Println(err)
 			}

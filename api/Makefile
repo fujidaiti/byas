@@ -19,6 +19,10 @@ dev-poll:
 dev-scheduler:
 	go run ./cmd/scheduler/*.go
 
+.PHONY: dev-assemble
+dev-assemble:
+	go run ./cmd/assemble/*.go
+
 .PHONY: build-linux-amd64
 build-linux-amd64:
 	GOOS=linux GOARCH=amd64 go build -o build/paperdoll-linux-amd64 ./cmd/scheduler/*.go

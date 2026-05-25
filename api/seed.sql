@@ -19,6 +19,30 @@ CREATE TABLE entries (
     published_at timestamptz
 );
 
+CREATE TABLE papers (
+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    issue integer NOT NULL UNIQUE,
+    published_at timestamptz NOT NULL
+);
+
+CREATE TABLE articles (
+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    entry_id bigint NOT NULL REFERENCES entries (id),
+    paper_id bigint NOT NULL REFERENCES papers (id),
+    title text NOT NULL,
+    description text NOT NULL,
+    published_at timestamptz
+);
+
+CREATE TABLE paper_schedules (
+    id int GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    label text NOT NULL,
+    minute_of_date integer NOT NULL CHECK (minute_of_date BETWEEN 0 AND 1439)
+);
+
+INSERT INTO paper_schedules (label, minute_of_date)
+VALUES ('Morning', 420), ('Afternoon', 780), ('Evening', 1140);
+
 INSERT INTO feeds (url, site_url, icon_url, title, description)
 VALUES
 (
