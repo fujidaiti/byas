@@ -42,21 +42,28 @@ func CollectJobs(ctx context.Context, db *sql.DB) ([]job, error) {
 	fmt.Printf("Prepare for next schedule: %s\n", next)
 
 	var lastIssue int
-	var cutoff time.Time
+	var lastPubDate time.Time
 	err = db.QueryRowContext(ctx, `
 		SELECT issue, published_at
 		FROM papers
 		ORDER BY published_at DESC
 		LIMIT 1;
-	`).Scan(&lastIssue, &cutoff)
+	`).Scan(&lastIssue, &lastPubDate)
 	if errors.Is(err, sql.ErrNoRows) {
 		// Falls back to the last schedule datetime if no paper is published yet.
-		cutoff = last
+		lastPubDate = last
 	} else if err != nil {
 		return nil, err
 	}
 
-	return []job{{db, lastIssue + 1, cutoff}}, nil
+	j := job{
+		db:      db,
+		issue:   lastIssue + 1,
+		pubDate: next,
+		cutoff:  lastPubDate,
+	}
+
+	return []job{j}, nil
 }
 
 // findScheduleSegment returns the nearest consecutive pair of datetime points
@@ -96,9 +103,10 @@ func findScheduleSegment(now time.Time, ss []time.Time) (last, next time.Time) {
 }
 
 type job struct {
-	db     *sql.DB
-	issue  int
-	cutoff time.Time
+	db      *sql.DB
+	issue   int
+	pubDate time.Time
+	cutoff  time.Time
 }
 
 func (j *job) Timeout() time.Duration {
@@ -155,7 +163,7 @@ func (j *job) Do(ctx context.Context) error {
 		INSERT INTO papers (issue, published_at)
 		VALUES ($1, $2)
 		RETURNING id;
-	`, j.issue, time.Now()).Scan(&paperID)
+	`, j.issue, j.pubDate).Scan(&paperID)
 	if err != nil {
 		return err
 	}
