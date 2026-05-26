@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"codeberg.org/readeck/go-readability/v2"
-	"github.com/fujidaiti/paperdoll/worker"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/mmcdole/gofeed"
@@ -31,16 +30,16 @@ type entryRecord struct {
 	publishedAt sql.NullTime
 }
 
-type refreshFeedJob struct {
+type job struct {
 	db   *sql.DB
 	feed feedRecord
 }
 
-func (j *refreshFeedJob) Timeout() time.Duration {
+func (j *job) Timeout() time.Duration {
 	return 30 * time.Second
 }
 
-func (j *refreshFeedJob) Do(ctx context.Context) error {
+func (j *job) Do(ctx context.Context) error {
 	feed, db := j.feed, j.db
 	fmt.Println("Fetching feed: ", feed.url)
 
@@ -99,42 +98,31 @@ func (j *refreshFeedJob) Do(ctx context.Context) error {
 	return nil
 }
 
-func FlushRefreshJobs(ctx context.Context, pool *worker.Pool, db *sql.DB) error {
+func CollectJobs(ctx context.Context, db *sql.DB) ([]job, error) {
 	// TODO: Create an index for next_poll_at column
 	rows, err := db.QueryContext(ctx, `
 		SELECT id, url
 		FROM feeds;
 	`)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer rows.Close()
 
-	var feeds []feedRecord
+	var jobs []job
 	for rows.Next() {
 		feed := feedRecord{}
 		err := rows.Scan(&feed.id, &feed.url)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		feeds = append(feeds, feed)
+		jobs = append(jobs, job{db, feed})
 	}
 	if err := rows.Err(); err != nil {
-		return err
+		return nil, err
 	}
 
-	if len(feeds) == 0 {
-		fmt.Println("No polling is scheduled.")
-		return nil
-	}
-
-	for _, feed := range feeds {
-		err := pool.Push(ctx, &refreshFeedJob{db, feed})
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	return jobs, nil
 }
 
 func normalizeEntry(entry *gofeed.Item, feedId int) entryRecord {

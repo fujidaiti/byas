@@ -8,14 +8,12 @@ import (
 	"slices"
 	"strings"
 	"time"
-
-	"github.com/fujidaiti/paperdoll/worker"
 )
 
-func FlushAssembleJobs(ctx context.Context, pool *worker.Pool, db *sql.DB) error {
+func CollectJobs(ctx context.Context, db *sql.DB) ([]job, error) {
 	rows, err := db.QueryContext(ctx, `SELECT minute_of_date FROM paper_schedules;`)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -27,19 +25,19 @@ func FlushAssembleJobs(ctx context.Context, pool *worker.Pool, db *sql.DB) error
 		var dt int
 		err := rows.Scan(&dt)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		schedules = append(schedules, midnight.Add(time.Duration(dt)*time.Minute))
 	}
 	if err := rows.Err(); err != nil {
-		return err
+		return nil, err
 	}
 
 	slices.SortFunc(schedules, time.Time.Compare)
 	last, next := findScheduleSegment(now, schedules)
 	if next.Sub(now) > 10*time.Minute {
 		fmt.Printf("Not yet close enough to the next schedule %s. Skipping.\n", next)
-		return nil
+		return []job{}, nil
 	}
 	fmt.Printf("Prepare for next schedule: %s\n", next)
 
@@ -55,11 +53,10 @@ func FlushAssembleJobs(ctx context.Context, pool *worker.Pool, db *sql.DB) error
 		// Falls back to the last schedule datetime if no paper is published yet.
 		cutoff = last
 	} else if err != nil {
-		return err
+		return nil, err
 	}
 
-	pool.Push(ctx, &assembleJob{db, lastIssue + 1, cutoff})
-	return nil
+	return []job{{db, lastIssue + 1, cutoff}}, nil
 }
 
 // findScheduleSegment returns the nearest consecutive pair of datetime points
@@ -98,13 +95,13 @@ func findScheduleSegment(now time.Time, ss []time.Time) (last, next time.Time) {
 	return
 }
 
-type assembleJob struct {
+type job struct {
 	db     *sql.DB
 	issue  int
 	cutoff time.Time
 }
 
-func (j *assembleJob) Timeout() time.Duration {
+func (j *job) Timeout() time.Duration {
 	return time.Minute
 }
 
@@ -115,7 +112,7 @@ type entryRecord struct {
 	publishedAt sql.NullTime
 }
 
-func (j *assembleJob) Do(ctx context.Context) error {
+func (j *job) Do(ctx context.Context) error {
 	fmt.Printf("Assembling a paper #%d (cutoff=%s)\n", j.issue, j.cutoff)
 	// Ignore entries without publish dates.
 	rows, err := j.db.QueryContext(ctx, `

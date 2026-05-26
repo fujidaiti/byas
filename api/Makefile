@@ -11,17 +11,9 @@ db-reset:
 	createdb $(DB_NAME)
 	$(MAKE) db-seed
 
-.PHONY: dev-poll
-dev-poll:
-	go run ./cmd/poll/*.go
-
-.PHONY: dev-scheduler
-dev-scheduler:
-	go run ./cmd/scheduler/*.go
-
-.PHONY: dev-assemble
-dev-assemble:
-	go run ./cmd/assemble/*.go
+.PHONY: dev-schedule
+dev-schedule:
+	go run ./cmd/main.go schedule
 
 .PHONY: build-linux-amd64
 build-linux-amd64:
