@@ -34,33 +34,29 @@ func CollectJobs(ctx context.Context, db *sql.DB) ([]job, error) {
 	}
 
 	slices.SortFunc(schedules, time.Time.Compare)
-	last, next := findScheduleSegment(now, schedules)
-	if next.Sub(now) > 10*time.Minute {
-		fmt.Printf("Not yet close enough to the next schedule %s. Skipping.\n", next)
+	lastSch, nextSch := findScheduleSegment(now, schedules)
+	if nextSch.Sub(now) > 10*time.Minute {
+		fmt.Printf("Not yet close enough to the next schedule %s. Skipping.\n", nextSch)
 		return []job{}, nil
 	}
-	fmt.Printf("Prepare for next schedule: %s\n", next)
+	fmt.Printf("Prepare for next schedule: %s\n", nextSch)
 
 	var lastIssue int
-	var lastPubDate time.Time
 	err = db.QueryRowContext(ctx, `
-		SELECT issue, published_at
+		SELECT issue
 		FROM papers
 		ORDER BY published_at DESC
 		LIMIT 1;
-	`).Scan(&lastIssue, &lastPubDate)
-	if errors.Is(err, sql.ErrNoRows) {
-		// Falls back to the last schedule datetime if no paper is published yet.
-		lastPubDate = last
-	} else if err != nil {
+	`).Scan(&lastIssue)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, err
 	}
 
 	j := job{
 		db:      db,
 		issue:   lastIssue + 1,
-		pubDate: next,
-		cutoff:  lastPubDate,
+		pubDate: nextSch,
+		cutoff:  lastSch,
 	}
 
 	return []job{j}, nil
