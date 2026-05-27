@@ -30,7 +30,7 @@ CREATE TABLE articles (
     entry_id bigint NOT NULL REFERENCES entries (id),
     paper_id bigint NOT NULL REFERENCES papers (id),
     title text NOT NULL,
-    description text NOT NULL,
+    description text,
     published_at timestamptz
 );
 
