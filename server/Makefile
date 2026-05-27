@@ -21,4 +21,4 @@ dev-serve:
 
 .PHONY: build-linux-amd64
 build-linux-amd64:
-	GOOS=linux GOARCH=amd64 go build -o build/paperdoll-linux-amd64 ./cmd/scheduler/*.go
+	GOOS=linux GOARCH=amd64 go build -o build/paperdoll-linux-amd64 ./cmd/main.go
