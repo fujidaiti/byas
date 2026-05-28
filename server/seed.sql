@@ -21,8 +21,8 @@ CREATE TABLE entries (
 
 CREATE TABLE papers (
     id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    issue integer NOT NULL UNIQUE,
-    published_at timestamptz NOT NULL
+    published_at timestamptz NOT NULL UNIQUE,
+    cutoff timestamptz NOT NULL
 );
 
 CREATE TABLE articles (

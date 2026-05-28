@@ -81,7 +81,6 @@ func (h *handler) getHealth(w http.ResponseWriter, _ *http.Request) {
 
 type getTodaysPaperResponse struct {
 	ID          int        `json:"id"`
-	Issue       int        `json:"issue"`
 	PublishedAt time.Time  `json:"published_at"`
 	Articles    []articles `json:"articles"`
 }
@@ -97,11 +96,11 @@ func (h *handler) getTodaysPaper(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	res := getTodaysPaperResponse{}
 	err := h.db.QueryRowContext(ctx, `
-		SELECT id, issue, published_at
+		SELECT id, published_at
 		FROM papers
 		ORDER BY published_at DESC
 		LIMIT 1;
-	`).Scan(&res.ID, &res.Issue, &res.PublishedAt)
+	`).Scan(&res.ID, &res.PublishedAt)
 	if err != nil {
 		serverError(w)
 		return
