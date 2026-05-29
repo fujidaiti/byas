@@ -102,7 +102,7 @@ func (h *handler) getTodaysPaper(w http.ResponseWriter, r *http.Request) {
 		LIMIT 1;
 	`).Scan(&res.ID, &res.PublishedAt)
 	if err != nil {
-		serverError(w)
+		serverError(w, http.StatusInternalServerError, "Failed to fetch today's paper.")
 		return
 	}
 
@@ -113,26 +113,29 @@ func (h *handler) getTodaysPaper(w http.ResponseWriter, r *http.Request) {
 		ORDER BY published_at DESC;
 	`, res.ID)
 	if err != nil {
-		serverError(w)
+		serverError(
+			w, http.StatusInternalServerError,
+			fmt.Sprintf("Failed to fetch articles for the paper (ID=%d).", res.ID),
+		)
 		return
 	}
 	for rows.Next() {
 		a := articles{}
 		err := rows.Scan(&a.ID, &a.Title, &a.Description, &a.PublishedAt)
 		if err != nil {
-			serverError(w)
+			serverError(w, http.StatusInternalServerError, "Failed to parse an article.")
 			return
 		}
 		res.Articles = append(res.Articles, a)
 	}
 	if err := rows.Err(); err != nil {
-		serverError(w)
+		serverError(w, http.StatusInternalServerError, "Failed to parse articles.")
 		return
 	}
 
 	jres, err := json.Marshal(res)
 	if err != nil {
-		serverError(w)
+		serverError(w, http.StatusInternalServerError, "Failed to construct a JSON response.")
 		return
 	}
 
@@ -141,6 +144,16 @@ func (h *handler) getTodaysPaper(w http.ResponseWriter, r *http.Request) {
 	w.Write(jres)
 }
 
-func serverError(w http.ResponseWriter) {
-	http.Error(w, "Something went wrong...", http.StatusInternalServerError)
+func serverError(w http.ResponseWriter, statusCode int, msg string) {
+	res, err := json.Marshal(map[string]any{
+		"message": msg,
+	})
+	if err != nil {
+		http.Error(w, msg, http.StatusInternalServerError)
+	} else {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(statusCode)
+		w.Write(res)
+	}
+
 }
