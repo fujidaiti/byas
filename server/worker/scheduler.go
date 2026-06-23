@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/fujidaiti/paperdoll/feature/feed"
-	"github.com/fujidaiti/paperdoll/feature/paper"
+	"github.com/fujidaiti/paperdoll/feature/newspaper"
 	"github.com/go-co-op/gocron/v2"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -79,7 +79,7 @@ func StartScheduler(ctx context.Context) {
 	_, err = scheduler.NewJob(
 		gocron.DurationJob(5*time.Minute),
 		gocron.NewTask(func() {
-			jobs, err := paper.CollectJobs(ctx, db)
+			jobs, err := newspaper.CollectJobs(ctx, db)
 			if err != nil {
 				fmt.Println(err)
 			}

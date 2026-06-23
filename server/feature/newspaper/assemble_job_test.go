@@ -1,4 +1,4 @@
-package paper
+package newspaper
 
 import (
 	"testing"

@@ -36,7 +36,7 @@ func StartServer(ctx context.Context) {
 	h := &handler{db}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", h.getHealth)
-	mux.HandleFunc("GET /papers/today", h.getTodaysPaper)
+	mux.HandleFunc("GET /newspapers/today", h.getTodaysNewspaper)
 
 	srv := http.Server{
 		Addr:    ":8080",
@@ -79,7 +79,7 @@ func (h *handler) getHealth(w http.ResponseWriter, _ *http.Request) {
 	w.Write([]byte("Feeling good!"))
 }
 
-type getTodaysPaperResponse struct {
+type getTodaysNewspaperResponse struct {
 	ID          int       `json:"id"`
 	PublishedAt time.Time `json:"published_at"`
 	Stories     []stories `json:"stories"`
@@ -92,30 +92,30 @@ type stories struct {
 	PublishedAt *time.Time `json:"published_at,omitempty"`
 }
 
-func (h *handler) getTodaysPaper(w http.ResponseWriter, r *http.Request) {
+func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	res := getTodaysPaperResponse{}
+	res := getTodaysNewspaperResponse{}
 	err := h.db.QueryRowContext(ctx, `
 		SELECT id, published_at
-		FROM papers
+		FROM newspapers
 		ORDER BY published_at DESC
 		LIMIT 1;
 	`).Scan(&res.ID, &res.PublishedAt)
 	if err != nil {
-		serverError(w, http.StatusInternalServerError, "Failed to fetch today's paper.")
+		serverError(w, http.StatusInternalServerError, "Failed to fetch today's newspaper.")
 		return
 	}
 
 	rows, err := h.db.QueryContext(ctx, `
 		SELECT id, title, description, published_at
 		FROM stories
-		WHERE paper_id = $1
+		WHERE newspaper_id = $1
 		ORDER BY published_at DESC;
 	`, res.ID)
 	if err != nil {
 		serverError(
 			w, http.StatusInternalServerError,
-			fmt.Sprintf("Failed to fetch stories for the paper (ID=%d).", res.ID),
+			fmt.Sprintf("Failed to fetch stories for the newspaper (ID=%d).", res.ID),
 		)
 		return
 	}

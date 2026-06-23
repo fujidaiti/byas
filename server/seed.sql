@@ -19,7 +19,7 @@ CREATE TABLE entries (
     published_at timestamptz
 );
 
-CREATE TABLE papers (
+CREATE TABLE newspapers (
     id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     published_at timestamptz NOT NULL UNIQUE,
     cutoff timestamptz NOT NULL
@@ -28,19 +28,20 @@ CREATE TABLE papers (
 CREATE TABLE stories (
     id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     entry_id bigint NOT NULL REFERENCES entries (id),
-    paper_id bigint NOT NULL REFERENCES papers (id),
+    newspaper_id bigint NOT NULL REFERENCES newspapers (id),
     title text NOT NULL,
     description text,
     published_at timestamptz
 );
 
-CREATE TABLE paper_schedules (
+CREATE TABLE newspaper_schedules (
     id int GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     label text NOT NULL,
+    -- 1439min = 60min * 24h - 1min = 23h 59min
     minute_of_date integer NOT NULL CHECK (minute_of_date BETWEEN 0 AND 1439)
 );
 
-INSERT INTO paper_schedules (label, minute_of_date)
+INSERT INTO newspaper_schedules (label, minute_of_date)
 VALUES ('Morning', 420), ('Afternoon', 780), ('Evening', 1140);
 
 INSERT INTO feeds (url, site_url, icon_url, title, description)

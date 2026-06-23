@@ -1,4 +1,4 @@
-package paper
+package newspaper
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 )
 
 func CollectJobs(ctx context.Context, db *sql.DB) ([]job, error) {
-	rows, err := db.QueryContext(ctx, `SELECT minute_of_date FROM paper_schedules;`)
+	rows, err := db.QueryContext(ctx, `SELECT minute_of_date FROM newspaper_schedules;`)
 	if err != nil {
 		return nil, err
 	}
@@ -44,22 +44,22 @@ func CollectJobs(ctx context.Context, db *sql.DB) ([]job, error) {
 	}
 	fmt.Printf("Prepare for next schedule: %s\n", nextSch)
 
-	var paperID int
+	var newspaperID int
 	err = db.QueryRowContext(ctx, `
-		INSERT INTO papers (published_at, cutoff)
+		INSERT INTO newspapers (published_at, cutoff)
 		VALUES ($1, $2)
 		ON CONFLICT (published_at) DO NOTHING
 		RETURNING id;
-	`, nextSch, lastSch).Scan(&paperID)
+	`, nextSch, lastSch).Scan(&newspaperID)
 	if errors.Is(err, sql.ErrNoRows) {
-		// TODO: Handle the case where a record exists but the paper was not assembled due to a server outage.
-		fmt.Printf("The paper for %s already exists or is being assembled. Skipping.\n", nextSch)
+		// TODO: Handle the case where a record exists but the newspaper was not assembled due to a server outage.
+		fmt.Printf("The newspaper for %s already exists or is being assembled. Skipping.\n", nextSch)
 		return []job{}, nil
 	} else if err != nil {
 		return nil, err
 	}
 
-	return []job{{db, paperID, lastSch}}, nil
+	return []job{{db, newspaperID, lastSch}}, nil
 }
 
 // findScheduleSegment returns the nearest consecutive pair of datetime points
@@ -99,9 +99,9 @@ func findScheduleSegment(now time.Time, ss []time.Time) (last, next time.Time) {
 }
 
 type job struct {
-	db      *sql.DB
-	paperID int
-	cutoff  time.Time
+	db          *sql.DB
+	newspaperID int
+	cutoff      time.Time
 }
 
 func (j *job) Timeout() time.Duration {
@@ -116,15 +116,15 @@ type entryRecord struct {
 }
 
 func (j *job) Do(ctx context.Context) error {
-	fmt.Printf("Assembling a paper (ID=%d, cutoff=%s)\n", j.paperID, j.cutoff)
+	fmt.Printf("Assembling a newspaper (ID=%d, cutoff=%s)\n", j.newspaperID, j.cutoff)
 	err := writeStories(ctx, j)
 	if err == nil {
 		return nil
 	}
-	fmt.Printf("Something went wrong while assembling a paper (ID=%d). Deleting.\n", j.paperID)
+	fmt.Printf("Something went wrong while assembling a newspaper (ID=%d). Deleting.\n", j.newspaperID)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	_, dErr := j.db.ExecContext(ctx, `DELETE FROM papers WHERE id = $1;`, j.paperID)
+	_, dErr := j.db.ExecContext(ctx, `DELETE FROM newspapers WHERE id = $1;`, j.newspaperID)
 	if dErr != nil {
 		return fmt.Errorf("%w; cleanup failed: %w", err, dErr)
 	}
@@ -157,7 +157,7 @@ func writeStories(ctx context.Context, j *job) error {
 		return err
 	}
 	if len(entries) == 0 {
-		return fmt.Errorf("No stories for the paper ID=%d. Skipping.", j.paperID)
+		return fmt.Errorf("No stories for the newspaper ID=%d. Skipping.", j.newspaperID)
 	}
 	fmt.Printf("New stories: %d\n", len(entries))
 
@@ -166,10 +166,10 @@ func writeStories(ctx context.Context, j *job) error {
 	for i, entry := range entries {
 		k := i * 5
 		vals = append(vals, fmt.Sprintf("($%d, $%d, $%d, $%d, $%d)", k+1, k+2, k+3, k+4, k+5))
-		args = append(args, j.paperID, entry.id, entry.title, entry.description, entry.publishedAt)
+		args = append(args, j.newspaperID, entry.id, entry.title, entry.description, entry.publishedAt)
 	}
 	_, err = j.db.ExecContext(ctx, fmt.Sprintf(`
-			INSERT INTO stories (paper_id, entry_id, title, description, published_at)
+			INSERT INTO stories (newspaper_id, entry_id, title, description, published_at)
 			VALUES %s;
 		`, strings.Join(vals, ",")), args...)
 	if err != nil {
