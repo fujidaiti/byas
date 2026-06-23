@@ -117,7 +117,7 @@ type entryRecord struct {
 
 func (j *job) Do(ctx context.Context) error {
 	fmt.Printf("Assembling a paper (ID=%d, cutoff=%s)\n", j.paperID, j.cutoff)
-	err := writeArticles(ctx, j)
+	err := writeStories(ctx, j)
 	if err == nil {
 		return nil
 	}
@@ -131,7 +131,7 @@ func (j *job) Do(ctx context.Context) error {
 	return err
 }
 
-func writeArticles(ctx context.Context, j *job) error {
+func writeStories(ctx context.Context, j *job) error {
 	// Ignore entries without publish dates.
 	rows, err := j.db.QueryContext(ctx, `
 		SELECT id, title, description, published_at
@@ -157,9 +157,9 @@ func writeArticles(ctx context.Context, j *job) error {
 		return err
 	}
 	if len(entries) == 0 {
-		return fmt.Errorf("No articles for the paper ID=%d. Skipping.", j.paperID)
+		return fmt.Errorf("No stories for the paper ID=%d. Skipping.", j.paperID)
 	}
-	fmt.Printf("New articles: %d\n", len(entries))
+	fmt.Printf("New stories: %d\n", len(entries))
 
 	var vals []string
 	var args []any
@@ -169,7 +169,7 @@ func writeArticles(ctx context.Context, j *job) error {
 		args = append(args, j.paperID, entry.id, entry.title, entry.description, entry.publishedAt)
 	}
 	_, err = j.db.ExecContext(ctx, fmt.Sprintf(`
-			INSERT INTO articles (paper_id, entry_id, title, description, published_at)
+			INSERT INTO stories (paper_id, entry_id, title, description, published_at)
 			VALUES %s;
 		`, strings.Join(vals, ",")), args...)
 	if err != nil {

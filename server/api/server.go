@@ -80,12 +80,12 @@ func (h *handler) getHealth(w http.ResponseWriter, _ *http.Request) {
 }
 
 type getTodaysPaperResponse struct {
-	ID          int        `json:"id"`
-	PublishedAt time.Time  `json:"published_at"`
-	Articles    []articles `json:"articles"`
+	ID          int       `json:"id"`
+	PublishedAt time.Time `json:"published_at"`
+	Stories     []stories `json:"stories"`
 }
 
-type articles struct {
+type stories struct {
 	ID          int        `json:"id"`
 	Title       string     `json:"title"`
 	Description *string    `json:"description,omitempty"`
@@ -108,28 +108,28 @@ func (h *handler) getTodaysPaper(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := h.db.QueryContext(ctx, `
 		SELECT id, title, description, published_at
-		FROM articles
+		FROM stories
 		WHERE paper_id = $1
 		ORDER BY published_at DESC;
 	`, res.ID)
 	if err != nil {
 		serverError(
 			w, http.StatusInternalServerError,
-			fmt.Sprintf("Failed to fetch articles for the paper (ID=%d).", res.ID),
+			fmt.Sprintf("Failed to fetch stories for the paper (ID=%d).", res.ID),
 		)
 		return
 	}
 	for rows.Next() {
-		a := articles{}
+		a := stories{}
 		err := rows.Scan(&a.ID, &a.Title, &a.Description, &a.PublishedAt)
 		if err != nil {
-			serverError(w, http.StatusInternalServerError, "Failed to parse an article.")
+			serverError(w, http.StatusInternalServerError, "Failed to parse a story.")
 			return
 		}
-		res.Articles = append(res.Articles, a)
+		res.Stories = append(res.Stories, a)
 	}
 	if err := rows.Err(); err != nil {
-		serverError(w, http.StatusInternalServerError, "Failed to parse articles.")
+		serverError(w, http.StatusInternalServerError, "Failed to parse stories.")
 		return
 	}
 
@@ -155,5 +155,4 @@ func serverError(w http.ResponseWriter, statusCode int, msg string) {
 		w.WriteHeader(statusCode)
 		w.Write(res)
 	}
-
 }

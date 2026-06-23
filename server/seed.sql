@@ -25,7 +25,7 @@ CREATE TABLE papers (
     cutoff timestamptz NOT NULL
 );
 
-CREATE TABLE articles (
+CREATE TABLE stories (
     id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     entry_id bigint NOT NULL REFERENCES entries (id),
     paper_id bigint NOT NULL REFERENCES papers (id),
