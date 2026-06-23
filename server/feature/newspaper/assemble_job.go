@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"strings"
 	"time"
 )
 
@@ -37,29 +36,29 @@ func CollectJobs(ctx context.Context, db *sql.DB) ([]job, error) {
 	}
 
 	slices.SortFunc(schedules, time.Time.Compare)
-	lastSch, nextSch := findScheduleSegment(now, schedules)
-	if nextSch.Sub(now) > 10*time.Minute {
-		fmt.Printf("Not yet close enough to the next schedule %s. Skipping.\n", nextSch)
+	_, pubDate := findScheduleSegment(now, schedules)
+	if pubDate.Sub(now) > 10*time.Minute {
+		fmt.Printf("Not yet close enough to the next schedule %s. Skipping.\n", pubDate)
 		return []job{}, nil
 	}
-	fmt.Printf("Prepare for next schedule: %s\n", nextSch)
+	fmt.Printf("Prepare for next schedule: %s\n", pubDate)
 
 	var newspaperID int
 	err = db.QueryRowContext(ctx, `
-		INSERT INTO newspapers (published_at, cutoff)
-		VALUES ($1, $2)
+		INSERT INTO newspapers (draft, published_at)
+		VALUES (TRUE, $1)
 		ON CONFLICT (published_at) DO NOTHING
 		RETURNING id;
-	`, nextSch, lastSch).Scan(&newspaperID)
+	`, pubDate).Scan(&newspaperID)
 	if errors.Is(err, sql.ErrNoRows) {
 		// TODO: Handle the case where a record exists but the newspaper was not assembled due to a server outage.
-		fmt.Printf("The newspaper for %s already exists or is being assembled. Skipping.\n", nextSch)
+		fmt.Printf("The newspaper for %s already exists or is being assembled. Skipping.\n", pubDate)
 		return []job{}, nil
 	} else if err != nil {
 		return nil, err
 	}
 
-	return []job{{db, newspaperID, lastSch}}, nil
+	return []job{{db, newspaperID}}, nil
 }
 
 // findScheduleSegment returns the nearest consecutive pair of datetime points
@@ -101,27 +100,23 @@ func findScheduleSegment(now time.Time, ss []time.Time) (last, next time.Time) {
 type job struct {
 	db          *sql.DB
 	newspaperID int
-	cutoff      time.Time
 }
 
 func (j *job) Timeout() time.Duration {
 	return time.Minute
 }
 
-type entryRecord struct {
-	id          int
-	title       string
-	description sql.NullString
-	publishedAt sql.NullTime
-}
-
 func (j *job) Do(ctx context.Context) error {
-	fmt.Printf("Assembling a newspaper (ID=%d, cutoff=%s)\n", j.newspaperID, j.cutoff)
-	err := writeStories(ctx, j)
-	if err == nil {
+	fmt.Printf("Assembling newspaper (ID=%d)\n", j.newspaperID)
+	n, err := j.assembleAndPublish(ctx)
+	if err != nil {
+		fmt.Println("Something went wrong while assembling. Deleting.")
+	} else if n == 0 {
+		fmt.Println("No stories found to publish. Skipping.")
+	} else {
 		return nil
 	}
-	fmt.Printf("Something went wrong while assembling a newspaper (ID=%d). Deleting.\n", j.newspaperID)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	_, dErr := j.db.ExecContext(ctx, `DELETE FROM newspapers WHERE id = $1;`, j.newspaperID)
@@ -131,51 +126,34 @@ func (j *job) Do(ctx context.Context) error {
 	return err
 }
 
-func writeStories(ctx context.Context, j *job) error {
-	// Ignore entries without publish dates.
-	rows, err := j.db.QueryContext(ctx, `
-		SELECT id, title, description, published_at
-		FROM entries
-		WHERE published_at > $1
-		ORDER BY published_at;
-	`, j.cutoff)
+func (j *job) assembleAndPublish(ctx context.Context) (int64, error) {
+	tx, err := j.db.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	defer rows.Close()
+	defer tx.Rollback()
 
-	var entries []entryRecord
-	for rows.Next() {
-		e := entryRecord{}
-		err := rows.Scan(&e.id, &e.title, &e.description, &e.publishedAt)
-		if err != nil {
-			return err
-		}
-		entries = append(entries, e)
-	}
-	if err := rows.Err(); err != nil {
-		return err
-	}
-	if len(entries) == 0 {
-		return fmt.Errorf("No stories for the newspaper ID=%d. Skipping.", j.newspaperID)
-	}
-	fmt.Printf("New stories: %d\n", len(entries))
-
-	var vals []string
-	var args []any
-	for i, entry := range entries {
-		k := i * 5
-		vals = append(vals, fmt.Sprintf("($%d, $%d, $%d, $%d, $%d)", k+1, k+2, k+3, k+4, k+5))
-		args = append(args, j.newspaperID, entry.id, entry.title, entry.description, entry.publishedAt)
-	}
-	_, err = j.db.ExecContext(ctx, fmt.Sprintf(`
-			INSERT INTO stories (newspaper_id, entry_id, title, description, published_at)
-			VALUES %s;
-		`, strings.Join(vals, ",")), args...)
+	res, err := tx.ExecContext(ctx, `
+		UPDATE stories
+		SET newspaper_id = $1
+		WHERE newspaper_id IS NULL;
+	`, j.newspaperID)
 	if err != nil {
-		return err
+		return 0, err
+	}
+	n, err := res.RowsAffected()
+	if err != nil || n <= 0 {
+		return n, err
 	}
 
-	return nil
-
+	_, err = tx.ExecContext(ctx, `
+		UPDATE newspapers
+		SET draft = FALSE
+		WHERE id = $1;
+	`, j.newspaperID)
+	if err != nil {
+		return n, err
+	}
+	err = tx.Commit()
+	return n, err
 }

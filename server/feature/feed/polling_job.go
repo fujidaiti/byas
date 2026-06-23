@@ -82,17 +82,49 @@ func (j *job) Do(ctx context.Context) error {
 	sql := fmt.Sprintf(`
 		INSERT INTO entries (dedup_key, feed_id, url, title, description, snapshot_at, published_at)
 		VALUES %s
-		ON CONFLICT (dedup_key) DO NOTHING;
+		ON CONFLICT (dedup_key) DO NOTHING
+		RETURNING id, dedup_key, feed_id, url, title, description, published_at;
 	`, strings.Join(vals, ","))
-	_, err = db.ExecContext(ctx, sql, args...)
+	rows, err := db.QueryContext(ctx, sql, args...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	var newEntries []entryRecord
+	for rows.Next() {
+		e := entryRecord{}
+		err := rows.Scan(&e.id, &e.dedupKey, &e.feedId, &e.url, &e.title, &e.description, &e.publishedAt)
+		if err != nil {
+			return err
+		}
+		newEntries = append(newEntries, e)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	if len(newEntries) == 0 {
+		fmt.Printf("No new entry from %s, skipping.\n", feed.url)
+		return nil
+	}
+
+	err = writeStories(ctx, newEntries, j.db)
 	if err != nil {
 		return err
 	}
 
 	// TODO: Mark the entry as queued in DB to avoid duplicate jobs for the same entry
-	err = refreshEntryContent(ctx, feed, db)
-	if err != nil {
-		return err
+	for _, e := range newEntries {
+		fmt.Printf("Fetching content for %s\n", e.url)
+		st := time.Now()
+		err := fetchContent(ctx, e, db)
+		if err != nil {
+			return err
+		}
+		// TODO: Respect Crawl-delay in robot.txt
+		if dt := time.Since(st); dt < 2*time.Second {
+			time.Sleep(time.Second - dt)
+		}
 	}
 
 	return nil
@@ -152,44 +184,21 @@ func normalizeEntry(entry *gofeed.Item, feedId int) entryRecord {
 	return e
 }
 
-func refreshEntryContent(ctx context.Context, feed feedRecord, db *sql.DB) error {
-	rows, err := db.QueryContext(ctx, `
-		SELECT id, url
-		FROM entries
-		WHERE feed_id = $1 AND content IS NULL;
-	`, feed.id)
+func writeStories(ctx context.Context, entries []entryRecord, db *sql.DB) error {
+	var vals []string
+	var args []any
+	for i, entry := range entries {
+		k := i * 4
+		vals = append(vals, fmt.Sprintf("($%d, $%d, $%d, $%d)", k+1, k+2, k+3, k+4))
+		args = append(args, entry.id, entry.title, entry.description, entry.publishedAt)
+	}
+	_, err := db.ExecContext(ctx, fmt.Sprintf(`
+			INSERT INTO stories (entry_id, title, description, published_at)
+			VALUES %s;
+		`, strings.Join(vals, ",")), args...)
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
-
-	var entries []entryRecord
-	for rows.Next() {
-		entry := entryRecord{}
-		rows.Scan(&entry.id, &entry.url)
-		entries = append(entries, entry)
-	}
-	if err := rows.Err(); err != nil {
-		return err
-	}
-	if len(entries) == 0 {
-		fmt.Println("No new entries from ", feed.url)
-		return nil
-	}
-
-	for _, entry := range entries {
-		fmt.Printf("Fetching content for %s\n", entry.url)
-		st := time.Now()
-		err := fetchContent(ctx, entry, db)
-		if err != nil {
-			return err
-		}
-		// TODO: Respect Crawl-delay in robot.txt
-		if dt := time.Since(st); dt < 2*time.Second {
-			time.Sleep(time.Second - dt)
-		}
-	}
-
 	return nil
 }
 

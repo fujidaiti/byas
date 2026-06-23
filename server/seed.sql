@@ -22,13 +22,13 @@ CREATE TABLE entries (
 CREATE TABLE newspapers (
     id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     published_at timestamptz NOT NULL UNIQUE,
-    cutoff timestamptz NOT NULL
+    draft boolean NOT NULL DEFAULT true
 );
 
 CREATE TABLE stories (
     id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     entry_id bigint NOT NULL REFERENCES entries (id),
-    newspaper_id bigint NOT NULL REFERENCES newspapers (id),
+    newspaper_id bigint REFERENCES newspapers (id),
     title text NOT NULL,
     description text,
     published_at timestamptz
@@ -63,199 +63,199 @@ VALUES
 (
     'https://feeds.cnn.co.jp/rss/cnn/cnn.rdf',
     'https://www.cnn.co.jp',
-    NULL,
+    null,
     '国際ニュース - CNN.co.jp',
     'CNN.co.jpはCNN.com日本語訳サイトです'
 ),
 (
     'https://news.mit.edu/rss/topic/philosophy',
-    NULL,
-    NULL,
+    null,
+    null,
     'MIT News - Philosophy | Ethics | Metaphysics',
-    NULL
+    null
 ),
-('https://research.swtch.com/feed.atom', NULL, NULL, 'research!rsc', NULL),
+('https://research.swtch.com/feed.atom', null, null, 'research!rsc', null),
 (
     'https://www.wheresyoured.at/rss/',
     'https://www.wheresyoured.at/',
-    NULL,
+    null,
     'Ed Zitron''s Where''s Your Ed At',
-    NULL
+    null
 ),
 (
     'https://www.youtube.com/feeds/videos.xml?playlist_id=UULFrDwWp7EBBv4NwvScIpBDOA',
-    NULL,
-    NULL,
+    null,
+    null,
     'Anthropic-YouTube',
-    NULL
+    null
 ),
 (
     'https://blog.samaltman.com/posts.atom',
     'https://blog.samaltman.com',
-    NULL,
+    null,
     'Sam Altman',
-    NULL
+    null
 ),
 (
     'https://api.reddit.com/subreddit/Vulfpeck',
     'https://www.reddit.com/r/Vulfpeck/new',
-    NULL,
+    null,
     'r/Vulfpeck',
-    NULL
+    null
 ),
 (
     'https://news.mit.edu/topic/mitartificial-intelligence2-rss.xml',
-    NULL,
-    NULL,
+    null,
+    null,
     'MIT News - Artificial intelligence',
-    NULL
+    null
 ),
 (
     'https://github.blog/changelog/rss',
     'https://github.blog/changelog/',
-    NULL,
+    null,
     'Archive: 2026 - GitHub Changelog',
-    NULL
+    null
 ),
 (
     'http://9to5google.com/feed/',
     'https://9to5google.com/',
-    NULL,
+    null,
     '9to5Google',
-    NULL
+    null
 ),
 (
     'https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_research.xml',
     'https://www.anthropic.com/research',
-    NULL,
+    null,
     'Anthropic Research',
-    NULL
+    null
 ),
 (
     'https://www.technologyreview.jp/feed/',
     'https://www.technologyreview.jp',
-    NULL,
+    null,
     'MITテクノロジーレビュー',
-    NULL
+    null
 ),
 (
     'https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/dynamodbupdates.rss',
     'https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/',
-    NULL,
+    null,
     'Amazon DynamoDB Developer Guide Updates',
-    NULL
+    null
 ),
 (
     'https://www.youtube.com/feeds/videos.xml?channel_id=UCrDwWp7EBBv4NwvScIpBDOA',
     'https://www.youtube.com/channel/UCrDwWp7EBBv4NwvScIpBDOA',
-    NULL,
+    null,
     'Anthropic',
-    NULL
+    null
 ),
 (
     'http://hnrss.org/newest?points=100',
     'https://news.ycombinator.com/newest',
-    NULL,
+    null,
     'Hacker News: Newest',
-    NULL
+    null
 ),
 (
     'https://joisino.hatenablog.com/feed',
     'https://joisino.hatenablog.com/',
-    NULL,
+    null,
     'ｼﾞｮｲｼﾞｮｲｼﾞｮｲ',
-    NULL
+    null
 ),
 (
     'http://googleblog.blogspot.com/atom.xml',
     'https://blog.google/',
-    NULL,
+    null,
     'The Official Google Blog',
-    NULL
+    null
 ),
 (
     'https://blog.openai.com/rss/',
     'https://blog.openai.com',
-    NULL,
+    null,
     'OpenAI',
-    NULL
+    null
 ),
 (
     'http://www.androidcentral.com/feed',
     'https://www.androidcentral.com',
-    NULL,
+    null,
     'Latest from Android Central',
-    NULL
+    null
 ),
 (
     'https://www.youtube.com/feeds/videos.xml?channel_id=UCXZCJLdBC09xxGZ6gcdrc6A',
     'https://www.youtube.com/channel/UCXZCJLdBC09xxGZ6gcdrc6A',
-    NULL,
+    null,
     'OpenAI',
-    NULL
+    null
 ),
 (
     'http://www.technologyreview.com/computing/rss/',
     'https://www.technologyreview.com',
-    NULL,
+    null,
     'Computing – MIT Technology Review',
-    NULL
+    null
 ),
-('http://9to5mac.com/feed/', 'https://9to5mac.com/', NULL, '9to5Mac', NULL),
+('http://9to5mac.com/feed/', 'https://9to5mac.com/', null, '9to5Mac', null),
 (
     'http://www.macrumors.com/macrumors.xml',
     'https://www.macrumors.com',
-    NULL,
+    null,
     'MacRumors',
-    NULL
+    null
 ),
 (
     'https://github.com/blog/all.atom',
     'https://github.blog/',
-    NULL,
+    null,
     'The GitHub Blog',
-    NULL
+    null
 ),
 (
     'http://iosdevweekly.com/issues.rss',
     'https://main--iosdevweekly.netlify.app/',
-    NULL,
+    null,
     'iOS Dev Weekly',
-    NULL
+    null
 ),
 (
     'https://www.youtube.com/feeds/videos.xml?channel_id=UCwXdFgeE9KYzlDdR7TG9cMw',
     'https://www.youtube.com/channel/UCwXdFgeE9KYzlDdR7TG9cMw',
-    NULL,
+    null,
     'Flutter',
-    NULL
+    null
 ),
 (
     'https://dart.dev/blog/feed.xml',
     'https://dart.dev/blog',
-    NULL,
+    null,
     'The Dart Blog',
     'Dart is an approachable, portable, and productive language for high-quality apps on any platform.'
 ),
-('https://blog.golang.org/feed.atom', NULL, NULL, 'The Go Blog', NULL),
+('https://blog.golang.org/feed.atom', null, null, 'The Go Blog', null),
 (
     'https://github.com/flutter/flutter/releases.atom',
     'https://github.com/flutter/flutter/releases',
-    NULL,
+    null,
     'Release notes from flutter',
-    NULL
+    null
 ),
 (
     'https://zenn.dev/schroneko/feed',
     'https://zenn.dev/schroneko',
-    NULL,
+    null,
     'ぬこぬこさんのフィード',
-    NULL
+    null
 ),
 (
     'https://medium.com/feed/flutter-io',
     'https://blog.flutter.dev/',
-    NULL,
+    null,
     'Flutter - Medium',
-    NULL
+    null
 );
