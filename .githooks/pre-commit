@@ -10,3 +10,10 @@ fi
 
 gofmt -w $go_files
 git add -- $go_files
+
+# Build and vet the server module to catch errors before committing.
+(
+  cd server
+  go build ./...
+  go vet ./...
+)
