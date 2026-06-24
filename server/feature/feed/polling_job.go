@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"codeberg.org/readeck/go-readability/v2"
+	"github.com/fujidaiti/paperdoll/feature/newspaper"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/mmcdole/gofeed"
@@ -110,7 +111,9 @@ func (j *job) Do(ctx context.Context) error {
 
 	err = writeStories(ctx, newEntries, j.db)
 	if err != nil {
-		return err
+		fmt.Printf("Something went wrong while writing stories: %s\n", err)
+		// Fail-soft: we don't terminate the processing here
+		// as the subsequent step has nothing to do with the stories.
 	}
 
 	// TODO: Mark the entry as queued in DB to avoid duplicate jobs for the same entry
@@ -184,22 +187,28 @@ func normalizeEntry(entry *gofeed.Item, feedId int) entryRecord {
 	return e
 }
 
-func writeStories(ctx context.Context, entries []entryRecord, db *sql.DB) error {
-	var vals []string
-	var args []any
-	for i, entry := range entries {
-		k := i * 4
-		vals = append(vals, fmt.Sprintf("($%d, $%d, $%d, $%d)", k+1, k+2, k+3, k+4))
-		args = append(args, entry.id, entry.title, entry.description, entry.publishedAt)
+func writeStories(ctx context.Context, es []entryRecord, db *sql.DB) error {
+	var ss []newspaper.Story
+	for _, e := range es {
+		var pubDate time.Time
+		if e.publishedAt.Valid {
+			pubDate = e.publishedAt.Time
+		}
+		var desc string
+		if e.description.Valid {
+			desc = e.description.String
+		}
+		s, err := newspaper.DraftStory(e.title, desc, e.id, pubDate)
+		if err != nil {
+			fmt.Printf("Cannot write a story from this entry ID=%d. Skipping.\n", e.id)
+		} else {
+			ss = append(ss, s)
+		}
 	}
-	_, err := db.ExecContext(ctx, fmt.Sprintf(`
-			INSERT INTO stories (entry_id, title, description, published_at)
-			VALUES %s;
-		`, strings.Join(vals, ",")), args...)
-	if err != nil {
-		return err
+	if len(ss) == 0 {
+		return nil
 	}
-	return nil
+	return newspaper.SubmitStories(ctx, ss, db)
 }
 
 const contentTemplate = `
