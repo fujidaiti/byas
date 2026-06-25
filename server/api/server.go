@@ -148,8 +148,8 @@ func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 }
 
 type getStoryResponse struct {
-	Type string               `json:"type"`
-	Data getFeedEntryResponse `json:"data"`
+	Type string    `json:"type"`
+	Data feedEntry `json:"data"`
 }
 
 func (h *handler) getStory(w http.ResponseWriter, r *http.Request) {
@@ -186,7 +186,7 @@ func (h *handler) getStory(w http.ResponseWriter, r *http.Request) {
 	w.Write(jres)
 }
 
-type getFeedEntryResponse struct {
+type feedEntry struct {
 	ID          int        `json:"id"`
 	URL         string     `json:"url"`
 	FeedID      int        `json:"feed_id"`
@@ -195,6 +195,10 @@ type getFeedEntryResponse struct {
 	Content     *string    `json:"content"`
 	PublishedAt *time.Time `json:"published_at"`
 	SnapshotAt  *time.Time `json:"snapshot_at"`
+}
+
+type getFeedEntryResponse struct {
+	feedEntry
 }
 
 func (h *handler) getFeedEntry(w http.ResponseWriter, r *http.Request) {
