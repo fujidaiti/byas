@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -37,6 +38,7 @@ func StartServer(ctx context.Context) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", h.getHealth)
 	mux.HandleFunc("GET /newspapers/today", h.getTodaysNewspaper)
+	mux.HandleFunc("GET /feeds/entries/{id}", h.getFeedEntry)
 
 	srv := http.Server{
 		Addr:    ":8080",
@@ -130,6 +132,51 @@ func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := rows.Err(); err != nil {
 		serverError(w, http.StatusInternalServerError, "Failed to parse stories.")
+		return
+	}
+
+	jres, err := json.Marshal(res)
+	if err != nil {
+		serverError(w, http.StatusInternalServerError, "Failed to construct a JSON response.")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(jres)
+}
+
+type getFeedEntryResponse struct {
+	ID          int        `json:"id"`
+	URL         string     `json:"url"`
+	FeedID      int        `json:"feed_id"`
+	Title       string     `json:"title"`
+	Description *string    `json:"description"`
+	Content     *string    `json:"content"`
+	PublishedAt *time.Time `json:"published_at"`
+	SnapshotAt  *time.Time `json:"snapshot_at"`
+}
+
+func (h *handler) getFeedEntry(w http.ResponseWriter, r *http.Request) {
+	rawId := r.PathValue("id")
+	id, err := strconv.Atoi(rawId)
+	if err != nil {
+		serverError(w, http.StatusBadRequest, fmt.Sprintf("Invalid entry ID: %s", rawId))
+		return
+	}
+
+	ctx := r.Context()
+	res := getFeedEntryResponse{}
+	err = h.db.QueryRowContext(ctx, `
+		SELECT id, feed_id, url, title, description, content, snapshot_at, published_at
+		FROM entries
+		WHERE id = $1;
+	`, id).Scan(&res.ID, &res.FeedID, &res.URL, &res.Title, &res.Description, &res.Content, &res.SnapshotAt, &res.PublishedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		serverError(w, http.StatusNotFound, "Entry not found.")
+		return
+	} else if err != nil {
+		serverError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to fetch entry by ID=%d", id))
 		return
 	}
 
