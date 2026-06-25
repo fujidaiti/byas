@@ -5,6 +5,50 @@ import (
 	"time"
 )
 
+func TestEditorialInterval_Valid(t *testing.T) {
+	fday := func(h, m, s int) time.Time {
+		return time.Date(2000, 4, 1, h, m, s, 0, time.UTC)
+	}
+
+	tests := map[string]struct {
+		ei   EditorialInterval
+		want bool
+	}{
+		"valid: next after last": {
+			ei:   EditorialInterval{Next: fday(13, 0, 0), Last: fday(6, 0, 0)},
+			want: true,
+		},
+		"invalid: next equals last": {
+			ei:   EditorialInterval{Next: fday(6, 0, 0), Last: fday(6, 0, 0)},
+			want: false,
+		},
+		"invalid: next before last": {
+			ei:   EditorialInterval{Next: fday(6, 0, 0), Last: fday(13, 0, 0)},
+			want: false,
+		},
+		"invalid: next is zero": {
+			ei:   EditorialInterval{Last: fday(6, 0, 0)},
+			want: false,
+		},
+		"invalid: last is zero": {
+			ei:   EditorialInterval{Next: fday(13, 0, 0)},
+			want: false,
+		},
+		"invalid: both zero": {
+			ei:   EditorialInterval{},
+			want: false,
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			if got := tt.ei.Valid(); got != tt.want {
+				t.Errorf("Valid() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func Test_findEditorialInterval(t *testing.T) {
 	fday := func(h, m, s int) time.Time {
 		return time.Date(2000, 4, 1, h, m, s, 0, time.UTC)

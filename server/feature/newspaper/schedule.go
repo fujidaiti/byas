@@ -14,6 +14,10 @@ type EditorialInterval struct {
 	Last time.Time
 }
 
+func (ei *EditorialInterval) Valid() bool {
+	return !ei.Next.IsZero() && !ei.Last.IsZero() && ei.Next.After(ei.Last)
+}
+
 // TODO: rename Schedule to PublicationSchedule
 func getSchedules(ctx context.Context, db *sql.DB, t time.Time) ([]time.Time, error) {
 	rows, err := db.QueryContext(ctx, `SELECT minute_of_date FROM newspaper_schedules;`)
