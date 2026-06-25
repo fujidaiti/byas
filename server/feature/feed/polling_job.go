@@ -32,8 +32,9 @@ type entryRecord struct {
 }
 
 type job struct {
-	db   *sql.DB
-	feed feedRecord
+	db       *sql.DB
+	feed     feedRecord
+	interval newspaper.EditorialInterval
 }
 
 func (j *job) Timeout() time.Duration {
@@ -97,6 +98,7 @@ func (j *job) Do(ctx context.Context) error {
 		e := entryRecord{}
 		err := rows.Scan(&e.id, &e.dedupKey, &e.feedId, &e.url, &e.title, &e.description, &e.publishedAt)
 		if err != nil {
+			// TODO: Make this case fail-soft instead of exiting.
 			return err
 		}
 		newEntries = append(newEntries, e)
@@ -109,31 +111,38 @@ func (j *job) Do(ctx context.Context) error {
 		return nil
 	}
 
-	err = writeStories(ctx, newEntries, j.db)
-	if err != nil {
-		fmt.Printf("Something went wrong while writing stories: %s\n", err)
-		// Fail-soft: we don't terminate the processing here
-		// as the subsequent step has nothing to do with the stories.
-	}
-
+	var entriesToBeStories []entryRecord
 	// TODO: Mark the entry as queued in DB to avoid duplicate jobs for the same entry
 	for _, e := range newEntries {
-		fmt.Printf("Fetching content for %s\n", e.url)
-		st := time.Now()
-		err := fetchContent(ctx, e, db)
-		if err != nil {
-			return err
+		if e.publishedAt.Valid && j.interval.Contains(e.publishedAt.Time) {
+			entriesToBeStories = append(entriesToBeStories, e)
+			fmt.Printf("Fetching content for %s\n", e.url)
+			st := time.Now()
+			err := fetchContent(ctx, e, db)
+			if err != nil {
+				fmt.Print(err)
+			}
+			// TODO: Respect Crawl-delay in robot.txt
+			if dt := time.Since(st); dt < 2*time.Second {
+				time.Sleep(time.Second - dt)
+			}
 		}
-		// TODO: Respect Crawl-delay in robot.txt
-		if dt := time.Since(st); dt < 2*time.Second {
-			time.Sleep(time.Second - dt)
-		}
+	}
+
+	err = writeStories(ctx, entriesToBeStories, j.db)
+	if err != nil {
+		fmt.Printf("Something went wrong while writing stories: %s\n", err)
 	}
 
 	return nil
 }
 
 func CollectJobs(ctx context.Context, db *sql.DB) ([]job, error) {
+	ei, err := newspaper.FindEditorialInterval(ctx, db, time.Now())
+	if err != nil {
+		fmt.Print(err)
+		// Fail-soft: we don't exit here.
+	}
 	// TODO: Create an index for next_poll_at column
 	rows, err := db.QueryContext(ctx, `
 		SELECT id, url
@@ -151,7 +160,7 @@ func CollectJobs(ctx context.Context, db *sql.DB) ([]job, error) {
 		if err != nil {
 			return nil, err
 		}
-		jobs = append(jobs, job{db, feed})
+		jobs = append(jobs, job{db, feed, ei})
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

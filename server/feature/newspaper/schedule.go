@@ -19,8 +19,9 @@ func (ei *EditorialInterval) Valid() bool {
 }
 
 // Contains reports whether t falls within the interval.
+// Always returns false if Valid also reports false.
 func (ei *EditorialInterval) Contains(t time.Time) bool {
-	return t.After(ei.Last) && t.Before(ei.Next)
+	return ei.Valid() && t.After(ei.Last) && t.Before(ei.Next)
 }
 
 // TODO: rename Schedule to PublicationSchedule
