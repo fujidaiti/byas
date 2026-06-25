@@ -8,6 +8,12 @@ import (
 	"time"
 )
 
+// EditorialInterval is a segment between consecutive two schedule datetimes.
+type EditorialInterval struct {
+	Next time.Time
+	Last time.Time
+}
+
 // TODO: rename Schedule to PublicationSchedule
 func getSchedules(ctx context.Context, db *sql.DB, t time.Time) ([]time.Time, error) {
 	rows, err := db.QueryContext(ctx, `SELECT minute_of_date FROM newspaper_schedules;`)
@@ -33,17 +39,16 @@ func getSchedules(ctx context.Context, db *sql.DB, t time.Time) ([]time.Time, er
 	return schedules, nil
 }
 
-func FindEditorialInterval(ctx context.Context, db *sql.DB, t time.Time) (time.Time, time.Time, error) {
+func FindEditorialInterval(ctx context.Context, db *sql.DB, t time.Time) (EditorialInterval, error) {
 	ss, err := getSchedules(ctx, db, t)
 	if err != nil {
-		return time.Time{}, time.Time{}, err
+		return EditorialInterval{}, err
 	}
 	if len(ss) == 0 {
-		return time.Time{}, time.Time{}, errors.New("No schedule is registered.")
+		return EditorialInterval{}, errors.New("No schedule is registered.")
 	}
 	slices.SortFunc(ss, time.Time.Compare)
-	last, next := findEditorialInterval(t, ss)
-	return last, next, nil
+	return findEditorialInterval(t, ss), nil
 }
 
 // findEditorialInterval returns the nearest consecutive pair of datetime points
@@ -55,7 +60,7 @@ func FindEditorialInterval(ctx context.Context, db *sql.DB, t time.Time) (time.T
 //
 // The day of t and the Time instances in ss must be the same, and ss must
 // be sorted in ascending order.
-func findEditorialInterval(t time.Time, ss []time.Time) (last, next time.Time) {
+func findEditorialInterval(t time.Time, ss []time.Time) EditorialInterval {
 	idx := -1
 	for i, s := range ss {
 		if s.After(t) {
@@ -64,20 +69,21 @@ func findEditorialInterval(t time.Time, ss []time.Time) (last, next time.Time) {
 		}
 	}
 
+	var ei EditorialInterval
 	switch {
 	case idx == 0:
 		// Yesterday's last schedule
-		last = ss[len(ss)-1].AddDate(0, 0, -1)
-		next = ss[0]
+		ei.Last = ss[len(ss)-1].AddDate(0, 0, -1)
+		ei.Next = ss[0]
 
 	case idx-1 >= 0:
-		last = ss[idx-1]
-		next = ss[idx]
+		ei.Last = ss[idx-1]
+		ei.Next = ss[idx]
 
 	case idx < 0:
-		last = ss[len(ss)-1]
+		ei.Last = ss[len(ss)-1]
 		// Tomorrow's first schedule
-		next = ss[0].AddDate(0, 0, 1)
+		ei.Next = ss[0].AddDate(0, 0, 1)
 	}
-	return
+	return ei
 }

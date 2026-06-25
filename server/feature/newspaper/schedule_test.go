@@ -80,12 +80,12 @@ func Test_findEditorialInterval(t *testing.T) {
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			got1, got2 := findEditorialInterval(tt.now, tt.ss)
-			if !got1.Equal(tt.last) {
-				t.Errorf("Expected last: %s, got: %s", tt.last, got1)
+			got := findEditorialInterval(tt.now, tt.ss)
+			if !got.Last.Equal(tt.last) {
+				t.Errorf("Expected last: %s, got: %s", tt.last, got.Last)
 			}
-			if !got2.Equal(tt.next) {
-				t.Errorf("Expected next: %s, got: %s", tt.next, got2)
+			if !got.Next.Equal(tt.next) {
+				t.Errorf("Expected next: %s, got: %s", tt.next, got.Next)
 			}
 		})
 	}

@@ -10,7 +10,8 @@ import (
 
 func CollectJobs(ctx context.Context, db *sql.DB) ([]job, error) {
 	now := time.Now()
-	_, pubDate, err := FindEditorialInterval(ctx, db, now)
+	ei, err := FindEditorialInterval(ctx, db, now)
+	pubDate := ei.Next
 	if err != nil {
 		return nil, err
 	}
