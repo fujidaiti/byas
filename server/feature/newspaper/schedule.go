@@ -33,7 +33,7 @@ func getSchedules(ctx context.Context, db *sql.DB, t time.Time) ([]time.Time, er
 	return schedules, nil
 }
 
-func FindScheduleSegment(ctx context.Context, db *sql.DB, t time.Time) (time.Time, time.Time, error) {
+func FindEditorialInterval(ctx context.Context, db *sql.DB, t time.Time) (time.Time, time.Time, error) {
 	ss, err := getSchedules(ctx, db, t)
 	if err != nil {
 		return time.Time{}, time.Time{}, err
@@ -42,11 +42,11 @@ func FindScheduleSegment(ctx context.Context, db *sql.DB, t time.Time) (time.Tim
 		return time.Time{}, time.Time{}, errors.New("No schedule is registered.")
 	}
 	slices.SortFunc(ss, time.Time.Compare)
-	last, next := findScheduleSegment(t, ss)
+	last, next := findEditorialInterval(t, ss)
 	return last, next, nil
 }
 
-// findScheduleSegment returns the nearest consecutive pair of datetime points
+// findEditorialInterval returns the nearest consecutive pair of datetime points
 // surrounding the given time t on the given daily publishing schedule timeline ss.
 // The returned datetimes may be from yesterday or tomorrow if the t falls before
 // the first or after the last datetime in the timeline.
@@ -55,7 +55,7 @@ func FindScheduleSegment(ctx context.Context, db *sql.DB, t time.Time) (time.Tim
 //
 // The day of t and the Time instances in ss must be the same, and ss must
 // be sorted in ascending order.
-func findScheduleSegment(t time.Time, ss []time.Time) (last, next time.Time) {
+func findEditorialInterval(t time.Time, ss []time.Time) (last, next time.Time) {
 	idx := -1
 	for i, s := range ss {
 		if s.After(t) {

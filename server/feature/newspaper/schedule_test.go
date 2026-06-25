@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func Test_findScheduleSegment(t *testing.T) {
+func Test_findEditorialInterval(t *testing.T) {
 	fday := func(h, m, s int) time.Time {
 		return time.Date(2000, 4, 1, h, m, s, 0, time.UTC)
 	}
@@ -80,7 +80,7 @@ func Test_findScheduleSegment(t *testing.T) {
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			got1, got2 := findScheduleSegment(tt.now, tt.ss)
+			got1, got2 := findEditorialInterval(tt.now, tt.ss)
 			if !got1.Equal(tt.last) {
 				t.Errorf("Expected last: %s, got: %s", tt.last, got1)
 			}
