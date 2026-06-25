@@ -49,6 +49,55 @@ func TestEditorialInterval_Valid(t *testing.T) {
 	}
 }
 
+func TestEditorialInterval_Contains(t *testing.T) {
+	fday := func(h, m, s int) time.Time {
+		return time.Date(2000, 4, 1, h, m, s, 0, time.UTC)
+	}
+
+	ei := EditorialInterval{Next: fday(13, 0, 0), Last: fday(6, 0, 0)}
+	tests := map[string]struct {
+		t    time.Time
+		want bool
+	}{
+		"inside the interval": {
+			t:    fday(9, 30, 0),
+			want: true,
+		},
+		"just after last": {
+			t:    fday(6, 0, 1),
+			want: true,
+		},
+		"just before next": {
+			t:    fday(12, 59, 59),
+			want: true,
+		},
+		"exactly at last (exclusive)": {
+			t:    fday(6, 0, 0),
+			want: false,
+		},
+		"exactly at next (exclusive)": {
+			t:    fday(13, 0, 0),
+			want: false,
+		},
+		"before last": {
+			t:    fday(5, 0, 0),
+			want: false,
+		},
+		"after next": {
+			t:    fday(14, 0, 0),
+			want: false,
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			if got := ei.Contains(tt.t); got != tt.want {
+				t.Errorf("Contains(%s) = %v, want %v", tt.t, got, tt.want)
+			}
+		})
+	}
+}
+
 func Test_findEditorialInterval(t *testing.T) {
 	fday := func(h, m, s int) time.Time {
 		return time.Date(2000, 4, 1, h, m, s, 0, time.UTC)

@@ -18,6 +18,11 @@ func (ei *EditorialInterval) Valid() bool {
 	return !ei.Next.IsZero() && !ei.Last.IsZero() && ei.Next.After(ei.Last)
 }
 
+// Contains reports whether t falls within the interval.
+func (ei *EditorialInterval) Contains(t time.Time) bool {
+	return t.After(ei.Last) && t.Before(ei.Next)
+}
+
 // TODO: rename Schedule to PublicationSchedule
 func getSchedules(ctx context.Context, db *sql.DB, t time.Time) ([]time.Time, error) {
 	rows, err := db.QueryContext(ctx, `SELECT minute_of_date FROM newspaper_schedules;`)
