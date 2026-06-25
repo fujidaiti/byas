@@ -5,38 +5,15 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"slices"
 	"time"
 )
 
 func CollectJobs(ctx context.Context, db *sql.DB) ([]job, error) {
-	rows, err := db.QueryContext(ctx, `SELECT minute_of_date FROM newspaper_schedules;`)
+	now := time.Now()
+	_, pubDate, err := FindScheduleSegment(ctx, db, now)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	now := time.Now()
-	year, month, day := now.Date()
-	midnight := time.Date(year, month, day, 0, 0, 0, 0, time.Local)
-	var schedules []time.Time
-	for rows.Next() {
-		var dt int
-		err := rows.Scan(&dt)
-		if err != nil {
-			return nil, err
-		}
-		schedules = append(schedules, midnight.Add(time.Duration(dt)*time.Minute))
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	if len(schedules) == 0 {
-		return nil, errors.New("No schedule is registered.")
-	}
-
-	slices.SortFunc(schedules, time.Time.Compare)
-	_, pubDate := findScheduleSegment(now, schedules)
 	if pubDate.Sub(now) > 10*time.Minute {
 		fmt.Printf("Not yet close enough to the next schedule %s. Skipping.\n", pubDate)
 		return []job{}, nil
@@ -59,42 +36,6 @@ func CollectJobs(ctx context.Context, db *sql.DB) ([]job, error) {
 	}
 
 	return []job{{db, newspaperID}}, nil
-}
-
-// findScheduleSegment returns the nearest consecutive pair of datetime points
-// surrounding now on the given daily publishing schedule timeline ss.
-// The returned datetimes may be from yesterday or tomorrow if now falls before
-// the first or after the last datetime in the timeline.
-//
-// If a datetime in ss equals now, it is returned as the left (last) point.
-//
-// The day of now and the Time instances in ss must be the same, and ss must
-// be sorted in ascending order.
-func findScheduleSegment(now time.Time, ss []time.Time) (last, next time.Time) {
-	idx := -1
-	for i, s := range ss {
-		if s.After(now) {
-			idx = i
-			break
-		}
-	}
-
-	switch {
-	case idx == 0:
-		// Yesterday's last schedule
-		last = ss[len(ss)-1].AddDate(0, 0, -1)
-		next = ss[0]
-
-	case idx-1 >= 0:
-		last = ss[idx-1]
-		next = ss[idx]
-
-	case idx < 0:
-		last = ss[len(ss)-1]
-		// Tomorrow's first schedule
-		next = ss[0].AddDate(0, 0, 1)
-	}
-	return
 }
 
 type job struct {
