@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Format staged Go files with gofmt and include the results in this commit.
+# Format staged Go files with goimports and include the results in this commit.
 go_files=$(git diff --cached --name-only --diff-filter=ACM -- '*.go')
 
 if [ -z "$go_files" ]; then
   exit 0
 fi
 
-gofmt -w $go_files
+goimports -w $go_files
 git add -- $go_files
 
 # Build and vet the server module to catch errors before committing.
