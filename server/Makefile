@@ -11,9 +11,9 @@ db-reset:
 	createdb $(DB_NAME)
 	$(MAKE) db-seed
 
-.PHONY: dev-schedule
-dev-schedule:
-	go run ./cmd/app/main.go schedule
+.PHONY: dev-poll
+dev-poll:
+	go run ./cmd/dev/main.go poll
 
 .PHONY: dev-serve
 dev-serve:
