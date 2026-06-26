@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"time"
 
+	"github.com/fujidaiti/paperdoll/feature/feed"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -39,6 +41,7 @@ func StartServer(ctx context.Context) {
 	mux.HandleFunc("GET /health", h.getHealth)
 	mux.HandleFunc("GET /newspapers/today", h.getTodaysNewspaper)
 	mux.HandleFunc("GET /newspapers/stories/{id}", h.getStory)
+	mux.HandleFunc("PUT /feeds", h.subscribeToFeed)
 	mux.HandleFunc("GET /feeds/entries/{id}", h.getFeedEntry)
 
 	srv := http.Server{
@@ -230,6 +233,65 @@ func (h *handler) getFeedEntry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(jres)
+}
+
+type subscribeToFeedReqBody struct {
+	URL string `json:"url"`
+}
+
+type subscribeToFeedResBody struct {
+	ID          int    `json:"id"`
+	URL         string `json:"url"`
+	SiteURL     string `json:"site_url,omitempty"`
+	IconURL     string `json:"icon_url,omitempty"`
+	Title       string `json:"title"`
+	Description string `json:"description,omitempty"`
+}
+
+func (h *handler) subscribeToFeed(w http.ResponseWriter, r *http.Request) {
+	var b subscribeToFeedReqBody
+	// TODO: Limit request body size (http.MaxBytesReader)
+	err := json.NewDecoder(r.Body).Decode(&b)
+	if err != nil {
+		fmt.Print(err)
+		serverError(w, http.StatusBadRequest, "Failed to parse request body")
+		return
+	}
+	u, err := url.Parse(b.URL)
+	if err != nil {
+		fmt.Print(err)
+		serverError(w, http.StatusBadRequest, "Failed to parse URL")
+		return
+	}
+	ctx := r.Context()
+	fd, err := feed.Subscribe(ctx, h.db, *u)
+	if err != nil {
+		fmt.Print(err)
+		serverError(w, http.StatusInternalServerError, "Failed to subscribe to feed")
+		return
+	}
+	res := subscribeToFeedResBody{
+		ID:    fd.ID,
+		URL:   fd.URL.String(),
+		Title: fd.Title,
+	}
+	if u := fd.SiteURL; u != nil {
+		res.SiteURL = u.String()
+	}
+	if u := fd.IconURL; u != nil {
+		res.IconURL = u.String()
+	}
+	if d := fd.Description; d != nil {
+		res.Description = *d
+	}
+	jres, err := json.Marshal(res)
+	if err != nil {
+		serverError(w, http.StatusInternalServerError, "Failed to construct a JSON")
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(jres)
