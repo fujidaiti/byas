@@ -44,6 +44,7 @@ func StartServer(ctx context.Context) {
 	mux.HandleFunc("GET /feeds", h.getFeeds)
 	mux.HandleFunc("PUT /feeds", h.subscribeToFeed)
 	mux.HandleFunc("GET /feeds/entries/{id}", h.getFeedEntry)
+	mux.HandleFunc("GET /feeds/{id}", h.getFeedTimeline)
 
 	srv := http.Server{
 		Addr:    ":8080",
@@ -313,6 +314,69 @@ func (h *handler) getFeeds(w http.ResponseWriter, r *http.Request) {
 	if rows.Err() != nil {
 		fmt.Print(err)
 		serverError(w, http.StatusInternalServerError, "Failed to fetch feeds")
+		return
+	}
+
+	jres, err := json.Marshal(res)
+	if err != nil {
+		fmt.Print(err)
+		serverError(w, http.StatusInternalServerError, "Failed to construct JSON")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(jres)
+}
+
+type getFeedTimelineResBody struct {
+	Entries []feedEntry `json:"entries"`
+}
+
+func (h *handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		fmt.Print(err)
+		serverError(w, http.StatusBadRequest, "Invalid feed id")
+		return
+	}
+
+	ctx := r.Context()
+	// TODO: Support pagination
+	rows, err := h.db.QueryContext(ctx, `
+		SELECT id, feed_id, url, title, description, published_at, snapshot_at
+		FROM entries
+		WHERE feed_id = $1;
+	`, id)
+	if err != nil {
+		fmt.Print(err)
+		serverError(w, http.StatusInternalServerError, "Failed to fetch entries")
+		return
+	}
+	res := getFeedTimelineResBody{Entries: []feedEntry{}}
+	for rows.Next() {
+		var e feedEntry
+		var desc sql.NullString
+		var pubAt, snapAt sql.NullTime
+		err := rows.Scan(&e.ID, &e.FeedID, &e.URL, &e.Title, &desc, &pubAt, &snapAt)
+		if err != nil {
+			fmt.Print(err)
+			serverError(w, http.StatusInternalServerError, "Failed to fetch entry")
+			return
+		}
+		if desc.Valid {
+			e.Description = desc.String
+		}
+		if pubAt.Valid {
+			e.PublishedAt = pubAt.Time
+		}
+		if snapAt.Valid {
+			e.SnapshotAt = snapAt.Time
+		}
+		res.Entries = append(res.Entries, e)
+	}
+	if err := rows.Err(); err != nil {
+		fmt.Print(err)
+		serverError(w, http.StatusInternalServerError, "Failed to fetch entries")
 		return
 	}
 
