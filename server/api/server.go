@@ -41,6 +41,7 @@ func StartServer(ctx context.Context) {
 	mux.HandleFunc("GET /health", h.getHealth)
 	mux.HandleFunc("GET /newspapers/today", h.getTodaysNewspaper)
 	mux.HandleFunc("GET /newspapers/stories/{id}", h.getStory)
+	mux.HandleFunc("GET /feeds", h.getFeeds)
 	mux.HandleFunc("PUT /feeds", h.subscribeToFeed)
 	mux.HandleFunc("GET /feeds/entries/{id}", h.getFeedEntry)
 
@@ -238,17 +239,72 @@ func (h *handler) getFeedEntry(w http.ResponseWriter, r *http.Request) {
 	w.Write(jres)
 }
 
-type subscribeToFeedReqBody struct {
-	URL string `json:"url"`
-}
-
-type subscribeToFeedResBody struct {
+type feedSchema struct {
 	ID          int    `json:"id"`
 	URL         string `json:"url"`
 	SiteURL     string `json:"site_url,omitempty"`
 	IconURL     string `json:"icon_url,omitempty"`
 	Title       string `json:"title"`
 	Description string `json:"description,omitempty"`
+}
+
+type getFeedsResBody struct {
+	Feeds []feedSchema `json:"feeds"`
+}
+
+func (h *handler) getFeeds(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	var res getFeedsResBody
+	// TODO: Support pagination
+	rows, err := h.db.QueryContext(ctx, `SELECT id, url, site_url, icon_url, title, description FROM feeds;`)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		fmt.Print(err)
+		serverError(w, http.StatusInternalServerError, "Failed to fetch feeds")
+		return
+	}
+	for rows.Next() {
+		var f feedSchema
+		var su, iu, desc sql.NullString
+		err := rows.Scan(&f.ID, &f.URL, &su, &iu, &f.Title, &desc)
+		if err != nil {
+			fmt.Print(err)
+			serverError(w, http.StatusInternalServerError, "Failed to fetch feeds")
+			return
+		}
+		if su.Valid {
+			f.SiteURL = su.String
+		}
+		if iu.Valid {
+			f.IconURL = iu.String
+		}
+		if desc.Valid {
+			f.Description = desc.String
+		}
+		res.Feeds = append(res.Feeds, f)
+	}
+	if rows.Err() != nil {
+		fmt.Print(err)
+		serverError(w, http.StatusInternalServerError, "Failed to fetch feeds")
+		return
+	}
+
+	jres, err := json.Marshal(res)
+	if err != nil {
+		fmt.Print(err)
+		serverError(w, http.StatusInternalServerError, "Failed to construct JSON")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(jres)
+}
+
+type subscribeToFeedReqBody struct {
+	URL string `json:"url"`
+}
+
+type subscribeToFeedResBody struct {
+	feedSchema
 }
 
 func (h *handler) subscribeToFeed(w http.ResponseWriter, r *http.Request) {
@@ -273,11 +329,10 @@ func (h *handler) subscribeToFeed(w http.ResponseWriter, r *http.Request) {
 		serverError(w, http.StatusInternalServerError, "Failed to subscribe to feed")
 		return
 	}
-	res := subscribeToFeedResBody{
-		ID:    fd.ID,
-		URL:   fd.URL.String(),
-		Title: fd.Title,
-	}
+	res := subscribeToFeedResBody{}
+	res.ID = fd.ID
+	res.URL = fd.URL.String()
+	res.Title = fd.Title
 	if u := fd.SiteURL; u != nil {
 		res.SiteURL = u.String()
 	}
