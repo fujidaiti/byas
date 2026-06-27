@@ -168,31 +168,17 @@ func (h *handler) getStory(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	res := getStoryResponse{Type: "entry"}
 	d := &res.Data
-	var desc, content sql.NullString
-	var pubAt, snapAt sql.NullTime
 	err = h.db.QueryRowContext(ctx, `
 		SELECT e.id, e.feed_id, e.url, e.title, e.description, e.content, e.snapshot_at, e.published_at
 		FROM entries e JOIN stories s ON e.id = s.entry_id
 		WHERE s.id = $1;
-	`, id).Scan(&d.ID, &d.FeedID, &d.URL, &d.Title, &desc, &content, &snapAt, &pubAt)
+	`, id).Scan(&d.ID, &d.FeedID, &d.URL, &d.Title, &d.Description, &d.Content, &d.SnapshotAt, &d.PublishedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		serverError(w, http.StatusNotFound, "Story not found.")
 		return
 	} else if err != nil {
 		serverError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to fetch story by ID: %s", rawId))
 		return
-	}
-	if desc.Valid {
-		d.Description = desc.String
-	}
-	if content.Valid {
-		d.Content = content.String
-	}
-	if pubAt.Valid {
-		d.PublishedAt = pubAt.Time
-	}
-	if snapAt.Valid {
-		d.SnapshotAt = snapAt.Time
 	}
 
 	jres, err := json.Marshal(res)
@@ -206,14 +192,14 @@ func (h *handler) getStory(w http.ResponseWriter, r *http.Request) {
 }
 
 type feedEntry struct {
-	ID          int       `json:"id"`
-	URL         string    `json:"url"`
-	FeedID      int       `json:"feed_id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description,omitempty"`
-	Content     string    `json:"content,omitempty"`
-	PublishedAt time.Time `json:"published_at,omitempty"`
-	SnapshotAt  time.Time `json:"snapshot_at,omitempty"`
+	ID          int        `json:"id"`
+	URL         string     `json:"url"`
+	FeedID      int        `json:"feed_id"`
+	Title       string     `json:"title"`
+	Description *string    `json:"description,omitempty"`
+	Content     *string    `json:"content,omitempty"`
+	PublishedAt *time.Time `json:"published_at,omitempty"`
+	SnapshotAt  *time.Time `json:"snapshot_at,omitempty"`
 }
 
 type getFeedEntryResponse struct {
@@ -230,31 +216,17 @@ func (h *handler) getFeedEntry(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	res := getFeedEntryResponse{}
-	var desc, content sql.NullString
-	var snapAt, pubAt sql.NullTime
 	err = h.db.QueryRowContext(ctx, `
 		SELECT id, feed_id, url, title, description, content, snapshot_at, published_at
 		FROM entries
 		WHERE id = $1;
-	`, id).Scan(&res.ID, &res.FeedID, &res.URL, &res.Title, &desc, &content, &snapAt, &pubAt)
+	`, id).Scan(&res.ID, &res.FeedID, &res.URL, &res.Title, &res.Description, &res.Content, &res.SnapshotAt, &res.PublishedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		serverError(w, http.StatusNotFound, "Entry not found.")
 		return
 	} else if err != nil {
 		serverError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to fetch entry by ID=%d", id))
 		return
-	}
-	if desc.Valid {
-		res.Description = desc.String
-	}
-	if content.Valid {
-		res.Content = content.String
-	}
-	if pubAt.Valid {
-		res.PublishedAt = pubAt.Time
-	}
-	if snapAt.Valid {
-		res.SnapshotAt = snapAt.Time
 	}
 
 	jres, err := json.Marshal(res)
@@ -355,22 +327,11 @@ func (h *handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
 	res := getFeedTimelineResBody{Entries: []feedEntry{}}
 	for rows.Next() {
 		var e feedEntry
-		var desc sql.NullString
-		var pubAt, snapAt sql.NullTime
-		err := rows.Scan(&e.ID, &e.FeedID, &e.URL, &e.Title, &desc, &pubAt, &snapAt)
+		err := rows.Scan(&e.ID, &e.FeedID, &e.URL, &e.Title, &e.Description, &e.PublishedAt, &e.SnapshotAt)
 		if err != nil {
 			fmt.Print(err)
 			serverError(w, http.StatusInternalServerError, "Failed to fetch entry")
 			return
-		}
-		if desc.Valid {
-			e.Description = desc.String
-		}
-		if pubAt.Valid {
-			e.PublishedAt = pubAt.Time
-		}
-		if snapAt.Valid {
-			e.SnapshotAt = snapAt.Time
 		}
 		res.Entries = append(res.Entries, e)
 	}
