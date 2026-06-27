@@ -43,8 +43,8 @@ func StartServer(ctx context.Context) {
 	mux.HandleFunc("GET /newspapers/stories/{id}", h.getStory)
 	mux.HandleFunc("GET /feeds", h.getFeeds)
 	mux.HandleFunc("PUT /feeds", h.subscribeToFeed)
-	mux.HandleFunc("GET /feeds/entries/{id}", h.getFeedEntry)
-	mux.HandleFunc("GET /feeds/{id}", h.getFeedTimeline)
+	mux.HandleFunc("GET /feeds/{id}/timeline", h.getFeedTimeline)
+	mux.HandleFunc("GET /feed-entries/{id}", h.getFeedEntry)
 
 	srv := http.Server{
 		Addr:    ":8080",
