@@ -111,7 +111,10 @@ func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 		ORDER BY published_at DESC
 		LIMIT 1;
 	`).Scan(&res.ID, &res.PublishedAt)
-	if err != nil {
+	if errors.Is(err, sql.ErrNoRows) {
+		serverError(w, http.StatusNotFound, "No newspaper found.")
+		return
+	} else if err != nil {
 		serverError(w, http.StatusInternalServerError, "Failed to fetch today's newspaper.")
 		return
 	}
