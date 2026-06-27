@@ -43,6 +43,7 @@ func StartServer(ctx context.Context) {
 	mux.HandleFunc("GET /newspapers/stories/{id}", h.getStory)
 	mux.HandleFunc("GET /feeds", h.getFeeds)
 	mux.HandleFunc("PUT /feeds", h.subscribeToFeed)
+	mux.HandleFunc("GET /feeds/{id}", h.getFeed)
 	mux.HandleFunc("GET /feeds/{id}/timeline", h.getFeedTimeline)
 	mux.HandleFunc("GET /feed-entries/{id}", h.getFeedEntry)
 
@@ -297,6 +298,55 @@ func (h *handler) getFeeds(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	w.Write(jres)
+}
+
+type getFeedResBody struct {
+	feedSchema
+}
+
+func (h *handler) getFeed(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		fmt.Print(err)
+		serverError(w, http.StatusBadRequest, "Invalid feed id")
+		return
+	}
+
+	ctx := r.Context()
+	var res getFeedResBody
+	var su, iu, desc sql.NullString
+	err = h.db.QueryRowContext(ctx, `
+		SELECT id, url, site_url, icon_url, title, description
+		FROM feeds
+		WHERE id = $1;
+	`, id).Scan(&res.ID, &res.URL, &su, &iu, &res.Title, &desc)
+	if errors.Is(err, sql.ErrNoRows) {
+		fmt.Print(err)
+		serverError(w, http.StatusNotFound, "No feed found")
+		return
+	} else if err != nil {
+		fmt.Print(err)
+		serverError(w, http.StatusInternalServerError, "Failed to fetch feed")
+		return
+	}
+	if su.Valid {
+		res.SiteURL = su.String
+	}
+	if iu.Valid {
+		res.IconURL = iu.String
+	}
+	if desc.Valid {
+		res.Description = desc.String
+	}
+
+	jres, err := json.Marshal(res)
+	if err != nil {
+		fmt.Print(err)
+		serverError(w, http.StatusInternalServerError, "Failed to construct JSON")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
 	w.Write(jres)
 }
 
