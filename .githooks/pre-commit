@@ -4,16 +4,30 @@ set -euo pipefail
 # Format staged Go files with goimports and include the results in this commit.
 go_files=$(git diff --cached --name-only --diff-filter=ACM -- '*.go')
 
-if [ -z "$go_files" ]; then
-  exit 0
+if [ -n "$go_files" ]; then
+  goimports -w $go_files
+  git add -- $go_files
+
+  # Build and vet the server module to catch errors before committing.
+  (
+    cd server
+    go test ./...
+    go vet ./...
+  )
 fi
 
-goimports -w $go_files
-git add -- $go_files
+# Format staged Dart files and include the results in this commit.
+dart_files=$(git diff --cached --name-only --diff-filter=ACM -- '*.dart')
 
-# Build and vet the server module to catch errors before committing.
-(
-  cd server
-  go test ./...
-  go vet ./...
-)
+if [ -n "$dart_files" ]; then
+  fvm dart format $dart_files
+  git add -- $dart_files
+
+  # Apply automated fixes and analyze the client module to catch errors before committing.
+  (
+    cd client
+    fvm dart fix --apply .
+    fvm flutter analyze
+  )
+fi
+

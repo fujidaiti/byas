@@ -1,0 +1,57 @@
+name: Client Health
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'client/**'
+      - '.fvmrc'
+  pull_request:
+    paths:
+      - 'client/**'
+      - '.fvmrc'
+
+jobs:
+  client-health:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Get Flutter SDK version
+        id: flutter-version
+        run: |
+          version=$(cat ../.fvmrc | jq -r .flutter)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Install Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version-file: .fvmrc
+          cache: true
+          cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
+          cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:"
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub- 
+
+      - name: Verify generated code
+        run: |
+          dart run build_runner build --delete-conflicting-outputs
+          git diff --exit-code
+
+      - name: Format
+        run: dart format . -o none --set-exit-if-changed
+
+      - name: Analyze
+        run: flutter analyze

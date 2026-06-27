@@ -6,3 +6,6 @@
 
 # Artifacts
 build/
+
+# FVM Version Cache
+.fvm/

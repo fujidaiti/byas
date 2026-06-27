@@ -1,0 +1,11 @@
+{
+  "configurations": [
+    {
+      "name": "Client - Development",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "cwd": "./client"
+    }
+  ]
+}
