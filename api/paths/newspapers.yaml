@@ -36,6 +36,8 @@ today:
                     "Agents still face challenges working across many context
                     windows."
                   published_at: "2025-11-26T09:00:00+09:00"
+      "404":
+        $ref: "../components/responses.yaml#/NotFound"
       "500":
         $ref: "../components/responses.yaml#/InternalServerError"
 
