@@ -43,6 +43,7 @@ func StartServer(ctx context.Context) {
 	mux.HandleFunc("GET /newspapers/stories/{id}", h.getStory)
 	mux.HandleFunc("GET /feeds", h.getFeeds)
 	mux.HandleFunc("PUT /feeds", h.subscribeToFeed)
+	mux.HandleFunc("GET /feeds/search", h.searchFeeds)
 	mux.HandleFunc("GET /feeds/{id}", h.getFeed)
 	mux.HandleFunc("GET /feeds/{id}/timeline", h.getFeedTimeline)
 	mux.HandleFunc("GET /feed-entries/{id}", h.getFeedEntry)
@@ -241,13 +242,17 @@ func (h *handler) getFeedEntry(w http.ResponseWriter, r *http.Request) {
 	w.Write(jres)
 }
 
-type feedSchema struct {
-	ID          int    `json:"id"`
+type feedAttrsSchema struct {
 	URL         string `json:"url"`
 	SiteURL     string `json:"site_url,omitempty"`
 	IconURL     string `json:"icon_url,omitempty"`
 	Title       string `json:"title"`
 	Description string `json:"description,omitempty"`
+}
+
+type feedSchema struct {
+	ID int `json:"id"`
+	feedAttrsSchema
 }
 
 type getFeedsResBody struct {
@@ -399,6 +404,44 @@ func (h *handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	w.Write(jres)
+}
+
+type searchFeedsResBody struct {
+	Feeds []feedAttrsSchema `json:"feeds"`
+}
+
+func (h *handler) searchFeeds(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query().Get("q")
+	fs, err := feed.SearchFeeds(r.Context(), q)
+	if err != nil {
+		fmt.Println(err)
+		serverError(w, http.StatusNotFound, "Failed to search feeds")
+		return
+	}
+
+	res := searchFeedsResBody{Feeds: []feedAttrsSchema{}}
+	for _, f := range fs {
+		a := feedAttrsSchema{URL: f.URL.String(), Title: f.Title}
+		if u := f.SiteURL; u != nil {
+			a.SiteURL = u.String()
+		}
+		if u := f.IconURL; u != nil {
+			a.IconURL = u.String()
+		}
+		if d := f.Description; d != nil {
+			a.Description = *d
+		}
+		res.Feeds = append(res.Feeds, a)
+	}
+
+	jres, err := json.Marshal(res)
+	if err != nil {
+		fmt.Println(err)
+		serverError(w, http.StatusInternalServerError, "Failed to construct JSON")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
 	w.Write(jres)
 }
 
