@@ -1,0 +1,6 @@
+.claude/
+# Flutter
+.fvm/
+.dart_tool/
+# Xcode
+Assets.xcassets/

@@ -31,3 +31,11 @@ if [ -n "$dart_files" ]; then
   )
 fi
 
+# Format staged JSON, YAML, and Markdown files with prettier and include the results in this commit.
+prettier_files=$(git diff --cached --name-only --diff-filter=ACM -- '*.json' '*.yaml' '*.yml' '*.md')
+
+if [ -n "$prettier_files" ]; then
+  prettier -w $prettier_files
+  git add -- $prettier_files
+fi
+
