@@ -1,0 +1,26 @@
+BadRequest:
+  description: Bad request
+  content:
+    application/json:
+      schema:
+        $ref: "./schemas.yaml#/Error"
+      example:
+        message: "Invalid feed id"
+
+NotFound:
+  description: Not found
+  content:
+    application/json:
+      schema:
+        $ref: "./schemas.yaml#/Error"
+      example:
+        message: "No feed found"
+
+InternalServerError:
+  description: Internal server error
+  content:
+    application/json:
+      schema:
+        $ref: "./schemas.yaml#/Error"
+      example:
+        message: "Failed to fetch feeds"

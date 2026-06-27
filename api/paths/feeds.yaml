@@ -1,0 +1,191 @@
+collection:
+  get:
+    summary: Get subscribed feeds
+    operationId: getFeeds
+    responses:
+      "200":
+        description: OK
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [feeds]
+              properties:
+                feeds:
+                  type: array
+                  items:
+                    $ref: "../components/schemas.yaml#/Feed"
+            example:
+              feeds:
+                - id: 1
+                  url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_engineering.xml"
+                  site_url: "https://www.anthropic.com/engineering"
+                  icon_url: "https://www.anthropic.com/images/icons/apple-touch-icon.png"
+                  title: "Anthropic Engineering Blog"
+                  description: "Inside the team building reliable AI systems"
+                - id: 30
+                  url: "https://blog.golang.org/feed.atom"
+                  title: "The Go Blog"
+                - id: 29
+                  url: "https://dart.dev/blog/feed.xml"
+                  site_url: "https://dart.dev/blog"
+                  title: "The Dart Blog"
+                  description:
+                    "Dart is an approachable, portable, and productive language
+                    for high-quality apps on any platform."
+      "500":
+        $ref: "../components/responses.yaml#/InternalServerError"
+  put:
+    summary: Subscribe to a feed
+    operationId: subscribeToFeed
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [url]
+            properties:
+              url:
+                type: string
+                format: uri
+          example:
+            url: "https://dart.dev/blog/feed.xml"
+    responses:
+      "200":
+        description: OK
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas.yaml#/Feed"
+            example:
+              id: 29
+              url: "https://dart.dev/blog/feed.xml"
+              site_url: "https://dart.dev/blog"
+              title: "The Dart Blog"
+              description:
+                "Dart is an approachable, portable, and productive language for
+                high-quality apps on any platform."
+      "400":
+        $ref: "../components/responses.yaml#/BadRequest"
+      "500":
+        $ref: "../components/responses.yaml#/InternalServerError"
+
+search:
+  get:
+    summary: Search for subscribable feeds
+    operationId: searchFeeds
+    parameters:
+      - name: q
+        in: query
+        required: true
+        schema:
+          type: string
+        example: "https://dart.dev/blog/feed.xml"
+    responses:
+      "200":
+        description: OK
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [feeds]
+              properties:
+                feeds:
+                  type: array
+                  items:
+                    $ref: "../components/schemas.yaml#/FeedCandidate"
+            example:
+              feeds:
+                - url: "https://dart.dev/blog/feed.xml"
+                  site_url: "https://dart.dev/blog"
+                  title: "The Dart Blog"
+                  description:
+                    "Dart is an approachable, portable, and productive language
+                    for high-quality apps on any platform."
+      "404":
+        $ref: "../components/responses.yaml#/NotFound"
+      "500":
+        $ref: "../components/responses.yaml#/InternalServerError"
+
+item:
+  get:
+    summary: Get a feed by ID
+    operationId: getFeed
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    responses:
+      "200":
+        description: OK
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas.yaml#/Feed"
+            example:
+              id: 1
+              url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_engineering.xml"
+              site_url: "https://www.anthropic.com/engineering"
+              icon_url: "https://www.anthropic.com/images/icons/apple-touch-icon.png"
+              title: "Anthropic Engineering Blog"
+              description: "Inside the team building reliable AI systems"
+      "400":
+        $ref: "../components/responses.yaml#/BadRequest"
+      "404":
+        $ref: "../components/responses.yaml#/NotFound"
+      "500":
+        $ref: "../components/responses.yaml#/InternalServerError"
+
+timeline:
+  get:
+    summary: Get timeline entries for a feed
+    operationId: getFeedTimeline
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    responses:
+      "200":
+        description: OK
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [entries]
+              properties:
+                entries:
+                  type: array
+                  items:
+                    $ref: "../components/schemas.yaml#/FeedEntry"
+            example:
+              entries:
+                - id: 10
+                  feed_id: 1
+                  url: "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents"
+                  title: "Demystifying evals for AI agents"
+                  description:
+                    "The capabilities that make agents useful also make them
+                    difficult to evaluate. The strategies that work across
+                    deployments combine techniques to match the complexity of
+                    the systems they measure."
+                  published_at: "2026-01-09T09:00:00+09:00"
+                  snapshot_at: "2026-05-26T02:29:39.785457+09:00"
+                - id: 11
+                  feed_id: 1
+                  url: "https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents"
+                  title: "Effective harnesses for long-running agents"
+                  description:
+                    "Agents still face challenges working across many context
+                    windows. We looked to human engineers for inspiration in
+                    creating a more effective harness for long-running agents."
+                  published_at: "2025-11-26T09:00:00+09:00"
+                  snapshot_at: "2026-05-26T02:29:40.197419+09:00"
+      "400":
+        $ref: "../components/responses.yaml#/BadRequest"
+      "500":
+        $ref: "../components/responses.yaml#/InternalServerError"

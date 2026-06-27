@@ -1,0 +1,42 @@
+openapi: "3.0.3"
+info:
+  title: Paperdoll API
+  version: "0.1.0"
+
+paths:
+  /health:
+    $ref: "./paths/health.yaml"
+  /newspapers/today:
+    $ref: "./paths/newspapers.yaml#/today"
+  /newspapers/stories/{id}:
+    $ref: "./paths/newspapers.yaml#/stories"
+  /feeds:
+    $ref: "./paths/feeds.yaml#/collection"
+  /feeds/search:
+    $ref: "./paths/feeds.yaml#/search"
+  /feeds/{id}:
+    $ref: "./paths/feeds.yaml#/item"
+  /feeds/{id}/timeline:
+    $ref: "./paths/feeds.yaml#/timeline"
+  /feed-entries/{id}:
+    $ref: "./paths/feed-entries.yaml"
+
+components:
+  schemas:
+    Feed:
+      $ref: "./components/schemas.yaml#/Feed"
+    FeedCandidate:
+      $ref: "./components/schemas.yaml#/FeedCandidate"
+    FeedEntry:
+      $ref: "./components/schemas.yaml#/FeedEntry"
+    Story:
+      $ref: "./components/schemas.yaml#/Story"
+    Error:
+      $ref: "./components/schemas.yaml#/Error"
+  responses:
+    BadRequest:
+      $ref: "./components/responses.yaml#/BadRequest"
+    NotFound:
+      $ref: "./components/responses.yaml#/NotFound"
+    InternalServerError:
+      $ref: "./components/responses.yaml#/InternalServerError"

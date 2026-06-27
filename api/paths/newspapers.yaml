@@ -1,0 +1,83 @@
+today:
+  get:
+    summary: Get today's newspaper
+    operationId: getTodaysNewspaper
+    responses:
+      "200":
+        description: OK
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, published_at, stories]
+              properties:
+                id:
+                  type: integer
+                published_at:
+                  type: string
+                  format: date-time
+                stories:
+                  type: array
+                  items:
+                    $ref: "../components/schemas.yaml#/Story"
+            example:
+              id: 1
+              published_at: "2026-06-28T09:00:00+09:00"
+              stories:
+                - id: 1
+                  title: "Demystifying evals for AI agents"
+                  description:
+                    "The capabilities that make agents useful also make them
+                    difficult to evaluate."
+                  published_at: "2026-01-09T09:00:00+09:00"
+                - id: 2
+                  title: "Effective harnesses for long-running agents"
+                  description:
+                    "Agents still face challenges working across many context
+                    windows."
+                  published_at: "2025-11-26T09:00:00+09:00"
+      "500":
+        $ref: "../components/responses.yaml#/InternalServerError"
+
+stories:
+  get:
+    summary: Get a story by ID
+    operationId: getStory
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    responses:
+      "200":
+        description: OK
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, data]
+              properties:
+                type:
+                  type: string
+                  enum: [entry]
+                data:
+                  $ref: "../components/schemas.yaml#/FeedEntry"
+            example:
+              type: entry
+              data:
+                id: 10
+                feed_id: 1
+                url: "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents"
+                title: "Demystifying evals for AI agents"
+                description:
+                  "The capabilities that make agents useful also make them
+                  difficult to evaluate."
+                published_at: "2026-01-09T09:00:00+09:00"
+                snapshot_at: "2026-05-26T02:29:39.785457+09:00"
+      "400":
+        $ref: "../components/responses.yaml#/BadRequest"
+      "404":
+        $ref: "../components/responses.yaml#/NotFound"
+      "500":
+        $ref: "../components/responses.yaml#/InternalServerError"

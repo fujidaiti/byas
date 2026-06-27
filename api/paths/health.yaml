@@ -1,0 +1,11 @@
+get:
+  summary: Health check
+  operationId: getHealth
+  responses:
+    "200":
+      description: OK
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: Feeling good!

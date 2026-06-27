@@ -1,0 +1,84 @@
+Feed:
+  type: object
+  required: [id, url, title]
+  properties:
+    id:
+      type: integer
+    url:
+      type: string
+      format: uri
+    site_url:
+      type: string
+      format: uri
+    icon_url:
+      type: string
+      format: uri
+    title:
+      type: string
+    description:
+      type: string
+
+FeedCandidate:
+  description:
+    A feed discovered via search that can be subscribed to (has no local ID yet)
+  type: object
+  required: [url, title]
+  properties:
+    url:
+      type: string
+      format: uri
+    site_url:
+      type: string
+      format: uri
+    icon_url:
+      type: string
+      format: uri
+    title:
+      type: string
+    description:
+      type: string
+
+FeedEntry:
+  type: object
+  required: [id, feed_id, url, title]
+  properties:
+    id:
+      type: integer
+    feed_id:
+      type: integer
+    url:
+      type: string
+      format: uri
+    title:
+      type: string
+    description:
+      type: string
+    content:
+      type: string
+    published_at:
+      type: string
+      format: date-time
+    snapshot_at:
+      type: string
+      format: date-time
+
+Story:
+  type: object
+  required: [id, title]
+  properties:
+    id:
+      type: integer
+    title:
+      type: string
+    description:
+      type: string
+    published_at:
+      type: string
+      format: date-time
+
+Error:
+  type: object
+  required: [message]
+  properties:
+    message:
+      type: string
