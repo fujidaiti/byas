@@ -9,19 +9,22 @@ part of 'app_router.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 /// The app's navigation graph: a bottom-nav shell over Today and Feeds, with
-/// detail/discovery screens nested under each branch.
+/// detail/discovery screens nested under each branch. The story and entry
+/// readers push onto the root navigator so they cover the bottom nav bar.
 
 @ProviderFor(goRouter)
 final goRouterProvider = GoRouterProvider._();
 
 /// The app's navigation graph: a bottom-nav shell over Today and Feeds, with
-/// detail/discovery screens nested under each branch.
+/// detail/discovery screens nested under each branch. The story and entry
+/// readers push onto the root navigator so they cover the bottom nav bar.
 
 final class GoRouterProvider
     extends $FunctionalProvider<GoRouter, GoRouter, GoRouter>
     with $Provider<GoRouter> {
   /// The app's navigation graph: a bottom-nav shell over Today and Feeds, with
-  /// detail/discovery screens nested under each branch.
+  /// detail/discovery screens nested under each branch. The story and entry
+  /// readers push onto the root navigator so they cover the bottom nav bar.
   GoRouterProvider._()
     : super(
         from: null,
@@ -55,4 +58,4 @@ final class GoRouterProvider
   }
 }
 
-String _$goRouterHash() => r'097cdec3566f4f6a813013131b2333d791d931f7';
+String _$goRouterHash() => r'0ca8121f080bf396de137162cf5dbecb57e93a86';
