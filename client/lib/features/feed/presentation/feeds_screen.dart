@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:paperdoll/core/router/routes.dart';
 import 'package:paperdoll/core/ui/widgets/app_divider.dart';
 import 'package:paperdoll/core/ui/widgets/async_value_view.dart';
@@ -19,7 +18,6 @@ class FeedsScreen extends ConsumerWidget {
     final feedsAsync = ref.watch(feedsProvider());
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Feeds'),
         actions: [
           IconButton(
             tooltip: 'Add feed',

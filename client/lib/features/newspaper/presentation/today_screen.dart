@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:paperdoll/core/router/routes.dart';
 import 'package:paperdoll/core/ui/tokens/app_spacing.dart';
 import 'package:paperdoll/core/ui/widgets/async_value_view.dart';
@@ -19,7 +18,7 @@ class TodayScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final newspaperAsync = ref.watch(todayNewspaperProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Today')),
+      appBar: AppBar(),
       body: RefreshIndicator(
         onRefresh: () => ref.refresh(todayNewspaperProvider.future),
         child: AsyncValueView<Newspaper>(
