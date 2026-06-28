@@ -22,11 +22,11 @@ cp .env.example .env
 
 ## Running
 
-```sh
-fvm flutter run -d macos --dart-define-from-file=.env
-```
+Find the target device's ID using `fvm flutter devices`, then:
 
-`API_BASE_URL` in `.env` must point at a running Paperdoll API.
+```sh
+fvm flutter run -d [device-id] --dart-define-from-file=.env
+```
 
 ## Testing
 
@@ -39,11 +39,8 @@ prism mock api/api.yaml          # serves http://127.0.0.1:4010
 ```
 
 The test harness points the app at Prism by overriding the config provider, so
-no `--dart-define` is needed. Run each suite in its own invocation — macOS
-cannot relaunch multiple integration-test apps within one `flutter test` call:
+no `--dart-define` is needed:
 
 ```sh
-fvm flutter test integration_test/today_to_story_test.dart -d macos
-fvm flutter test integration_test/feeds_to_entry_test.dart -d macos
-fvm flutter test integration_test/search_subscribe_test.dart -d macos
+fvm flutter test integration_test/app_test.dart -d [device-id]
 ```
