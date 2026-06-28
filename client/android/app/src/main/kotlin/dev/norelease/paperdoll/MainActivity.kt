@@ -1,4 +1,4 @@
-package norelease.dev.paperdoll
+package dev.norelease.paperdoll
 
 import io.flutter.embedding.android.FlutterActivity
 
