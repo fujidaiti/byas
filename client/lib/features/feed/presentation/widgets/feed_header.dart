@@ -12,9 +12,12 @@ import 'package:paperdoll/features/feed/presentation/widgets/feed_icon.dart';
 
 /// Feed Detail header: icon, title, description, and a link to the site.
 class FeedHeader extends StatelessWidget {
-  const FeedHeader({required this.feed, super.key});
+  const FeedHeader({required this.feed, this.titleKey, super.key});
 
   final Feed feed;
+
+  /// Attached to the title text so the screen can track when it scrolls off.
+  final Key? titleKey;
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +36,7 @@ class FeedHeader extends StatelessWidget {
               Expanded(
                 child: TitleText(
                   feed.title,
+                  key: titleKey,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),

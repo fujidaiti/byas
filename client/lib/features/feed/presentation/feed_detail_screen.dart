@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:paperdoll/core/error/domain_error.dart';
 import 'package:paperdoll/core/router/routes.dart';
 import 'package:paperdoll/core/ui/widgets/app_divider.dart';
@@ -26,7 +25,6 @@ class FeedDetailScreen extends ConsumerWidget {
     final feedAsync = ref.watch(feedDetailProvider(id: id));
     final timelineAsync = ref.watch(feedTimelineProvider(id: id));
     return Scaffold(
-      appBar: AppBar(title: const Text('Feed')),
       body: RefreshIndicator(
         onRefresh: () {
           ref.invalidate(feedDetailProvider(id: id));
@@ -53,7 +51,7 @@ class FeedDetailScreen extends ConsumerWidget {
   }
 }
 
-class _FeedDetailBody extends StatelessWidget {
+class _FeedDetailBody extends StatefulWidget {
   const _FeedDetailBody({
     required this.feed,
     required this.timeline,
@@ -67,35 +65,94 @@ class _FeedDetailBody extends StatelessWidget {
   final void Function(int entryId) onOpenEntry;
 
   @override
+  State<_FeedDetailBody> createState() => _FeedDetailBodyState();
+}
+
+class _FeedDetailBodyState extends State<_FeedDetailBody> {
+  final GlobalKey _titleKey = GlobalKey();
+  var _showTitle = false;
+
+  bool _onScroll(ScrollNotification notification) {
+    final titleContext = _titleKey.currentContext;
+    if (titleContext == null) {
+      return false;
+    }
+    final box = titleContext.findRenderObject() as RenderBox?;
+    if (box == null) {
+      return false;
+    }
+    // The big title's bottom edge in global coordinates; once it scrolls above
+    // the top of the app bar, reveal the app bar title.
+    final titleBottom = box.localToGlobal(Offset(0, box.size.height)).dy;
+    final appBarBottom = MediaQuery.paddingOf(context).top + kToolbarHeight;
+    final shouldShow = titleBottom <= appBarBottom;
+    if (shouldShow != _showTitle) {
+      setState(() => _showTitle = shouldShow);
+    }
+    return false;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        FeedHeader(feed: feed),
-        const AppDivider(),
-        Expanded(
-          child: timeline.when(
-            data: _buildTimeline,
-            loading: () => const LoadingIndicator(),
-            error: (error, _) => ErrorPlaceholder(
-              message: describeError(error),
-              onRetry: onRetryTimeline,
+    return NotificationListener<ScrollNotification>(
+      onNotification: _onScroll,
+      child: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            pinned: true,
+            title: AnimatedOpacity(
+              opacity: _showTitle ? 1 : 0,
+              duration: const Duration(milliseconds: 150),
+              child: Text(
+                widget.feed.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ),
-        ),
-      ],
+          SliverToBoxAdapter(
+            child: Column(
+              children: [
+                FeedHeader(feed: widget.feed, titleKey: _titleKey),
+                const AppDivider(),
+              ],
+            ),
+          ),
+          widget.timeline.when(
+            data: _buildTimeline,
+            loading: () => const SliverFillRemaining(
+              hasScrollBody: false,
+              child: LoadingIndicator(),
+            ),
+            error: (error, _) => SliverFillRemaining(
+              hasScrollBody: false,
+              child: ErrorPlaceholder(
+                message: describeError(error),
+                onRetry: widget.onRetryTimeline,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildTimeline(List<FeedEntry> entries) {
     if (entries.isEmpty) {
-      return const EmptyPlaceholder(message: 'No entries yet.');
+      return const SliverFillRemaining(
+        hasScrollBody: false,
+        child: EmptyPlaceholder(message: 'No entries yet.'),
+      );
     }
-    return ListView.separated(
+    return SliverList.separated(
       itemCount: entries.length,
       separatorBuilder: (context, index) => const AppDivider(),
       itemBuilder: (context, index) {
         final entry = entries[index];
-        return EntryRow(entry: entry, onTap: () => onOpenEntry(entry.id));
+        return EntryRow(
+          entry: entry,
+          onTap: () => widget.onOpenEntry(entry.id),
+        );
       },
     );
   }
