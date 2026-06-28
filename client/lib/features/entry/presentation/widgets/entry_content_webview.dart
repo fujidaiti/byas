@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:paperdoll/core/util/link_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 /// Renders an entry's HTML `content` in a WebView. The controller is built
@@ -29,6 +30,20 @@ class _EntryContentWebViewState extends State<EntryContentWebView> {
             if (mounted) {
               setState(() => _isLoading = false);
             }
+          },
+          // Keep the WebView pinned to the rendered content: any link the
+          // user taps opens in an external browser instead of navigating
+          // away inside the WebView, matching the "Open original" /
+          // "Visit site" buttons.
+          onNavigationRequest: (request) {
+            final url = request.url;
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+              if (mounted) {
+                unawaited(openExternalLink(context, url));
+              }
+              return NavigationDecision.prevent;
+            }
+            return NavigationDecision.navigate;
           },
         ),
       ),
