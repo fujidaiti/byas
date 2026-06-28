@@ -19,30 +19,26 @@ class StoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final description = story.description;
     final publishedAt = story.publishedAt;
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(spacingMd),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              HeadingText(story.title),
-              if (description != null) ...[
-                const Gap(spacingSm),
-                BodyText(
-                  description,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-              if (publishedAt != null) ...[
-                const Gap(spacingSm),
-                CaptionText(formatDate(publishedAt)),
-              ],
-            ],
-          ),
-        ),
+    return ListTile(
+      isThreeLine: true,
+      onTap: onTap,
+      title: HeadingText(
+        story.title,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (description != null) ...[
+            const Gap(spacingXs),
+            BodyText(description, maxLines: 2, overflow: TextOverflow.ellipsis),
+          ],
+          if (publishedAt != null) ...[
+            const Gap(spacingXs),
+            CaptionText(formatDate(publishedAt)),
+          ],
+        ],
       ),
     );
   }
