@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:paperdoll/core/logging/app_logger.dart';
 import 'package:paperdoll/core/logging/logging_provider_observer.dart';
 import 'package:paperdoll/core/router/app_router.dart';
@@ -21,6 +20,9 @@ class PaperdollApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.grey),
+      ),
       title: 'Paperdoll',
       routerConfig: ref.watch(goRouterProvider),
     );
