@@ -2,11 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:paperdoll/core/logging/app_logger.dart';
+import 'package:paperdoll/core/logging/logging_provider_observer.dart';
 import 'package:paperdoll/core/router/app_router.dart';
 
 void main() {
   configureLogging();
-  runApp(const ProviderScope(child: PaperdollApp()));
+  runApp(
+    const ProviderScope(
+      observers: [LoggingProviderObserver()],
+      child: PaperdollApp(),
+    ),
+  );
 }
 
 class PaperdollApp extends ConsumerWidget {

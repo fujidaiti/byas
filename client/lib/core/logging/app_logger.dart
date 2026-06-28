@@ -14,5 +14,9 @@ void configureLogging({Level level = Level.WARNING}) {
     if (error != null) {
       debugPrint('  error: $error');
     }
+    final stackTrace = record.stackTrace;
+    if (stackTrace != null) {
+      debugPrint('  stackTrace: $stackTrace');
+    }
   });
 }
