@@ -2,7 +2,7 @@
 .DS_Store
 
 # Secrets
-.env
+.env.*
 
 # Artifacts
 build/

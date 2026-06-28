@@ -38,9 +38,9 @@ func Subscribe(ctx context.Context, db *sql.DB, fu url.URL) (Feed, error) {
 	}
 	var su, iu, desc sql.NullString
 	if u := f.IconURL; u != nil {
-		su = sql.NullString{String: u.String(), Valid: true}
+		iu = sql.NullString{String: u.String(), Valid: true}
 	}
-	if u := f.IconURL; u != nil {
+	if u := f.SiteURL; u != nil {
 		su = sql.NullString{String: u.String(), Valid: true}
 	}
 	if d := f.Description; d != nil {
