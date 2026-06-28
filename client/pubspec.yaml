@@ -29,6 +29,14 @@ dev_dependencies:
   integration_test:
     sdk: flutter
   freezed: ^3.2.6-dev.1
+  # Pinned as lower versions don't support SPM
+  patrol: ^4.7.0-dev.1
 
 flutter:
   uses-material-design: true
+
+patrol:
+  app_name: Test
+  test_directory: integration_test
+  android:
+    package_name: dev.norelease.paperdoll
