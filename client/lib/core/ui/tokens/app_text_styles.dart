@@ -1,5 +1,4 @@
 import 'package:flutter/widgets.dart';
-
 import 'package:paperdoll/core/ui/tokens/app_colors.dart';
 
 // Design tokens: text styles.
