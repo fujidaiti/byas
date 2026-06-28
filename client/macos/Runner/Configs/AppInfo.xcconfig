@@ -8,7 +8,7 @@
 PRODUCT_NAME = paperdoll
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = norelease.dev.paperdoll
+PRODUCT_BUNDLE_IDENTIFIER = dev.norelease.paperdoll
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 norelease.dev. All rights reserved.
