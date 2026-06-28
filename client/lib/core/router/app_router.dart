@@ -11,11 +11,15 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'app_router.g.dart';
 
+final _rootNavigatorKey = GlobalKey<NavigatorState>();
+
 /// The app's navigation graph: a bottom-nav shell over Today and Feeds, with
-/// detail/discovery screens nested under each branch.
+/// detail/discovery screens nested under each branch. The story and entry
+/// readers push onto the root navigator so they cover the bottom nav bar.
 @riverpod
 GoRouter goRouter(Ref ref) {
   return GoRouter(
+    navigatorKey: _rootNavigatorKey,
     initialLocation: routeTodayPath,
     routes: [
       StatefulShellRoute.indexedStack(
@@ -32,6 +36,7 @@ GoRouter goRouter(Ref ref) {
                   GoRoute(
                     path: routeStoryPath,
                     name: routeStoryName,
+                    parentNavigatorKey: _rootNavigatorKey,
                     builder: (context, state) =>
                         StoryReaderScreen(id: _idParam(state, 'id')),
                   ),
@@ -60,6 +65,7 @@ GoRouter goRouter(Ref ref) {
                       GoRoute(
                         path: routeEntryReaderPath,
                         name: routeEntryReaderName,
+                        parentNavigatorKey: _rootNavigatorKey,
                         builder: (context, state) =>
                             EntryReaderScreen(id: _idParam(state, 'entryId')),
                       ),
