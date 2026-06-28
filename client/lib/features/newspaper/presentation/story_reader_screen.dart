@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:paperdoll/core/ui/widgets/async_value_view.dart';
+import 'package:paperdoll/core/ui/widgets/heading_text.dart';
 import 'package:paperdoll/core/util/link_launcher.dart';
 import 'package:paperdoll/features/entry/domain/feed_entry.dart';
 import 'package:paperdoll/features/entry/presentation/widgets/entry_reader_view.dart';
@@ -20,7 +20,7 @@ class StoryReaderScreen extends ConsumerWidget {
     final entry = storyAsync.asData?.value;
     return Scaffold(
       appBar: AppBar(
-        title: Text(entry?.title ?? ''),
+        title: HeadingText(entry?.title ?? ''),
         actions: [
           if (entry != null)
             IconButton(
