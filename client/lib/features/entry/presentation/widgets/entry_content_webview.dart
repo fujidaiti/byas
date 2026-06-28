@@ -16,18 +16,46 @@ class EntryContentWebView extends StatefulWidget {
 
 class _EntryContentWebViewState extends State<EntryContentWebView> {
   late final WebViewController _controller;
+  var _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _controller = WebViewController();
+    unawaited(
+      _controller.setNavigationDelegate(
+        NavigationDelegate(
+          onPageFinished: (_) {
+            if (mounted) {
+              setState(() => _isLoading = false);
+            }
+          },
+        ),
+      ),
+    );
     unawaited(_controller.setJavaScriptMode(JavaScriptMode.disabled));
     unawaited(_controller.loadHtmlString(_document(widget.html)));
   }
 
   @override
   Widget build(BuildContext context) {
-    return WebViewWidget(controller: _controller);
+    return Stack(
+      children: [
+        WebViewWidget(controller: _controller),
+        // Opaque scrim covering the WebView until the page finishes loading,
+        // so the empty WebView's dark default background never flickers.
+        Positioned.fill(
+          child: IgnorePointer(
+            ignoring: !_isLoading,
+            child: AnimatedOpacity(
+              opacity: _isLoading ? 1 : 0,
+              duration: const Duration(milliseconds: 150),
+              child: ColoredBox(color: Theme.of(context).colorScheme.surface),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   String _document(String content) {
