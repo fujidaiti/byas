@@ -1,7 +1,6 @@
 # paperdoll
 
-The Paperdoll mobile client — a daily-newspaper RSS reader. See
-[`docs/design.md`](docs/design.md) for the architecture and screen design.
+The Paperdoll mobile client — a daily-newspaper RSS reader.
 
 ## Setup
 
