@@ -4,7 +4,9 @@
       "name": "Client - Development",
       "request": "launch",
       "type": "dart",
+      "flutterMode": "debug",
       "program": "lib/main.dart",
+      "args": ["--dart-define-from-file=.env"],
       "cwd": "./client"
     }
   ]

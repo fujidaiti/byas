@@ -1,0 +1,86 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+
+/// Renders an entry's HTML `content` in a WebView. The controller is built
+/// once in initState (not in createState) so it survives rebuilds.
+class EntryContentWebView extends StatefulWidget {
+  const EntryContentWebView({required this.html, super.key});
+
+  final String html;
+
+  @override
+  State<EntryContentWebView> createState() => _EntryContentWebViewState();
+}
+
+class _EntryContentWebViewState extends State<EntryContentWebView> {
+  late final WebViewController _controller;
+  var _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = WebViewController();
+    unawaited(
+      _controller.setNavigationDelegate(
+        NavigationDelegate(
+          onPageFinished: (_) {
+            if (mounted) {
+              setState(() => _isLoading = false);
+            }
+          },
+        ),
+      ),
+    );
+    unawaited(_controller.setJavaScriptMode(JavaScriptMode.disabled));
+    unawaited(_controller.loadHtmlString(_document(widget.html)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        WebViewWidget(controller: _controller),
+        // Opaque scrim covering the WebView until the page finishes loading,
+        // so the empty WebView's dark default background never flickers.
+        Positioned.fill(
+          child: IgnorePointer(
+            ignoring: !_isLoading,
+            child: AnimatedOpacity(
+              opacity: _isLoading ? 1 : 0,
+              duration: const Duration(milliseconds: 150),
+              child: ColoredBox(color: Theme.of(context).colorScheme.surface),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _document(String content) {
+    return '''
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body {
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  margin: 0;
+  padding: 16px;
+  color: #1a1a1a;
+}
+img, video, iframe { max-width: 100%; height: auto; }
+pre { white-space: pre-wrap; word-wrap: break-word; }
+a { color: #1565c0; }
+</style>
+</head>
+<body>$content</body>
+</html>
+''';
+  }
+}
