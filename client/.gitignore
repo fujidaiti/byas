@@ -44,3 +44,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Patrol generates this file when running tests:
+# https://patrol.leancode.co/documentation
+integration_test/test_bundle.dart
