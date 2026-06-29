@@ -25,44 +25,48 @@ void main() {
     patrolTest('open app, read today, open a story', ($) async {
       await _pumpApp($);
 
-      // Today shows the issue's story cards; tap the first one.
+      // Verify the card renders the expected title, then tap it.
+      await $('Demystifying evals for AI agents').waitUntilVisible();
       await $(AppTestKeys.storyCard(1)).tap();
 
-      // Story Reader is open when the "Open original" button appears.
+      // Verify navigation landed on the correct story (ID 1 from the mock).
       await $(AppTestKeys.storyReaderOpenOriginalButton).waitUntilVisible();
+      await $('Demystifying evals for AI agents').waitUntilVisible();
     });
 
     patrolTest('browse feeds, open a feed, read an entry', ($) async {
       await _pumpApp($);
 
-      // Switch to the Feeds tab.
       await $(AppTestKeys.feedsNavDestination).tap();
 
-      // Open the Anthropic Engineering Blog feed (ID 1 from the mock).
+      // Verify the feed row renders the expected name, then tap it.
+      await $('Anthropic Engineering Blog').waitUntilVisible();
       await $(AppTestKeys.feedRow(1)).tap();
 
-      // Open "Effective harnesses for long-running agents" (entry ID 11).
+      // Verify navigation landed on the correct feed (FeedDetail AppBar).
+      await $('Anthropic Engineering Blog').waitUntilVisible();
+
+      // Verify the entry row renders the expected title, then tap it.
+      await $('Effective harnesses for long-running agents').waitUntilVisible();
       await $(AppTestKeys.entryRow(11)).tap();
 
-      // Entry Reader is open when the "Open original" button appears.
+      // Verify navigation landed on the correct entry (ID 11 from the mock).
       await $(AppTestKeys.entryReaderOpenOriginalButton).waitUntilVisible();
+      await $('Effective harnesses for long-running agents').waitUntilVisible();
     });
 
     patrolTest('search for a feed and subscribe', ($) async {
       await _pumpApp($);
 
-      // Go to Feeds, then open the search screen.
       await $(AppTestKeys.feedsNavDestination).tap();
       await $(AppTestKeys.addFeedButton).tap();
 
-      // Search by URL via the Search button.
       await $(
         AppTestKeys.feedSearchTextField,
       ).enterText('https://dart.dev/blog/feed.xml');
       await $(AppTestKeys.feedSearchButton).tap();
 
-      // Subscribe by tapping the first candidate.
-      await $(AppTestKeys.feedCandidateTile(0)).tap();
+      await $('The Dart Blog').tap();
 
       // Confirmation snackbar appears, then we return to the Feeds screen.
       await $(AppTestKeys.subscribeSuccessSnackBar).waitUntilVisible();

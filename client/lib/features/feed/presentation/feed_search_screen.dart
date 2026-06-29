@@ -119,7 +119,6 @@ class _FeedSearchScreenState extends ConsumerState<FeedSearchScreen> {
       itemBuilder: (context, index) {
         final candidate = candidates[index];
         return FeedCandidateTile(
-          key: AppTestKeys.feedCandidateTile(index),
           candidate: candidate,
           isSubscribing: _subscribingIndex == index,
           onSubscribe: () => unawaited(_subscribe(candidate, index)),

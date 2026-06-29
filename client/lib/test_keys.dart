@@ -17,7 +17,6 @@ abstract final class AppTestKeys {
   static const todayNavDestination = Key('todayNavDestination');
 
   static Key entryRow(int id) => Key('entryRow_$id');
-  static Key feedCandidateTile(int index) => Key('feedCandidateTile_$index');
   static Key feedRow(int id) => Key('feedRow_$id');
   static Key storyCard(int id) => Key('storyCard_$id');
 }
