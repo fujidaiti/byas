@@ -7,6 +7,7 @@ import 'package:paperdoll/features/feed/presentation/feed_search_screen.dart';
 import 'package:paperdoll/features/feed/presentation/feeds_screen.dart';
 import 'package:paperdoll/features/newspaper/presentation/story_reader_screen.dart';
 import 'package:paperdoll/features/newspaper/presentation/today_screen.dart';
+import 'package:paperdoll/test_keys.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'app_router.g.dart';
@@ -98,11 +99,16 @@ class _ScaffoldWithNavBar extends StatelessWidget {
         onDestinationSelected: navigationShell.goBranch,
         destinations: const [
           NavigationDestination(
+            key: AppTestKeys.todayNavDestination,
             icon: Icon(Icons.article_outlined),
             selectedIcon: Icon(Icons.article),
             label: 'Today',
           ),
-          NavigationDestination(icon: Icon(Icons.rss_feed), label: 'Feeds'),
+          NavigationDestination(
+            key: AppTestKeys.feedsNavDestination,
+            icon: Icon(Icons.rss_feed),
+            label: 'Feeds',
+          ),
         ],
       ),
     );

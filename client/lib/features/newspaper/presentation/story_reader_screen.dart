@@ -8,6 +8,7 @@ import 'package:paperdoll/core/util/link_launcher.dart';
 import 'package:paperdoll/features/entry/domain/feed_entry.dart';
 import 'package:paperdoll/features/entry/presentation/widgets/entry_reader_view.dart';
 import 'package:paperdoll/features/newspaper/presentation/providers/newspaper_providers.dart';
+import 'package:paperdoll/test_keys.dart';
 
 class StoryReaderScreen extends ConsumerWidget {
   const StoryReaderScreen({required this.id, super.key});
@@ -24,6 +25,7 @@ class StoryReaderScreen extends ConsumerWidget {
         actions: [
           if (entry != null)
             IconButton(
+              key: AppTestKeys.storyReaderOpenOriginalButton,
               tooltip: 'Open original',
               icon: const Icon(Icons.open_in_new),
               onPressed: () => unawaited(openExternalLink(context, entry.url)),

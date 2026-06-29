@@ -8,6 +8,7 @@ import 'package:paperdoll/core/ui/widgets/empty_placeholder.dart';
 import 'package:paperdoll/features/feed/domain/feed.dart';
 import 'package:paperdoll/features/feed/presentation/providers/feed_providers.dart';
 import 'package:paperdoll/features/feed/presentation/widgets/feed_row.dart';
+import 'package:paperdoll/test_keys.dart';
 
 /// Feeds (Subscriptions) home: the list of subscribed feeds.
 class FeedsScreen extends ConsumerWidget {
@@ -20,6 +21,7 @@ class FeedsScreen extends ConsumerWidget {
       appBar: AppBar(
         actions: [
           IconButton(
+            key: AppTestKeys.addFeedButton,
             tooltip: 'Add feed',
             icon: const Icon(Icons.add),
             onPressed: () => context.pushNamed(routeFeedSearchName),
@@ -58,6 +60,7 @@ class _FeedsList extends StatelessWidget {
       itemBuilder: (context, index) {
         final feed = feeds[index];
         return FeedRow(
+          key: AppTestKeys.feedRow(feed.id),
           feed: feed,
           onTap: () => context.pushNamed(
             routeFeedDetailName,

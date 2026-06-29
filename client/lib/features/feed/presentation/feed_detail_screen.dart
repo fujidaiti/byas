@@ -18,6 +18,7 @@ import 'package:paperdoll/features/entry/domain/feed_entry.dart';
 import 'package:paperdoll/features/entry/presentation/widgets/entry_row.dart';
 import 'package:paperdoll/features/feed/domain/feed.dart';
 import 'package:paperdoll/features/feed/presentation/providers/feed_providers.dart';
+import 'package:paperdoll/test_keys.dart';
 
 /// Feed Detail (Timeline): a feed's header and its full stream of entries.
 class FeedDetailScreen extends ConsumerWidget {
@@ -109,7 +110,11 @@ class _FeedDetailBody extends StatelessWidget {
       separatorBuilder: (context, index) => const AppDivider(),
       itemBuilder: (context, index) {
         final entry = entries[index];
-        return EntryRow(entry: entry, onTap: () => onOpenEntry(entry.id));
+        return EntryRow(
+          key: AppTestKeys.entryRow(entry.id),
+          entry: entry,
+          onTap: () => onOpenEntry(entry.id),
+        );
       },
     );
   }

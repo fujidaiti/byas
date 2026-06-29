@@ -13,6 +13,7 @@ import 'package:paperdoll/core/ui/widgets/gap.dart';
 import 'package:paperdoll/features/feed/domain/feed_candidate.dart';
 import 'package:paperdoll/features/feed/presentation/providers/feed_providers.dart';
 import 'package:paperdoll/features/feed/presentation/widgets/feed_candidate_tile.dart';
+import 'package:paperdoll/test_keys.dart';
 
 /// Feed Search / Subscribe: find a feed by URL and subscribe to it.
 class FeedSearchScreen extends ConsumerStatefulWidget {
@@ -49,7 +50,10 @@ class _FeedSearchScreenState extends ConsumerState<FeedSearchScreen> {
           .read(feedSearchControllerProvider.notifier)
           .subscribe(candidate.url);
       messenger.showSnackBar(
-        SnackBar(content: Text('Subscribed to ${candidate.title}')),
+        SnackBar(
+          key: AppTestKeys.subscribeSuccessSnackBar,
+          content: Text('Subscribed to ${candidate.title}'),
+        ),
       );
       router.pop();
     } on DomainError catch (error) {
@@ -74,6 +78,7 @@ class _FeedSearchScreenState extends ConsumerState<FeedSearchScreen> {
               children: [
                 Expanded(
                   child: TextField(
+                    key: AppTestKeys.feedSearchTextField,
                     controller: _queryController,
                     keyboardType: TextInputType.url,
                     decoration: const InputDecoration(
@@ -85,6 +90,7 @@ class _FeedSearchScreenState extends ConsumerState<FeedSearchScreen> {
                 ),
                 const Gap(spacingSm),
                 FilledButton(
+                  key: AppTestKeys.feedSearchButton,
                   onPressed: () => unawaited(_search()),
                   child: const Text('Search'),
                 ),
@@ -113,6 +119,7 @@ class _FeedSearchScreenState extends ConsumerState<FeedSearchScreen> {
       itemBuilder: (context, index) {
         final candidate = candidates[index];
         return FeedCandidateTile(
+          key: AppTestKeys.feedCandidateTile(index),
           candidate: candidate,
           isSubscribing: _subscribingIndex == index,
           onSubscribe: () => unawaited(_subscribe(candidate, index)),
