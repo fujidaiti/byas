@@ -5,10 +5,9 @@ import 'package:paperdoll/core/ui/widgets/body_text.dart';
 import 'package:paperdoll/core/ui/widgets/caption_text.dart';
 import 'package:paperdoll/core/ui/widgets/gap.dart';
 import 'package:paperdoll/core/ui/widgets/heading_text.dart';
-import 'package:paperdoll/core/util/date_format.dart';
 import 'package:paperdoll/features/newspaper/domain/story.dart';
 
-/// A story in the Today list: title, snippet, and publication date.
+/// A story in the Today list: title, snippet, and source.
 class StoryCard extends StatelessWidget {
   const StoryCard({required this.story, this.onTap, super.key});
 
@@ -18,7 +17,7 @@ class StoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final description = story.description;
-    final publishedAt = story.publishedAt;
+    final source = story.source;
     return ListTile(
       isThreeLine: true,
       onTap: onTap,
@@ -34,10 +33,7 @@ class StoryCard extends StatelessWidget {
             const Gap(spacingXs),
             BodyText(description, maxLines: 2, overflow: TextOverflow.ellipsis),
           ],
-          if (publishedAt != null) ...[
-            const Gap(spacingXs),
-            CaptionText(formatDate(publishedAt)),
-          ],
+          if (source != null) ...[const Gap(spacingSm), CaptionText(source)],
         ],
       ),
     );
