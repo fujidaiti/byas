@@ -3,8 +3,9 @@
 ## Mobile app distribution (deploy workflow)
 
 The `distribute-android` and `distribute-ios` jobs in
-`.github/workflows/deploy.yaml` are a **draft**. They lay out the shape of the
-pipeline but cannot produce/distribute a real build yet. Outstanding work:
+`.github/workflows/release_mobile.yaml` are a **draft**. They lay out the shape
+of the pipeline but cannot produce/distribute a real build yet. Outstanding
+work:
 
 ### Shared
 
@@ -16,13 +17,13 @@ pipeline but cannot produce/distribute a real build yet. Outstanding work:
       TestFlight (and Firebase) reject duplicate build numbers, so the build
       number must be bumped per run (e.g. derive from `github.run_number` via
       `--build-number`). Decide on a versioning strategy.
-- [ ] **Trigger strategy.** The jobs run on every push to `main` alongside the
-      docs deploy. Consider gating on tags/releases or path filters
-      (`client/**`) and/or `workflow_dispatch` so every merge doesn't ship a
-      tester build.
+- [ ] **Trigger strategy.** The workflow triggers on `v*` tags (plus manual
+      `workflow_dispatch`). Confirm the tag convention (`v*`) matches how
+      releases are cut, and decide whether `workflow_dispatch` runs off a
+      non-tag ref should be allowed to publish to testers.
 - [ ] **De-duplicate Flutter setup.** The SDK install + pub cache steps are
       copied from `client_health.yaml`. Extract a composite action and reuse it
-      across all three workflows.
+      across the health and release workflows.
 - [ ] Decide whether build artifacts (APK/IPA) should also be uploaded as
       workflow artifacts for debugging.
 
