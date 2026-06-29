@@ -31,7 +31,8 @@ CREATE TABLE stories (
     newspaper_id bigint REFERENCES newspapers (id),
     title text NOT NULL,
     description text,
-    published_at timestamptz
+    published_at timestamptz,
+    source text
 );
 
 CREATE TABLE newspaper_schedules (

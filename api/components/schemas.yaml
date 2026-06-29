@@ -72,6 +72,8 @@ Story:
       type: string
     description:
       type: string
+    source:
+      type: string
     published_at:
       type: string
       format: date-time

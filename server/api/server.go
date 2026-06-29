@@ -99,6 +99,7 @@ type stories struct {
 	ID          int        `json:"id"`
 	Title       string     `json:"title"`
 	Description *string    `json:"description,omitempty"`
+	Source      *string    `json:"source,omitempty"`
 	PublishedAt *time.Time `json:"published_at,omitempty"`
 }
 
@@ -120,7 +121,7 @@ func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, err := h.db.QueryContext(ctx, `
-		SELECT id, title, description, published_at
+		SELECT id, title, description, source, published_at
 		FROM stories
 		WHERE newspaper_id = $1
 		ORDER BY published_at DESC;
@@ -134,7 +135,7 @@ func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 	}
 	for rows.Next() {
 		a := stories{}
-		err := rows.Scan(&a.ID, &a.Title, &a.Description, &a.PublishedAt)
+		err := rows.Scan(&a.ID, &a.Title, &a.Description, &a.Source, &a.PublishedAt)
 		if err != nil {
 			serverError(w, http.StatusInternalServerError, "Failed to parse a story.")
 			return

@@ -15,12 +15,16 @@ type Story struct {
 	Title       string
 	Description string
 
-	// PublishedAt is an optional user-facing date when the associated entry
-	// was published. This is not the date when this story is created.
+	// Source is optional display text indicating where the content of this story comes from;
+	// e.g., the feed name for feed-entry-based stories.
+	Source string
+
+	// PublishedAt is the optional user-facing date when the associated entry
+	// was published. This is not the date when this story was created.
 	PublishedAt time.Time
 }
 
-func DraftStory(title, description string, entryID int, publishedAt time.Time) (Story, error) {
+func DraftStory(title, description, source string, entryID int, publishedAt time.Time) (Story, error) {
 	if title == "" {
 		return Story{}, fmt.Errorf("title cannot be empty")
 	}
@@ -32,6 +36,7 @@ func DraftStory(title, description string, entryID int, publishedAt time.Time) (
 		Title:       title,
 		Description: description,
 		PublishedAt: publishedAt,
+		Source:      source,
 	}
 	return s, nil
 }
@@ -46,13 +51,14 @@ func SubmitStories(ctx context.Context, ss []Story, db *sql.DB) error {
 	var args []any
 	for i, s := range ss {
 		desc := sql.NullString{String: s.Description, Valid: s.Description != ""}
+		src := sql.NullString{String: s.Source, Valid: s.Source != ""}
 		pubDate := sql.NullTime{Time: s.PublishedAt, Valid: !s.PublishedAt.IsZero()}
-		k := i * 4
-		vals = append(vals, fmt.Sprintf("($%d, $%d, $%d, $%d)", k+1, k+2, k+3, k+4))
-		args = append(args, s.Title, desc, s.EntryID, pubDate)
+		k := i * 5
+		vals = append(vals, fmt.Sprintf("($%d, $%d, $%d, $%d, $%d)", k+1, k+2, k+3, k+4, k+5))
+		args = append(args, s.Title, desc, src, s.EntryID, pubDate)
 	}
 	_, err := db.ExecContext(ctx, fmt.Sprintf(`
-			INSERT INTO stories (title, description, entry_id, published_at)
+			INSERT INTO stories (title, description, source, entry_id, published_at)
 			VALUES %s;
 		`, strings.Join(vals, ",")), args...)
 	if err != nil {
