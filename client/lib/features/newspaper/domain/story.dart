@@ -10,6 +10,7 @@ abstract class Story with _$Story {
     required int id,
     required String title,
     String? description,
+    String? source,
     DateTime? publishedAt,
   }) = _Story;
 

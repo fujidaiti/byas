@@ -17,8 +17,9 @@ import (
 )
 
 type feedRecord struct {
-	id  int
-	url string
+	id    int
+	url   string
+	title string
 }
 
 type entryRecord struct {
@@ -129,7 +130,7 @@ func (j *job) Do(ctx context.Context) error {
 		}
 	}
 
-	err = writeStories(ctx, entriesToBeStories, j.db)
+	err = writeStories(ctx, feed, entriesToBeStories, j.db)
 	if err != nil {
 		fmt.Printf("Something went wrong while writing stories: %s\n", err)
 	}
@@ -145,7 +146,7 @@ func CollectJobs(ctx context.Context, db *sql.DB) ([]job, error) {
 	}
 	// TODO: Create an index for next_poll_at column
 	rows, err := db.QueryContext(ctx, `
-		SELECT id, url
+		SELECT id, url, title
 		FROM feeds;
 	`)
 	if err != nil {
@@ -156,7 +157,7 @@ func CollectJobs(ctx context.Context, db *sql.DB) ([]job, error) {
 	var jobs []job
 	for rows.Next() {
 		feed := feedRecord{}
-		err := rows.Scan(&feed.id, &feed.url)
+		err := rows.Scan(&feed.id, &feed.url, &feed.title)
 		if err != nil {
 			return nil, err
 		}
@@ -196,7 +197,7 @@ func normalizeEntry(entry *gofeed.Item, feedId int) entryRecord {
 	return e
 }
 
-func writeStories(ctx context.Context, es []entryRecord, db *sql.DB) error {
+func writeStories(ctx context.Context, f feedRecord, es []entryRecord, db *sql.DB) error {
 	var ss []newspaper.Story
 	for _, e := range es {
 		var pubDate time.Time
@@ -207,7 +208,7 @@ func writeStories(ctx context.Context, es []entryRecord, db *sql.DB) error {
 		if e.description.Valid {
 			desc = e.description.String
 		}
-		s, err := newspaper.DraftStory(e.title, desc, e.id, pubDate)
+		s, err := newspaper.DraftStory(e.title, desc, f.title, e.id, pubDate)
 		if err != nil {
 			fmt.Printf("Cannot write a story from this entry ID=%d. Skipping.\n", e.id)
 		} else {
