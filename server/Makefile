@@ -3,7 +3,7 @@ export
 
 .PHONY: db-seed
 db-seed:
-	psql -d $(DB_NAME) -f seed.sql
+	psql -d $(DB_NAME) -f db/seed.sql
 
 .PHONY: db-reset
 db-reset:
