@@ -1,10 +1,11 @@
 import 'package:dio/dio.dart';
+import 'package:openapi/api.dart' as api;
 
 import 'package:paperdoll/core/network/request_runner.dart';
 import 'package:paperdoll/features/entry/domain/feed_entry.dart';
-import 'package:paperdoll/features/newspaper/data/dtos/story_envelope_dto.dart';
 import 'package:paperdoll/features/newspaper/domain/newspaper.dart';
 import 'package:paperdoll/features/newspaper/domain/newspaper_repository.dart';
+import 'package:paperdoll/features/newspaper/domain/story.dart';
 
 class NewspaperRepositoryImpl implements NewspaperRepository {
   const NewspaperRepositoryImpl(this._dio);
@@ -15,7 +16,22 @@ class NewspaperRepositoryImpl implements NewspaperRepository {
   Future<Newspaper> getToday() {
     return runRequest(() async {
       final res = await _dio.get<Map<String, dynamic>>('/newspapers/today');
-      return Newspaper.fromJson(res.data!);
+      final body = api.GetTodaysNewspaper200Response.fromJson(res.data)!;
+      return Newspaper(
+        id: body.id,
+        publishedAt: body.publishedAt,
+        stories: body.stories
+            .map(
+              (s) => Story(
+                id: s.id,
+                title: s.title,
+                description: s.description,
+                source: s.source_,
+                publishedAt: s.publishedAt,
+              ),
+            )
+            .toList(),
+      );
     });
   }
 
@@ -25,7 +41,17 @@ class NewspaperRepositoryImpl implements NewspaperRepository {
       final res = await _dio.get<Map<String, dynamic>>(
         '/newspapers/stories/$id',
       );
-      return StoryEnvelopeDto.fromJson(res.data!).data;
+      final e = api.GetStory200Response.fromJson(res.data)!.data;
+      return FeedEntry(
+        id: e.id,
+        feedId: e.feedId,
+        url: e.url,
+        title: e.title,
+        description: e.description,
+        content: e.content,
+        publishedAt: e.publishedAt,
+        snapshotAt: e.snapshotAt,
+      );
     });
   }
 }

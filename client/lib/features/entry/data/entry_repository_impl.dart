@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:openapi/api.dart' as api;
 
 import 'package:paperdoll/core/network/request_runner.dart';
 import 'package:paperdoll/features/entry/domain/entry_repository.dart';
@@ -13,7 +14,17 @@ class EntryRepositoryImpl implements EntryRepository {
   Future<FeedEntry> getEntry(int id) {
     return runRequest(() async {
       final res = await _dio.get<Map<String, dynamic>>('/feed-entries/$id');
-      return FeedEntry.fromJson(res.data!);
+      final e = api.FeedEntry.fromJson(res.data)!;
+      return FeedEntry(
+        id: e.id,
+        feedId: e.feedId,
+        url: e.url,
+        title: e.title,
+        description: e.description,
+        content: e.content,
+        publishedAt: e.publishedAt,
+        snapshotAt: e.snapshotAt,
+      );
     });
   }
 }

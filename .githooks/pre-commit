@@ -16,17 +16,17 @@ if [ -n "$go_files" ]; then
   )
 fi
 
-# Format staged Dart files and include the results in this commit.
+# Auto-fix and format staged Dart files and include the results in this commit.
 dart_files=$(git diff --cached --name-only --diff-filter=ACM -- '*.dart')
 
 if [ -n "$dart_files" ]; then
+  fvm dart fix --apply .
   fvm dart format $dart_files
   git add -- $dart_files
 
-  # Apply automated fixes and analyze the client module to catch errors before committing.
+  # Aanalyze the client module to catch errors before committing.
   (
     cd client
-    fvm dart fix --apply .
     fvm flutter analyze
   )
 fi
@@ -38,4 +38,3 @@ if [ -n "$prettier_files" ]; then
   prettier -w $prettier_files
   git add -- $prettier_files
 fi
-

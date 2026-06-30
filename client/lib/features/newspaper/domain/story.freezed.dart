@@ -11,7 +11,6 @@ part of 'story.dart';
 
 // dart format off
 T _$identity<T>(T value) => value;
-
 /// @nodoc
 mixin _$Story {
 
@@ -22,8 +21,6 @@ mixin _$Story {
 @pragma('vm:prefer-inline')
 $StoryCopyWith<Story> get copyWith => _$StoryCopyWithImpl<Story>(this as Story, _$identity);
 
-  /// Serializes this Story to a JSON map.
-  Map<String, dynamic> toJson();
 
 
 @override
@@ -31,7 +28,7 @@ bool operator ==(Object other) {
   return identical(this, other) || (other.runtimeType == runtimeType&&other is Story&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.source, source) || other.source == source)&&(identical(other.publishedAt, publishedAt) || other.publishedAt == publishedAt));
 }
 
-@JsonKey(includeFromJson: false, includeToJson: false)
+
 @override
 int get hashCode => Object.hash(runtimeType,id,title,description,source,publishedAt);
 
@@ -210,11 +207,11 @@ return $default(_that.id,_that.title,_that.description,_that.source,_that.publis
 }
 
 /// @nodoc
-@JsonSerializable()
+
 
 class _Story implements Story {
   const _Story({required this.id, required this.title, this.description, this.source, this.publishedAt});
-  factory _Story.fromJson(Map<String, dynamic> json) => _$StoryFromJson(json);
+  
 
 @override final  int id;
 @override final  String title;
@@ -228,17 +225,14 @@ class _Story implements Story {
 @pragma('vm:prefer-inline')
 _$StoryCopyWith<_Story> get copyWith => __$StoryCopyWithImpl<_Story>(this, _$identity);
 
-@override
-Map<String, dynamic> toJson() {
-  return _$StoryToJson(this, );
-}
+
 
 @override
 bool operator ==(Object other) {
   return identical(this, other) || (other.runtimeType == runtimeType&&other is _Story&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.source, source) || other.source == source)&&(identical(other.publishedAt, publishedAt) || other.publishedAt == publishedAt));
 }
 
-@JsonKey(includeFromJson: false, includeToJson: false)
+
 @override
 int get hashCode => Object.hash(runtimeType,id,title,description,source,publishedAt);
 
