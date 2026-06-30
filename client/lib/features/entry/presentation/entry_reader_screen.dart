@@ -20,6 +20,7 @@ class EntryReaderScreen extends ConsumerWidget {
     final entryAsync = ref.watch(entryProvider(id: id));
     final entry = entryAsync.asData?.value;
     return Scaffold(
+      key: AppTestKeys.entryReaderScreen,
       appBar: AppBar(
         title: HeadingText(entry?.title ?? ''),
         actions: [

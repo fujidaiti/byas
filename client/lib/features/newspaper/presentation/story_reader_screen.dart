@@ -20,6 +20,7 @@ class StoryReaderScreen extends ConsumerWidget {
     final storyAsync = ref.watch(storyProvider(id: id));
     final entry = storyAsync.asData?.value;
     return Scaffold(
+      key: AppTestKeys.storyReaderScreen,
       appBar: AppBar(
         title: HeadingText(entry?.title ?? ''),
         actions: [

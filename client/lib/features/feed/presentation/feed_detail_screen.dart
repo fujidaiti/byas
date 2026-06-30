@@ -31,6 +31,7 @@ class FeedDetailScreen extends ConsumerWidget {
     final feedAsync = ref.watch(feedDetailProvider(id: id));
     final timelineAsync = ref.watch(feedTimelineProvider(id: id));
     return Scaffold(
+      key: AppTestKeys.feedDetailScreen,
       body: RefreshIndicator(
         onRefresh: () {
           ref.invalidate(feedDetailProvider(id: id));
