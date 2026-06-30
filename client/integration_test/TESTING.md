@@ -1,21 +1,90 @@
 # Integration Test Guide
 
 Tests live in `integration_test/app_test.dart` and run with
-[Patrol](https://patrol.leancode.co/) against a
-[Prism](https://stoplight.io/open-source/prism) mock server serving
-`api/api.yaml`.
+[Patrol](https://patrol.leancode.co/). HTTP calls are intercepted in-process
+using [http_mock_adapter](https://pub.dev/packages/http_mock_adapter) — no
+external mock server is required.
 
 ## Running tests
 
-Start Prism first, then run Patrol:
-
 ```sh
-prism mock api/api.yaml --port 4010
-patrol test --flutter-command "fvm flutter" --device <device-id>
+make integration-test D=<device-id>
 ```
 
-The test suite targets Android. The emulator reaches the host machine via
-`10.0.2.2`, not `127.0.0.1`.
+The test suite targets Android. List connected devices with
+`fvm flutter devices`.
+
+---
+
+## How mocking works
+
+Each test calls `_pumpApp($)` to start the app, then immediately reads the live
+`Dio` instance from the Riverpod container and attaches a `DioAdapter` to it.
+All subsequent HTTP calls go through the adapter instead of the network.
+
+```dart
+patrolTest('...', ($) async {
+  await _pumpApp($);
+
+  // Must happen before the first Patrol action that triggers an HTTP call.
+  final dio = $.tester.container().read(dioProvider);
+  final adapter = DioAdapter(dio: dio, matcher: const FullHttpRequestMatcher());
+
+  adapter.onGet('/some/path', (server) => server.reply(200, responseBody));
+
+  // Test actions follow.
+  await $('Some text').tap();
+  // ...
+});
+```
+
+### Building response bodies
+
+Use the auto-generated `api.*` model constructors (from `package:openapi`) for
+type safety. Call `.toJson()` on leaf models; assemble wrapper objects manually
+because the generated `toJson()` for wrapper types stores nested objects rather
+than their serialized Maps:
+
+```dart
+// Leaf model — .toJson() is safe to use directly
+final feed = api.Feed(id: 1, url: '...', title: 'Anthropic Engineering Blog');
+
+// Wrapper — build the Map manually and call .toJson() on the nested items
+adapter.onGet('/feeds', (server) => server.reply(200, {
+  'feeds': [feed.toJson()],
+}));
+
+// GetStory200Response is also a wrapper — its 'data' field is a nested FeedEntry
+adapter.onGet('/newspapers/stories/1', (server) => server.reply(200, {
+  'type': 'entry',
+  'data': storyEntry.toJson(),
+}));
+```
+
+### Multiple replies for the same route
+
+Each `adapter.onGet()` call enqueues one reply. Register the same path twice to
+return different responses on successive calls:
+
+```dart
+// First GET /feeds → empty list (initial screen load)
+adapter.onGet('/feeds', (server) => server.reply(200, {'feeds': <Object>[]}));
+// Second GET /feeds → list with the new feed (after invalidation + re-fetch)
+adapter.onGet('/feeds', (server) => server.reply(200, {'feeds': [feed.toJson()]}));
+```
+
+### Matching PUT / POST with a body
+
+`FullHttpRequestMatcher` requires the handler's `data` to match the request
+body. When you don't need to verify the body content, use `Matchers.any`:
+
+```dart
+adapter.onPut(
+  '/feeds',
+  (server) => server.reply(200, feed.toJson()),
+  data: Matchers.any,
+);
+```
 
 ---
 
@@ -87,13 +156,3 @@ await $(AppTestKeys.destinationScreen).waitUntilVisible();
 // 3. Assert the correct entity loaded
 await $('Expected content on destination').waitUntilVisible();
 ```
-
----
-
-## Mock server caveats
-
-Prism returns the single example defined for each endpoint, regardless of the
-requested ID. If an endpoint has only one example, every ID resolves to the same
-response. Always cross-check assertion strings against the example in the
-relevant `api/paths/*.yaml` file, not against what a list endpoint happens to
-return for the same entity.
