@@ -174,7 +174,7 @@ void main() {
       adapter.onPut(
         '/feeds',
         (s) => s.reply(200, dartBlog.toJson()),
-        data: Matchers.any,
+        data: {'url': 'https://dart.dev/blog/feed.xml'},
       );
 
       await $(AppTestKeys.feedsNavDestination).tap();

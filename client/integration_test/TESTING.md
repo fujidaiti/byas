@@ -76,16 +76,22 @@ adapter.onGet('/feeds', (server) => server.reply(200, api.GetFeeds200Response(fe
 
 ### Matching PUT / POST with a body
 
-`FullHttpRequestMatcher` requires the handler's `data` to match the request
-body. When you don't need to verify the body content, use `Matchers.any`:
+`FullHttpRequestMatcher` matches the handler's `data` against the serialized
+request body. Always pass the exact expected body when the shape is known — this
+turns the mock registration into an implicit assertion that the app sends the
+right payload:
 
 ```dart
 adapter.onPut(
   '/feeds',
   (server) => server.reply(200, feed.toJson()),
-  data: Matchers.any,
+  data: {'url': 'https://dart.dev/blog/feed.xml'},
 );
 ```
+
+Only fall back to `Matchers.any` when the body is genuinely variable or
+irrelevant to the scenario being tested. Avoid it for `onPost` and `onPatch`
+handlers — those mutations are exactly where body correctness matters most.
 
 ---
 
