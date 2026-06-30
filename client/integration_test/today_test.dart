@@ -1,8 +1,5 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http_mock_adapter/http_mock_adapter.dart';
 import 'package:openapi/api.dart' as api;
-import 'package:paperdoll/core/network/dio_provider.dart';
 import 'package:paperdoll/test_keys.dart';
 import 'package:patrol/patrol.dart';
 
@@ -11,12 +8,7 @@ import 'helpers.dart';
 void main() {
   patrolTest('open a story', ($) async {
     await pumpApp($);
-
-    final dio = $.tester.container().read(dioProvider);
-    final adapter = DioAdapter(
-      dio: dio,
-      matcher: const FullHttpRequestMatcher(),
-    );
+    final adapter = httpMockAdapter($);
 
     adapter.onGet(
       '/newspapers/today',

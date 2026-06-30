@@ -33,18 +33,20 @@ The test suite targets Android. List connected devices with
 
 ## How mocking works
 
-Each test calls `pumpApp($)` (from `helpers.dart`) to start the app, then
-immediately reads the live `Dio` instance from the Riverpod container and
-attaches a `DioAdapter` to it. All subsequent HTTP calls go through the adapter
-instead of the network.
+Each test uses two helpers from `helpers.dart`:
+
+- `pumpApp($)` — starts the app inside a `ProviderScope` with a dummy base URL.
+- `httpMockAdapter($)` — reads the live `Dio` from the Riverpod container and
+  returns a `DioAdapter` configured with `FullHttpRequestMatcher`. All
+  subsequent HTTP calls go through the adapter instead of the network.
+
+Both must be called before the first Patrol action that triggers an HTTP
+request:
 
 ```dart
 patrolTest('...', ($) async {
   await pumpApp($);
-
-  // Must happen before the first Patrol action that triggers an HTTP call.
-  final dio = $.tester.container().read(dioProvider);
-  final adapter = DioAdapter(dio: dio, matcher: const FullHttpRequestMatcher());
+  final adapter = httpMockAdapter($);
 
   adapter.onGet('/some/path', (server) => server.reply(200, responseBody));
 
@@ -154,7 +156,7 @@ return FeedRow(
 ### Check the current screen before acting
 
 Before the first tap on any screen, assert that the expected screen is visible.
-For the initial screen after `_pumpApp` (no animation, synchronous), use a plain
+For the initial screen after `pumpApp` (no animation, synchronous), use a plain
 `expect`:
 
 ```dart
