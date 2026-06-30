@@ -25,9 +25,7 @@ void main() {
     patrolTest('open app, read today, open a story', ($) async {
       await _pumpApp($);
 
-      // Verify the card renders the expected title, then tap it.
-      await $('Demystifying evals for AI agents').waitUntilVisible();
-      await $(AppTestKeys.storyCard(1)).tap();
+      await $('Demystifying evals for AI agents').tap();
 
       // Verify navigation and correct story content.
       await $(AppTestKeys.storyReaderScreen).waitUntilVisible();
@@ -39,14 +37,11 @@ void main() {
 
       await $(AppTestKeys.feedsNavDestination).tap();
 
-      // Verify the feed row renders the expected name, then tap it.
-      await $('Anthropic Engineering Blog').waitUntilVisible();
-      await $(AppTestKeys.feedRow(1)).tap();
+      await $('Anthropic Engineering Blog').tap();
 
-      // Verify navigation to feed detail, then verify the entry row content.
+      // Verify navigation to feed detail, then tap the entry by title.
       await $(AppTestKeys.feedDetailScreen).waitUntilVisible();
-      await $('Effective harnesses for long-running agents').waitUntilVisible();
-      await $(AppTestKeys.entryRow(11)).tap();
+      await $('Effective harnesses for long-running agents').tap();
 
       // Verify navigation and that entry content loaded
       // (mock returns this title for any entry ID).

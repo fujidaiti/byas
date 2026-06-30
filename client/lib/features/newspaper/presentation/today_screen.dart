@@ -12,7 +12,6 @@ import 'package:paperdoll/core/util/date_format.dart';
 import 'package:paperdoll/features/newspaper/domain/newspaper.dart';
 import 'package:paperdoll/features/newspaper/presentation/providers/newspaper_providers.dart';
 import 'package:paperdoll/features/newspaper/presentation/widgets/story_card.dart';
-import 'package:paperdoll/test_keys.dart';
 
 /// Today (Newspaper) home: the latest issue and its stories.
 class TodayScreen extends ConsumerWidget {
@@ -75,7 +74,6 @@ class _NewspaperView extends StatelessWidget {
             itemBuilder: (context, index) {
               final story = stories[index];
               return StoryCard(
-                key: AppTestKeys.storyCard(story.id),
                 story: story,
                 onTap: () => context.pushNamed(
                   routeStoryName,

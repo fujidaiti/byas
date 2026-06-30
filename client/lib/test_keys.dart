@@ -18,8 +18,4 @@ abstract final class AppTestKeys {
   static const storyReaderScreen = Key('storyReaderScreen');
   static const subscribeSuccessSnackBar = Key('subscribeSuccessSnackBar');
   static const todayNavDestination = Key('todayNavDestination');
-
-  static Key entryRow(int id) => Key('entryRow_$id');
-  static Key feedRow(int id) => Key('feedRow_$id');
-  static Key storyCard(int id) => Key('storyCard_$id');
 }

@@ -60,7 +60,6 @@ class _FeedsList extends StatelessWidget {
       itemBuilder: (context, index) {
         final feed = feeds[index];
         return FeedRow(
-          key: AppTestKeys.feedRow(feed.id),
           feed: feed,
           onTap: () => context.pushNamed(
             routeFeedDetailName,
