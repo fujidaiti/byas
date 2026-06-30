@@ -22,7 +22,10 @@ class StoryReaderScreen extends ConsumerWidget {
     return Scaffold(
       key: AppTestKeys.storyReaderScreen,
       appBar: AppBar(
-        title: HeadingText(entry?.title ?? ''),
+        title: HeadingText(
+          entry?.title ?? '',
+          key: entry != null ? AppTestKeys.readerTitle(entry.title) : null,
+        ),
         actions: [
           if (entry != null)
             IconButton(

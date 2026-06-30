@@ -25,5 +25,6 @@ abstract final class AppTestKeys {
   static Key entryRow(String title) => Key('entry:$title');
   static Key feedCandidateTile(String title) => Key('feedCandidate:$title');
   static Key feedRow(String title) => Key('feed:$title');
+  static Key readerTitle(String title) => Key('readerTitle:$title');
   static Key storyCard(String title) => Key('story:$title');
 }

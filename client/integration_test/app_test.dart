@@ -31,14 +31,6 @@ void main() {
         matcher: const FullHttpRequestMatcher(),
       );
 
-      final story = api.Story(id: 1, title: 'Demystifying evals for AI agents');
-      final storyEntry = api.FeedEntry(
-        id: 1,
-        feedId: 1,
-        url: 'https://example.com/blog/1',
-        title: 'Demystifying evals for AI agents',
-      );
-
       adapter.onGet(
         '/newspapers/today',
         (s) => s.reply(
@@ -46,7 +38,13 @@ void main() {
           api.GetTodaysNewspaper200Response(
             id: 1,
             publishedAt: DateTime.utc(2026, 7, 1),
-            stories: [story],
+            stories: [
+              api.Story(
+                id: 1,
+                title: 'Demystifying evals for AI agents',
+                source_: 'Cursor AI Blog',
+              ),
+            ],
           ).toJson(),
         ),
       );
@@ -56,15 +54,22 @@ void main() {
           200,
           api.GetStory200Response(
             type: api.GetStory200ResponseTypeEnum.entry,
-            data: storyEntry,
+            data: api.FeedEntry(
+              id: 1,
+              feedId: 1,
+              url: 'https://cursor.ai/blog/1',
+              title: 'Demystifying evals for AI agents',
+            ),
           ).toJson(),
         ),
       );
 
-      await $(AppTestKeys.todayScreen).waitUntilVisible();
+      expect($(AppTestKeys.todayScreen), findsOneWidget);
       await $(AppTestKeys.storyCard('Demystifying evals for AI agents')).tap();
       await $(AppTestKeys.storyReaderScreen).waitUntilVisible();
-      await $('Demystifying evals for AI agents').waitUntilVisible();
+      await $(
+        AppTestKeys.readerTitle('Demystifying evals for AI agents'),
+      ).waitUntilVisible();
     });
   });
 
@@ -115,7 +120,9 @@ void main() {
         AppTestKeys.entryRow('Effective harnesses for long-running agents'),
       ).tap();
       await $(AppTestKeys.entryReaderScreen).waitUntilVisible();
-      await $('Effective harnesses for long-running agents').waitUntilVisible();
+      await $(
+        AppTestKeys.readerTitle('Effective harnesses for long-running agents'),
+      ).waitUntilVisible();
     });
 
     patrolTest('search and subscribe', ($) async {
@@ -131,14 +138,6 @@ void main() {
         id: 99,
         url: 'https://dart.dev/blog/feed.xml',
         title: 'The Dart Blog',
-      );
-      final dartBlogCandidate = api.FeedCandidate(
-        url: 'https://dart.dev/blog/feed.xml',
-        iconUrl: 'https://www.google.com/s2/favicons?domain=dart.dev&sz=64',
-        title: 'The Dart Blog',
-        description:
-            'Dart is an approachable, portable, and productive language '
-            'for high-quality apps on any platform.',
       );
 
       // Two registrations: consumed in order — initial load (empty), then after
@@ -156,7 +155,19 @@ void main() {
         '/feeds/search',
         (s) => s.reply(
           200,
-          api.SearchFeeds200Response(feeds: [dartBlogCandidate]).toJson(),
+          api.SearchFeeds200Response(
+            feeds: [
+              api.FeedCandidate(
+                url: 'https://dart.dev/blog/feed.xml',
+                iconUrl:
+                    'https://www.google.com/s2/favicons?domain=dart.dev&sz=64',
+                title: 'The Dart Blog',
+                description:
+                    'Dart is an approachable, portable, and productive '
+                    'language for high-quality apps on any platform.',
+              ),
+            ],
+          ).toJson(),
         ),
         queryParameters: {'q': 'https://dart.dev/blog/feed.xml'},
       );
