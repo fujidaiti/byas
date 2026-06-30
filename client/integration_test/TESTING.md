@@ -1,9 +1,24 @@
 # Integration Test Guide
 
-Tests live in `integration_test/app_test.dart` and run with
+Tests live in `integration_test/` and run with
 [Patrol](https://patrol.leancode.co/). HTTP calls are intercepted in-process
 using [http_mock_adapter](https://pub.dev/packages/http_mock_adapter) — no
 external mock server is required.
+
+## File organisation
+
+Each app feature has its own test file:
+
+```
+integration_test/
+  helpers.dart        # shared pumpApp helper
+  today_test.dart     # today / newspaper feature
+  feeds_test.dart     # feeds feature
+```
+
+Add a new `<feature>_test.dart` file for each new feature. Do not group tests
+from different features into a single file. Shared setup belongs in
+`helpers.dart`.
 
 ## Running tests
 
@@ -18,13 +33,14 @@ The test suite targets Android. List connected devices with
 
 ## How mocking works
 
-Each test calls `_pumpApp($)` to start the app, then immediately reads the live
-`Dio` instance from the Riverpod container and attaches a `DioAdapter` to it.
-All subsequent HTTP calls go through the adapter instead of the network.
+Each test calls `pumpApp($)` (from `helpers.dart`) to start the app, then
+immediately reads the live `Dio` instance from the Riverpod container and
+attaches a `DioAdapter` to it. All subsequent HTTP calls go through the adapter
+instead of the network.
 
 ```dart
 patrolTest('...', ($) async {
-  await _pumpApp($);
+  await pumpApp($);
 
   // Must happen before the first Patrol action that triggers an HTTP call.
   final dio = $.tester.container().read(dioProvider);
@@ -142,7 +158,7 @@ For the initial screen after `_pumpApp` (no animation, synchronous), use a plain
 `expect`:
 
 ```dart
-await _pumpApp($);
+await pumpApp($);
 expect($(AppTestKeys.todayScreen), findsOneWidget);
 await $(AppTestKeys.storyCard('Story title')).tap();
 ```
