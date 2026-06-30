@@ -33,7 +33,7 @@ patrolTest('...', ($) async {
   adapter.onGet('/some/path', (server) => server.reply(200, responseBody));
 
   // Test actions follow.
-  await $('Some text').tap();
+  await $(AppTestKeys.someScreen).waitUntilVisible();
   // ...
 });
 ```
@@ -93,44 +93,81 @@ adapter.onPut(
 
 Keys are defined in `lib/test_keys.dart` and shared between app code and tests.
 
-**Assign keys only to:**
+### Static keys
+
+Assign a fixed `const Key` to:
 
 - Navigation controls (nav bar destinations, buttons, text fields)
 - Destination screens (the `Scaffold` of each screen navigated to)
 - Feedback widgets (snackbars)
 
-**Do not assign keys to dynamically-generated list items.** If a list item is
-uniquely identified by its visible label, tap it by text instead (see below).
+### Parameterized keys
+
+Assign a parameterized key to dynamically-generated list items. The key value
+format is `<widget identifier>:<display text>`, e.g.:
+
+```
+feed:Anthropic Engineering Blog   → AppTestKeys.feedRow('Anthropic Engineering Blog')
+entry:Effective harnesses…        → AppTestKeys.entryRow('Effective harnesses…')
+story:Demystifying evals…         → AppTestKeys.storyCard('Demystifying evals…')
+readerTitle:Demystifying evals…   → AppTestKeys.readerTitle('Demystifying evals…')
+```
+
+Parameterized keys make the widget identifier unambiguous even when the same
+text appears on multiple screens. The key is assigned at the call site in the
+list builder:
+
+```dart
+return FeedRow(
+  key: AppTestKeys.feedRow(feed.title),
+  feed: feed,
+  onTap: ...,
+);
+```
 
 ---
 
 ## Writing assertions
 
-### Tap list items by visible text
+### Check the current screen before acting
 
-When a list item is uniquely identified by its label, use `$('Label').tap()`.
-This is simultaneously the locator and the content check — it fails if the text
-is not on screen at all, with no key required.
+Before the first tap on any screen, assert that the expected screen is visible.
+For the initial screen after `_pumpApp` (no animation, synchronous), use a plain
+`expect`:
 
 ```dart
-// Good — one line does both jobs
-await $('Anthropic Engineering Blog').tap();
+await _pumpApp($);
+expect($(AppTestKeys.todayScreen), findsOneWidget);
+await $(AppTestKeys.storyCard('Story title')).tap();
+```
 
-// Avoid — text check and key tap are unrelated; if feedRow(1) renders
-// the wrong title, the text check still passes (text may exist elsewhere)
-await $('Anthropic Engineering Blog').waitUntilVisible();
-await $(AppTestKeys.feedRow(1)).tap();
+After a navigation tap (animation in progress), use `waitUntilVisible`:
+
+```dart
+await $(AppTestKeys.feedsNavDestination).tap();
+await $(AppTestKeys.feedsScreen).waitUntilVisible();
+await $(AppTestKeys.feedRow('Anthropic Engineering Blog')).tap();
+```
+
+### Tap list items by parameterized key
+
+Use the parameterized key factory to locate and tap list items. This
+simultaneously verifies that the item with the correct title is present on the
+current screen — it fails if no widget with that key exists:
+
+```dart
+// Good — parameterized key ties the locator to the specific widget and title
+await $(AppTestKeys.feedRow('Anthropic Engineering Blog')).tap();
+
+// Avoid — a text finder matches any widget on any screen with that string,
+// which can cause false passes if the same text is present in the background
+await $('Anthropic Engineering Blog').tap();
 ```
 
 ### Verify navigation with screen-level keys
 
-After a tap that navigates to a new screen, do **not** check for text that also
-appeared on the source screen. Text from the previous screen can still be
-visible in the widget tree and will cause a false pass even if navigation never
-happened.
-
-Instead, attach a `Key` to each destination screen's `Scaffold` and assert on
-it:
+After a tap that navigates to a new screen, assert on the destination screen's
+key before making content assertions:
 
 ```dart
 // In entry_reader_screen.dart
@@ -140,20 +177,23 @@ return Scaffold(
 );
 
 // In the test
-await $('Entry title').tap();
-await $(AppTestKeys.entryReaderScreen).waitUntilVisible(); // unambiguous
-await $('Expected content').waitUntilVisible();
+await $(AppTestKeys.entryRow('Entry title')).tap();
+await $(AppTestKeys.entryReaderScreen).waitUntilVisible(); // navigation confirmed
+await $(AppTestKeys.readerTitle('Entry title')).waitUntilVisible(); // content loaded
 ```
 
 ### The full pattern for each navigation step
 
 ```dart
-// 1. Tap by visible text (locates + verifies source content)
-await $('Label on source screen').tap();
+// 1. Assert current screen is visible (expect for sync, waitUntilVisible after animation)
+expect($(AppTestKeys.sourceScreen), findsOneWidget);
 
-// 2. Assert the destination screen is present
+// 2. Tap by parameterized key (locates the widget and verifies its title)
+await $(AppTestKeys.feedRow('Label on source screen')).tap();
+
+// 3. Assert the destination screen is present (navigation confirmed)
 await $(AppTestKeys.destinationScreen).waitUntilVisible();
 
-// 3. Assert the correct entity loaded
-await $('Expected content on destination').waitUntilVisible();
+// 4. Assert the correct entity loaded
+await $(AppTestKeys.readerTitle('Expected content on destination')).waitUntilVisible();
 ```
