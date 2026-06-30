@@ -1,7 +1,6 @@
 import 'package:flutter/widgets.dart';
 
 // Intentional namespace class — Dart has no dedicated namespace syntax.
-// ignore: avoid_classes_with_only_static_members
 abstract final class AppTestKeys {
   static const addFeedButton = Key('addFeedButton');
   static const entryReaderOpenOriginalButton = Key(
