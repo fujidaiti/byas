@@ -41,24 +41,25 @@ patrolTest('...', ($) async {
 ### Building response bodies
 
 Use the auto-generated `api.*` model constructors (from `package:openapi`) for
-type safety. Call `.toJson()` on leaf models; assemble wrapper objects manually
-because the generated `toJson()` for wrapper types stores nested objects rather
-than their serialized Maps:
+type safety. `server.reply()` passes the data through `jsonEncode`, which
+recursively calls `.toJson()` on nested objects — so wrapper types work
+correctly even though their own `toJson()` stores nested model instances rather
+than pre-serialized Maps:
 
 ```dart
-// Leaf model — .toJson() is safe to use directly
 final feed = api.Feed(id: 1, url: '...', title: 'Anthropic Engineering Blog');
 
-// Wrapper — build the Map manually and call .toJson() on the nested items
-adapter.onGet('/feeds', (server) => server.reply(200, {
-  'feeds': [feed.toJson()],
-}));
+// Wrapper model — pass directly to .toJson(); jsonEncode handles the nested Feed objects
+adapter.onGet('/feeds', (server) => server.reply(200,
+  api.GetFeeds200Response(feeds: [feed]).toJson(),
+));
 
-// GetStory200Response is also a wrapper — its 'data' field is a nested FeedEntry
-adapter.onGet('/newspapers/stories/1', (server) => server.reply(200, {
-  'type': 'entry',
-  'data': storyEntry.toJson(),
-}));
+adapter.onGet('/newspapers/stories/1', (server) => server.reply(200,
+  api.GetStory200Response(
+    type: api.GetStory200ResponseTypeEnum.entry,
+    data: storyEntry,
+  ).toJson(),
+));
 ```
 
 ### Multiple replies for the same route
@@ -68,9 +69,9 @@ return different responses on successive calls:
 
 ```dart
 // First GET /feeds → empty list (initial screen load)
-adapter.onGet('/feeds', (server) => server.reply(200, {'feeds': <Object>[]}));
+adapter.onGet('/feeds', (server) => server.reply(200, api.GetFeeds200Response().toJson()));
 // Second GET /feeds → list with the new feed (after invalidation + re-fetch)
-adapter.onGet('/feeds', (server) => server.reply(200, {'feeds': [feed.toJson()]}));
+adapter.onGet('/feeds', (server) => server.reply(200, api.GetFeeds200Response(feeds: [feed]).toJson()));
 ```
 
 ### Matching PUT / POST with a body

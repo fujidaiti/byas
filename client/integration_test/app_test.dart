@@ -41,16 +41,24 @@ void main() {
 
       adapter.onGet(
         '/newspapers/today',
-        (server) => server.reply(200, {
-          'id': 1,
-          'published_at': '2026-06-30T00:00:00.000Z',
-          'stories': [story.toJson()],
-        }),
+        (s) => s.reply(
+          200,
+          api.GetTodaysNewspaper200Response(
+            id: 1,
+            publishedAt: DateTime.utc(2026, 7, 1),
+            stories: [story],
+          ).toJson(),
+        ),
       );
       adapter.onGet(
         '/newspapers/stories/1',
-        (server) =>
-            server.reply(200, {'type': 'entry', 'data': storyEntry.toJson()}),
+        (s) => s.reply(
+          200,
+          api.GetStory200Response(
+            type: api.GetStory200ResponseTypeEnum.entry,
+            data: storyEntry,
+          ).toJson(),
+        ),
       );
 
       await $('Demystifying evals for AI agents').tap();
@@ -83,24 +91,20 @@ void main() {
 
       adapter.onGet(
         '/feeds',
-        (server) => server.reply(200, {
-          'feeds': [anthropicFeed.toJson()],
-        }),
+        (s) => s.reply(
+          200,
+          api.GetFeeds200Response(feeds: [anthropicFeed]).toJson(),
+        ),
       );
-      adapter.onGet(
-        '/feeds/1',
-        (server) => server.reply(200, anthropicFeed.toJson()),
-      );
+      adapter.onGet('/feeds/1', (s) => s.reply(200, anthropicFeed.toJson()));
       adapter.onGet(
         '/feeds/1/timeline',
-        (server) => server.reply(200, {
-          'entries': [entry.toJson()],
-        }),
+        (s) => s.reply(
+          200,
+          api.GetFeedTimeline200Response(entries: [entry]).toJson(),
+        ),
       );
-      adapter.onGet(
-        '/feed-entries/11',
-        (server) => server.reply(200, entry.toJson()),
-      );
+      adapter.onGet('/feed-entries/11', (s) => s.reply(200, entry.toJson()));
 
       await $(AppTestKeys.feedsNavDestination).tap();
       await $('Anthropic Engineering Blog').tap();
@@ -133,24 +137,24 @@ void main() {
       // subscribe invalidates feedsProvider and FeedsScreen re-fetches.
       adapter.onGet(
         '/feeds',
-        (server) => server.reply(200, {'feeds': <Object>[]}),
+        (s) => s.reply(200, api.GetFeeds200Response().toJson()),
       );
       adapter.onGet(
         '/feeds',
-        (server) => server.reply(200, {
-          'feeds': [dartBlog.toJson()],
-        }),
+        (s) =>
+            s.reply(200, api.GetFeeds200Response(feeds: [dartBlog]).toJson()),
       );
       adapter.onGet(
         '/feeds/search',
-        (server) => server.reply(200, {
-          'feeds': [dartBlogCandidate.toJson()],
-        }),
+        (s) => s.reply(
+          200,
+          api.SearchFeeds200Response(feeds: [dartBlogCandidate]).toJson(),
+        ),
         queryParameters: {'q': 'https://dart.dev/blog/feed.xml'},
       );
       adapter.onPut(
         '/feeds',
-        (server) => server.reply(200, dartBlog.toJson()),
+        (s) => s.reply(200, dartBlog.toJson()),
         data: Matchers.any,
       );
 
