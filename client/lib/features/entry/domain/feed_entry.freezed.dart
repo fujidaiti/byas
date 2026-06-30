@@ -11,7 +11,6 @@ part of 'feed_entry.dart';
 
 // dart format off
 T _$identity<T>(T value) => value;
-
 /// @nodoc
 mixin _$FeedEntry {
 
@@ -22,8 +21,6 @@ mixin _$FeedEntry {
 @pragma('vm:prefer-inline')
 $FeedEntryCopyWith<FeedEntry> get copyWith => _$FeedEntryCopyWithImpl<FeedEntry>(this as FeedEntry, _$identity);
 
-  /// Serializes this FeedEntry to a JSON map.
-  Map<String, dynamic> toJson();
 
 
 @override
@@ -31,7 +28,7 @@ bool operator ==(Object other) {
   return identical(this, other) || (other.runtimeType == runtimeType&&other is FeedEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.feedId, feedId) || other.feedId == feedId)&&(identical(other.url, url) || other.url == url)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.content, content) || other.content == content)&&(identical(other.publishedAt, publishedAt) || other.publishedAt == publishedAt)&&(identical(other.snapshotAt, snapshotAt) || other.snapshotAt == snapshotAt));
 }
 
-@JsonKey(includeFromJson: false, includeToJson: false)
+
 @override
 int get hashCode => Object.hash(runtimeType,id,feedId,url,title,description,content,publishedAt,snapshotAt);
 
@@ -213,11 +210,11 @@ return $default(_that.id,_that.feedId,_that.url,_that.title,_that.description,_t
 }
 
 /// @nodoc
-@JsonSerializable()
+
 
 class _FeedEntry implements FeedEntry {
   const _FeedEntry({required this.id, required this.feedId, required this.url, required this.title, this.description, this.content, this.publishedAt, this.snapshotAt});
-  factory _FeedEntry.fromJson(Map<String, dynamic> json) => _$FeedEntryFromJson(json);
+  
 
 @override final  int id;
 @override final  int feedId;
@@ -234,17 +231,14 @@ class _FeedEntry implements FeedEntry {
 @pragma('vm:prefer-inline')
 _$FeedEntryCopyWith<_FeedEntry> get copyWith => __$FeedEntryCopyWithImpl<_FeedEntry>(this, _$identity);
 
-@override
-Map<String, dynamic> toJson() {
-  return _$FeedEntryToJson(this, );
-}
+
 
 @override
 bool operator ==(Object other) {
   return identical(this, other) || (other.runtimeType == runtimeType&&other is _FeedEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.feedId, feedId) || other.feedId == feedId)&&(identical(other.url, url) || other.url == url)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.content, content) || other.content == content)&&(identical(other.publishedAt, publishedAt) || other.publishedAt == publishedAt)&&(identical(other.snapshotAt, snapshotAt) || other.snapshotAt == snapshotAt));
 }
 
-@JsonKey(includeFromJson: false, includeToJson: false)
+
 @override
 int get hashCode => Object.hash(runtimeType,id,feedId,url,title,description,content,publishedAt,snapshotAt);
 

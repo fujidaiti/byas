@@ -1,7 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'feed.freezed.dart';
-part 'feed.g.dart';
 
 /// A subscribed RSS source.
 @freezed
@@ -14,6 +13,4 @@ abstract class Feed with _$Feed {
     String? iconUrl,
     String? description,
   }) = _Feed;
-
-  factory Feed.fromJson(Map<String, dynamic> json) => _$FeedFromJson(json);
 }

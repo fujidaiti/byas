@@ -11,7 +11,6 @@ part of 'newspaper.dart';
 
 // dart format off
 T _$identity<T>(T value) => value;
-
 /// @nodoc
 mixin _$Newspaper {
 
@@ -22,8 +21,6 @@ mixin _$Newspaper {
 @pragma('vm:prefer-inline')
 $NewspaperCopyWith<Newspaper> get copyWith => _$NewspaperCopyWithImpl<Newspaper>(this as Newspaper, _$identity);
 
-  /// Serializes this Newspaper to a JSON map.
-  Map<String, dynamic> toJson();
 
 
 @override
@@ -31,7 +28,7 @@ bool operator ==(Object other) {
   return identical(this, other) || (other.runtimeType == runtimeType&&other is Newspaper&&(identical(other.id, id) || other.id == id)&&(identical(other.publishedAt, publishedAt) || other.publishedAt == publishedAt)&&const DeepCollectionEquality().equals(other.stories, stories));
 }
 
-@JsonKey(includeFromJson: false, includeToJson: false)
+
 @override
 int get hashCode => Object.hash(runtimeType,id,publishedAt,const DeepCollectionEquality().hash(stories));
 
@@ -208,11 +205,11 @@ return $default(_that.id,_that.publishedAt,_that.stories);case _:
 }
 
 /// @nodoc
-@JsonSerializable()
+
 
 class _Newspaper implements Newspaper {
   const _Newspaper({required this.id, required this.publishedAt, required final  List<Story> stories}): _stories = stories;
-  factory _Newspaper.fromJson(Map<String, dynamic> json) => _$NewspaperFromJson(json);
+  
 
 @override final  int id;
 @override final  DateTime publishedAt;
@@ -230,17 +227,14 @@ class _Newspaper implements Newspaper {
 @pragma('vm:prefer-inline')
 _$NewspaperCopyWith<_Newspaper> get copyWith => __$NewspaperCopyWithImpl<_Newspaper>(this, _$identity);
 
-@override
-Map<String, dynamic> toJson() {
-  return _$NewspaperToJson(this, );
-}
+
 
 @override
 bool operator ==(Object other) {
   return identical(this, other) || (other.runtimeType == runtimeType&&other is _Newspaper&&(identical(other.id, id) || other.id == id)&&(identical(other.publishedAt, publishedAt) || other.publishedAt == publishedAt)&&const DeepCollectionEquality().equals(other._stories, _stories));
 }
 
-@JsonKey(includeFromJson: false, includeToJson: false)
+
 @override
 int get hashCode => Object.hash(runtimeType,id,publishedAt,const DeepCollectionEquality().hash(_stories));
 

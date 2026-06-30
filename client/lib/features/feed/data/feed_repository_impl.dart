@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:openapi/api.dart' as api;
 
 import 'package:paperdoll/core/network/request_runner.dart';
 import 'package:paperdoll/features/entry/domain/feed_entry.dart';
@@ -15,7 +16,8 @@ class FeedRepositoryImpl implements FeedRepository {
   Future<List<Feed>> listFeeds({String? cursor}) {
     return runRequest(() async {
       final res = await _dio.get<Map<String, dynamic>>('/feeds');
-      return _listFrom(res.data!, 'feeds', Feed.fromJson);
+      final body = api.GetFeeds200Response.fromJson(res.data)!;
+      return body.feeds.map(_toFeed).toList();
     });
   }
 
@@ -26,7 +28,18 @@ class FeedRepositoryImpl implements FeedRepository {
         '/feeds/search',
         queryParameters: {'q': query},
       );
-      return _listFrom(res.data!, 'feeds', FeedCandidate.fromJson);
+      final body = api.SearchFeeds200Response.fromJson(res.data)!;
+      return body.feeds
+          .map(
+            (c) => FeedCandidate(
+              url: c.url,
+              title: c.title,
+              siteUrl: c.siteUrl,
+              iconUrl: c.iconUrl,
+              description: c.description,
+            ),
+          )
+          .toList();
     });
   }
 
@@ -37,7 +50,7 @@ class FeedRepositoryImpl implements FeedRepository {
         '/feeds',
         data: {'url': url},
       );
-      return Feed.fromJson(res.data!);
+      return _toFeed(api.Feed.fromJson(res.data)!);
     });
   }
 
@@ -45,7 +58,7 @@ class FeedRepositoryImpl implements FeedRepository {
   Future<Feed> getFeed(int id) {
     return runRequest(() async {
       final res = await _dio.get<Map<String, dynamic>>('/feeds/$id');
-      return Feed.fromJson(res.data!);
+      return _toFeed(api.Feed.fromJson(res.data)!);
     });
   }
 
@@ -53,16 +66,30 @@ class FeedRepositoryImpl implements FeedRepository {
   Future<List<FeedEntry>> timeline(int id, {String? cursor}) {
     return runRequest(() async {
       final res = await _dio.get<Map<String, dynamic>>('/feeds/$id/timeline');
-      return _listFrom(res.data!, 'entries', FeedEntry.fromJson);
+      final body = api.GetFeedTimeline200Response.fromJson(res.data)!;
+      return body.entries
+          .map(
+            (e) => FeedEntry(
+              id: e.id,
+              feedId: e.feedId,
+              url: e.url,
+              title: e.title,
+              description: e.description,
+              content: e.content,
+              publishedAt: e.publishedAt,
+              snapshotAt: e.snapshotAt,
+            ),
+          )
+          .toList();
     });
   }
 
-  List<T> _listFrom<T>(
-    Map<String, dynamic> json,
-    String key,
-    T Function(Map<String, dynamic>) fromJson,
-  ) {
-    final items = json[key] as List<dynamic>;
-    return items.map((item) => fromJson(item as Map<String, dynamic>)).toList();
-  }
+  Feed _toFeed(api.Feed f) => Feed(
+    id: f.id,
+    url: f.url,
+    title: f.title,
+    siteUrl: f.siteUrl,
+    iconUrl: f.iconUrl,
+    description: f.description,
+  );
 }
