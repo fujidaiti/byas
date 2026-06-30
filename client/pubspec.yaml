@@ -30,6 +30,7 @@ dev_dependencies:
   freezed: ^3.2.6-dev.1
   # Pinned as lower versions don't support SPM
   patrol: ^4.7.0-dev.1
+  http_mock_adapter: ^0.6.1
 
 flutter:
   uses-material-design: true
