@@ -11,7 +11,6 @@ part of 'feed.dart';
 
 // dart format off
 T _$identity<T>(T value) => value;
-
 /// @nodoc
 mixin _$Feed {
 
@@ -22,8 +21,6 @@ mixin _$Feed {
 @pragma('vm:prefer-inline')
 $FeedCopyWith<Feed> get copyWith => _$FeedCopyWithImpl<Feed>(this as Feed, _$identity);
 
-  /// Serializes this Feed to a JSON map.
-  Map<String, dynamic> toJson();
 
 
 @override
@@ -31,7 +28,7 @@ bool operator ==(Object other) {
   return identical(this, other) || (other.runtimeType == runtimeType&&other is Feed&&(identical(other.id, id) || other.id == id)&&(identical(other.url, url) || other.url == url)&&(identical(other.title, title) || other.title == title)&&(identical(other.siteUrl, siteUrl) || other.siteUrl == siteUrl)&&(identical(other.iconUrl, iconUrl) || other.iconUrl == iconUrl)&&(identical(other.description, description) || other.description == description));
 }
 
-@JsonKey(includeFromJson: false, includeToJson: false)
+
 @override
 int get hashCode => Object.hash(runtimeType,id,url,title,siteUrl,iconUrl,description);
 
@@ -211,11 +208,11 @@ return $default(_that.id,_that.url,_that.title,_that.siteUrl,_that.iconUrl,_that
 }
 
 /// @nodoc
-@JsonSerializable()
+
 
 class _Feed implements Feed {
   const _Feed({required this.id, required this.url, required this.title, this.siteUrl, this.iconUrl, this.description});
-  factory _Feed.fromJson(Map<String, dynamic> json) => _$FeedFromJson(json);
+  
 
 @override final  int id;
 @override final  String url;
@@ -230,17 +227,14 @@ class _Feed implements Feed {
 @pragma('vm:prefer-inline')
 _$FeedCopyWith<_Feed> get copyWith => __$FeedCopyWithImpl<_Feed>(this, _$identity);
 
-@override
-Map<String, dynamic> toJson() {
-  return _$FeedToJson(this, );
-}
+
 
 @override
 bool operator ==(Object other) {
   return identical(this, other) || (other.runtimeType == runtimeType&&other is _Feed&&(identical(other.id, id) || other.id == id)&&(identical(other.url, url) || other.url == url)&&(identical(other.title, title) || other.title == title)&&(identical(other.siteUrl, siteUrl) || other.siteUrl == siteUrl)&&(identical(other.iconUrl, iconUrl) || other.iconUrl == iconUrl)&&(identical(other.description, description) || other.description == description));
 }
 
-@JsonKey(includeFromJson: false, includeToJson: false)
+
 @override
 int get hashCode => Object.hash(runtimeType,id,url,title,siteUrl,iconUrl,description);
 
