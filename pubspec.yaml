@@ -4,3 +4,4 @@ environment:
   sdk: ^3.12.2
 workspace:
   - client
+  - api/dart_binding
