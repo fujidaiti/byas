@@ -21,8 +21,8 @@ Future<void> _pumpApp(PatrolIntegrationTester $) async {
 }
 
 void main() {
-  group('critical paths', () {
-    patrolTest('open app, read today, open a story', ($) async {
+  group('today', () {
+    patrolTest('open a story', ($) async {
       await _pumpApp($);
 
       final dio = $.tester.container().read(dioProvider);
@@ -57,8 +57,10 @@ void main() {
       await $(AppTestKeys.storyReaderScreen).waitUntilVisible();
       await $('Demystifying evals for AI agents').waitUntilVisible();
     });
+  });
 
-    patrolTest('browse feeds, open a feed, read an entry', ($) async {
+  group('feeds', () {
+    patrolTest('open a feed and read an entry', ($) async {
       await _pumpApp($);
 
       final dio = $.tester.container().read(dioProvider);
@@ -108,7 +110,7 @@ void main() {
       await $('Effective harnesses for long-running agents').waitUntilVisible();
     });
 
-    patrolTest('search for a feed and subscribe', ($) async {
+    patrolTest('search and subscribe', ($) async {
       await _pumpApp($);
 
       final dio = $.tester.container().read(dioProvider);
