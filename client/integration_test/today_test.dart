@@ -6,7 +6,7 @@ import 'package:patrol/patrol.dart';
 import 'helpers.dart';
 
 void main() {
-  patrolTest('open a story', ($) async {
+  patrolTest("Check today's issue and read a story", ($) async {
     await pumpApp($);
     final adapter = httpMockAdapter($);
 

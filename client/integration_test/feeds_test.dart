@@ -5,7 +5,7 @@ import 'package:patrol/patrol.dart';
 import 'helpers.dart';
 
 void main() {
-  patrolTest('open a feed and read an entry', ($) async {
+  patrolTest('Check feeds and read a feed entry', ($) async {
     await pumpApp($);
     final adapter = httpMockAdapter($);
 
@@ -51,7 +51,7 @@ void main() {
     ).waitUntilVisible();
   });
 
-  patrolTest('search and subscribe', ($) async {
+  patrolTest('Subscribe to a known web feed', ($) async {
     await pumpApp($);
     final adapter = httpMockAdapter($);
     final dartBlog = api.Feed(

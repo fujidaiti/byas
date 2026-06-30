@@ -11,7 +11,7 @@ Each app feature has its own test file:
 
 ```
 integration_test/
-  helpers.dart        # shared pumpApp helper
+  helpers.dart        # pumpApp and httpMockAdapter helpers
   today_test.dart     # today / newspaper feature
   feeds_test.dart     # feeds feature
 ```
@@ -110,6 +110,27 @@ adapter.onPut(
 Only fall back to `Matchers.any` when the body is genuinely variable or
 irrelevant to the scenario being tested. Avoid it for `onPost` and `onPatch`
 handlers — those mutations are exactly where body correctness matters most.
+
+---
+
+## Naming tests
+
+Name each `patrolTest` after the **use case** it covers, not the sequence of
+operations performed. A use case name answers "what can the user accomplish?" —
+an operation name answers "what does the test click through?":
+
+```dart
+// Good — describes the user goal
+patrolTest('Check feeds and read a feed entry', ($) async { ... });
+patrolTest('Subscribe to a known web feed', ($) async { ... });
+
+// Avoid — describes button-click sequence, not the goal
+patrolTest('Open a story', ($) async { ... });
+patrolTest('Tap feed and scroll to entry', ($) async { ... });
+```
+
+Use sentence case (capital first word only). Keep names short enough to read at
+a glance in test output — one phrase, no punctuation.
 
 ---
 
