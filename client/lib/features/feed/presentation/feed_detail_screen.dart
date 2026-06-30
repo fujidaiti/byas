@@ -111,7 +111,11 @@ class _FeedDetailBody extends StatelessWidget {
       separatorBuilder: (context, index) => const AppDivider(),
       itemBuilder: (context, index) {
         final entry = entries[index];
-        return EntryRow(entry: entry, onTap: () => onOpenEntry(entry.id));
+        return EntryRow(
+          key: AppTestKeys.entryRow(entry.title),
+          entry: entry,
+          onTap: () => onOpenEntry(entry.id),
+        );
       },
     );
   }

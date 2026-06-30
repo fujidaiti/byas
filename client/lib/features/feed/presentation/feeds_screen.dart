@@ -18,6 +18,7 @@ class FeedsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final feedsAsync = ref.watch(feedsProvider());
     return Scaffold(
+      key: AppTestKeys.feedsScreen,
       appBar: AppBar(
         actions: [
           IconButton(
@@ -60,6 +61,7 @@ class _FeedsList extends StatelessWidget {
       itemBuilder: (context, index) {
         final feed = feeds[index];
         return FeedRow(
+          key: AppTestKeys.feedRow(feed.title),
           feed: feed,
           onTap: () => context.pushNamed(
             routeFeedDetailName,

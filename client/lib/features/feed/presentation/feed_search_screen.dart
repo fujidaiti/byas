@@ -69,6 +69,7 @@ class _FeedSearchScreenState extends ConsumerState<FeedSearchScreen> {
   Widget build(BuildContext context) {
     final results = ref.watch(feedSearchControllerProvider);
     return Scaffold(
+      key: AppTestKeys.feedSearchScreen,
       appBar: AppBar(title: const Text('Add feed')),
       body: Column(
         children: [
@@ -119,6 +120,7 @@ class _FeedSearchScreenState extends ConsumerState<FeedSearchScreen> {
       itemBuilder: (context, index) {
         final candidate = candidates[index];
         return FeedCandidateTile(
+          key: AppTestKeys.feedCandidateTile(candidate.title),
           candidate: candidate,
           isSubscribing: _subscribingIndex == index,
           onSubscribe: () => unawaited(_subscribe(candidate, index)),

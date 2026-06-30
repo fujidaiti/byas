@@ -35,7 +35,7 @@ void main() {
       final storyEntry = api.FeedEntry(
         id: 1,
         feedId: 1,
-        url: 'https://example.com/story/1',
+        url: 'https://example.com/blog/1',
         title: 'Demystifying evals for AI agents',
       );
 
@@ -61,7 +61,8 @@ void main() {
         ),
       );
 
-      await $('Demystifying evals for AI agents').tap();
+      await $(AppTestKeys.todayScreen).waitUntilVisible();
+      await $(AppTestKeys.storyCard('Demystifying evals for AI agents')).tap();
       await $(AppTestKeys.storyReaderScreen).waitUntilVisible();
       await $('Demystifying evals for AI agents').waitUntilVisible();
     });
@@ -85,7 +86,7 @@ void main() {
       final entry = api.FeedEntry(
         id: 11,
         feedId: 1,
-        url: 'https://example.com/anthropic/entry/11',
+        url: 'https://example.com/anthropic/blog/effective-harness',
         title: 'Effective harnesses for long-running agents',
       );
 
@@ -107,9 +108,12 @@ void main() {
       adapter.onGet('/feed-entries/11', (s) => s.reply(200, entry.toJson()));
 
       await $(AppTestKeys.feedsNavDestination).tap();
-      await $('Anthropic Engineering Blog').tap();
+      await $(AppTestKeys.feedsScreen).waitUntilVisible();
+      await $(AppTestKeys.feedRow('Anthropic Engineering Blog')).tap();
       await $(AppTestKeys.feedDetailScreen).waitUntilVisible();
-      await $('Effective harnesses for long-running agents').tap();
+      await $(
+        AppTestKeys.entryRow('Effective harnesses for long-running agents'),
+      ).tap();
       await $(AppTestKeys.entryReaderScreen).waitUntilVisible();
       await $('Effective harnesses for long-running agents').waitUntilVisible();
     });
@@ -130,7 +134,11 @@ void main() {
       );
       final dartBlogCandidate = api.FeedCandidate(
         url: 'https://dart.dev/blog/feed.xml',
+        iconUrl: 'https://www.google.com/s2/favicons?domain=dart.dev&sz=64',
         title: 'The Dart Blog',
+        description:
+            'Dart is an approachable, portable, and productive language '
+            'for high-quality apps on any platform.',
       );
 
       // Two registrations: consumed in order — initial load (empty), then after
@@ -159,14 +167,16 @@ void main() {
       );
 
       await $(AppTestKeys.feedsNavDestination).tap();
+      await $(AppTestKeys.feedsScreen).waitUntilVisible();
       await $(AppTestKeys.addFeedButton).tap();
+      await $(AppTestKeys.feedSearchScreen).waitUntilVisible();
       await $(
         AppTestKeys.feedSearchTextField,
       ).enterText('https://dart.dev/blog/feed.xml');
       await $(AppTestKeys.feedSearchButton).tap();
-      await $('The Dart Blog').tap();
+      await $(AppTestKeys.feedCandidateTile('The Dart Blog')).tap();
       await $(AppTestKeys.subscribeSuccessSnackBar).waitUntilVisible();
-      await $('The Dart Blog').waitUntilVisible();
+      await $(AppTestKeys.feedRow('The Dart Blog')).waitUntilVisible();
     });
   });
 }
