@@ -4,11 +4,11 @@ import 'package:flutter/widgets.dart';
 // ignore: avoid_classes_with_only_static_members
 abstract final class AppDebugKey {
   static const addFeedButton = Key('addFeedButton');
-  static const entryReaderOpenOriginalButton = Key(
-    'entryReaderOpenOriginalButton',
-  );
-  static const entryReaderScreen = Key('entryReaderScreen');
   static const feedDetailScreen = Key('feedDetailScreen');
+  static const feedEntryReaderOpenOriginalButton = Key(
+    'feedEntryReaderOpenOriginalButton',
+  );
+  static const feedEntryReaderScreen = Key('feedEntryReaderScreen');
   static const feedSearchButton = Key('feedSearchButton');
   static const feedSearchScreen = Key('feedSearchScreen');
   static const feedSearchTextField = Key('feedSearchTextField');
@@ -22,8 +22,8 @@ abstract final class AppDebugKey {
   static const todayNavDestination = Key('todayNavDestination');
   static const todayScreen = Key('todayScreen');
 
-  static Key entryRow(String title) => Key('entry:$title');
   static Key feedCandidateTile(String title) => Key('feedCandidate:$title');
+  static Key feedEntryRow(String title) => Key('feedEntry:$title');
   static Key feedRow(String title) => Key('feed:$title');
   static Key readerTitle(String title) => Key('readerTitle:$title');
   static Key storyCard(String title) => Key('story:$title');

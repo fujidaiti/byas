@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'entry_providers.dart';
+part of 'feed_entry_providers.dart';
 
 // **************************************************************************
 // RiverpodGenerator
@@ -9,52 +9,58 @@ part of 'entry_providers.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
-@ProviderFor(entryRepository)
-final entryRepositoryProvider = EntryRepositoryProvider._();
+@ProviderFor(feedEntryRepository)
+final feedEntryRepositoryProvider = FeedEntryRepositoryProvider._();
 
-final class EntryRepositoryProvider
+final class FeedEntryRepositoryProvider
     extends
-        $FunctionalProvider<EntryRepository, EntryRepository, EntryRepository>
-    with $Provider<EntryRepository> {
-  EntryRepositoryProvider._()
+        $FunctionalProvider<
+          FeedEntryRepository,
+          FeedEntryRepository,
+          FeedEntryRepository
+        >
+    with $Provider<FeedEntryRepository> {
+  FeedEntryRepositoryProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
-        name: r'entryRepositoryProvider',
+        name: r'feedEntryRepositoryProvider',
         isAutoDispose: true,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
 
   @override
-  String debugGetCreateSourceHash() => _$entryRepositoryHash();
+  String debugGetCreateSourceHash() => _$feedEntryRepositoryHash();
 
   @$internal
   @override
-  $ProviderElement<EntryRepository> $createElement($ProviderPointer pointer) =>
-      $ProviderElement(pointer);
+  $ProviderElement<FeedEntryRepository> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
 
   @override
-  EntryRepository create(Ref ref) {
-    return entryRepository(ref);
+  FeedEntryRepository create(Ref ref) {
+    return feedEntryRepository(ref);
   }
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(EntryRepository value) {
+  Override overrideWithValue(FeedEntryRepository value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<EntryRepository>(value),
+      providerOverride: $SyncValueProvider<FeedEntryRepository>(value),
     );
   }
 }
 
-String _$entryRepositoryHash() => r'418f4a58264a067dabbaba55b3a961895e1607c2';
+String _$feedEntryRepositoryHash() =>
+    r'f9c74603d05aaf5d786d1a55ae6ca43d0c9b5b5e';
 
-@ProviderFor(entry)
-final entryProvider = EntryFamily._();
+@ProviderFor(feedEntry)
+final feedEntryProvider = FeedEntryFamily._();
 
-final class EntryProvider
+final class FeedEntryProvider
     extends
         $FunctionalProvider<
           AsyncValue<FeedEntry>,
@@ -62,23 +68,23 @@ final class EntryProvider
           FutureOr<FeedEntry>
         >
     with $FutureModifier<FeedEntry>, $FutureProvider<FeedEntry> {
-  EntryProvider._({
-    required EntryFamily super.from,
+  FeedEntryProvider._({
+    required FeedEntryFamily super.from,
     required int super.argument,
   }) : super(
          retry: null,
-         name: r'entryProvider',
+         name: r'feedEntryProvider',
          isAutoDispose: true,
          dependencies: null,
          $allTransitiveDependencies: null,
        );
 
   @override
-  String debugGetCreateSourceHash() => _$entryHash();
+  String debugGetCreateSourceHash() => _$feedEntryHash();
 
   @override
   String toString() {
-    return r'entryProvider'
+    return r'feedEntryProvider'
         ''
         '($argument)';
   }
@@ -91,12 +97,12 @@ final class EntryProvider
   @override
   FutureOr<FeedEntry> create(Ref ref) {
     final argument = this.argument as int;
-    return entry(ref, id: argument);
+    return feedEntry(ref, id: argument);
   }
 
   @override
   bool operator ==(Object other) {
-    return other is EntryProvider && other.argument == argument;
+    return other is FeedEntryProvider && other.argument == argument;
   }
 
   @override
@@ -105,22 +111,22 @@ final class EntryProvider
   }
 }
 
-String _$entryHash() => r'ba0ab272b82d843d24c4c678d9838ef4ae8b864c';
+String _$feedEntryHash() => r'06620ab93008f8dcfdaf83649d55cca1f51b15b6';
 
-final class EntryFamily extends $Family
+final class FeedEntryFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<FeedEntry>, int> {
-  EntryFamily._()
+  FeedEntryFamily._()
     : super(
         retry: null,
-        name: r'entryProvider',
+        name: r'feedEntryProvider',
         dependencies: null,
         $allTransitiveDependencies: null,
         isAutoDispose: true,
       );
 
-  EntryProvider call({required int id}) =>
-      EntryProvider._(argument: id, from: this);
+  FeedEntryProvider call({required int id}) =>
+      FeedEntryProvider._(argument: id, from: this);
 
   @override
-  String toString() => r'entryProvider';
+  String toString() => r'feedEntryProvider';
 }

@@ -139,11 +139,11 @@ class GetStory200ResponseTypeEnum {
 
   String toJson() => value;
 
-  static const entry = GetStory200ResponseTypeEnum._(r'entry');
+  static const feedEntry = GetStory200ResponseTypeEnum._(r'feed_entry');
 
   /// List of all possible values in this [enum][GetStory200ResponseTypeEnum].
   static const values = <GetStory200ResponseTypeEnum>[
-    entry,
+    feedEntry,
   ];
 
   static GetStory200ResponseTypeEnum? fromJson(dynamic value) =>
@@ -187,8 +187,8 @@ class GetStory200ResponseTypeEnumTypeTransformer {
   GetStory200ResponseTypeEnum? decode(dynamic data, {bool allowNull = true}) {
     if (data != null) {
       switch (data) {
-        case r'entry':
-          return GetStory200ResponseTypeEnum.entry;
+        case r'feed_entry':
+          return GetStory200ResponseTypeEnum.feedEntry;
         default:
           if (!allowNull) {
             throw ArgumentError('Unknown enum value to decode: $data');

@@ -15,10 +15,10 @@ import 'package:paperdoll/core/ui/widgets/gap.dart';
 import 'package:paperdoll/core/ui/widgets/loading_indicator.dart';
 import 'package:paperdoll/core/util/link_launcher.dart';
 import 'package:paperdoll/debug_keys.dart';
-import 'package:paperdoll/features/entry/domain/feed_entry.dart';
-import 'package:paperdoll/features/entry/presentation/widgets/entry_row.dart';
 import 'package:paperdoll/features/feed/domain/feed.dart';
 import 'package:paperdoll/features/feed/presentation/providers/feed_providers.dart';
+import 'package:paperdoll/features/feed_entry/domain/feed_entry.dart';
+import 'package:paperdoll/features/feed_entry/presentation/widgets/feed_entry_row.dart';
 
 /// Feed Detail (Timeline): a feed's header and its full stream of entries.
 class FeedDetailScreen extends ConsumerWidget {
@@ -45,10 +45,10 @@ class FeedDetailScreen extends ConsumerWidget {
             timeline: timelineAsync,
             onRetryTimeline: () => ref.invalidate(feedTimelineProvider(id: id)),
             onOpenEntry: (entryId) => context.pushNamed(
-              routeEntryReaderName,
+              routeFeedEntryReaderName,
               pathParameters: {
                 'id': id.toString(),
-                'entryId': entryId.toString(),
+                'feedEntryId': entryId.toString(),
               },
             ),
           ),
@@ -111,8 +111,8 @@ class _FeedDetailBody extends StatelessWidget {
       separatorBuilder: (context, index) => const AppDivider(),
       itemBuilder: (context, index) {
         final entry = entries[index];
-        return EntryRow(
-          key: AppDebugKey.entryRow(entry.title),
+        return FeedEntryRow(
+          key: AppDebugKey.feedEntryRow(entry.title),
           entry: entry,
           onTap: () => onOpenEntry(entry.id),
         );

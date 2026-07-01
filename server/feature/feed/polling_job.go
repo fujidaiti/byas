@@ -83,7 +83,7 @@ func (j *job) Do(ctx context.Context) error {
 		args = append(args, e.dedupKey, e.feedId, e.url, e.title, e.description, snapshotAt, e.publishedAt)
 	}
 	sql := fmt.Sprintf(`
-		INSERT INTO entries (dedup_key, feed_id, url, title, description, snapshot_at, published_at)
+		INSERT INTO feed_entries (dedup_key, feed_id, url, title, description, snapshot_at, published_at)
 		VALUES %s
 		ON CONFLICT (dedup_key) DO NOTHING
 		RETURNING id, dedup_key, feed_id, url, title, description, published_at;
@@ -282,7 +282,7 @@ func fetchContent(ctx context.Context, entry entryRecord, db *sql.DB) error {
 	content := fmt.Sprintf(contentTemplate, buf)
 
 	_, err = db.ExecContext(ctx, `
-		UPDATE entries
+		UPDATE feed_entries
 		SET content = $1, snapshot_at = $2
 		WHERE id = $3;
 	`, content, time.Now(), entry.id)

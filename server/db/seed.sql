@@ -7,7 +7,7 @@ CREATE TABLE feeds (
     description text
 );
 
-CREATE TABLE entries (
+CREATE TABLE feed_entries (
     id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     dedup_key text NOT NULL UNIQUE,
     feed_id bigint NOT NULL REFERENCES feeds (id),
@@ -27,7 +27,7 @@ CREATE TABLE newspapers (
 
 CREATE TABLE stories (
     id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    entry_id bigint NOT NULL REFERENCES entries (id),
+    feed_entry_id bigint NOT NULL REFERENCES feed_entries (id),
     newspaper_id bigint REFERENCES newspapers (id),
     title text NOT NULL,
     description text,

@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:openapi/api.dart' as api;
 
 import 'package:paperdoll/core/network/request_runner.dart';
-import 'package:paperdoll/features/entry/domain/feed_entry.dart';
+import 'package:paperdoll/features/feed_entry/domain/feed_entry.dart';
 import 'package:paperdoll/features/newspaper/domain/newspaper.dart';
 import 'package:paperdoll/features/newspaper/domain/newspaper_repository.dart';
 import 'package:paperdoll/features/newspaper/domain/story.dart';

@@ -4,7 +4,7 @@ const routeStoryName = 'story';
 const routeFeedsName = 'feeds';
 const routeFeedSearchName = 'feedSearch';
 const routeFeedDetailName = 'feedDetail';
-const routeEntryReaderName = 'entryReader';
+const routeFeedEntryReaderName = 'feedEntryReader';
 
 // Route paths (used when declaring the GoRoute tree).
 const routeTodayPath = '/today';
@@ -12,4 +12,4 @@ const routeStoryPath = 'stories/:id';
 const routeFeedsPath = '/feeds';
 const routeFeedSearchPath = 'search';
 const routeFeedDetailPath = ':id';
-const routeEntryReaderPath = 'entries/:entryId';
+const routeFeedEntryReaderPath = 'feed-entries/:feedEntryId';

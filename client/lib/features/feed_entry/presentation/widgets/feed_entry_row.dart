@@ -6,11 +6,11 @@ import 'package:paperdoll/core/ui/widgets/caption_text.dart';
 import 'package:paperdoll/core/ui/widgets/gap.dart';
 import 'package:paperdoll/core/ui/widgets/heading_text.dart';
 import 'package:paperdoll/core/util/date_format.dart';
-import 'package:paperdoll/features/entry/domain/feed_entry.dart';
+import 'package:paperdoll/features/feed_entry/domain/feed_entry.dart';
 
 /// A single feed entry in a timeline list.
-class EntryRow extends StatelessWidget {
-  const EntryRow({required this.entry, this.onTap, super.key});
+class FeedEntryRow extends StatelessWidget {
+  const FeedEntryRow({required this.entry, this.onTap, super.key});
 
   final FeedEntry entry;
   final VoidCallback? onTap;

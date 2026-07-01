@@ -172,11 +172,11 @@ func (h *handler) getStory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	res := getStoryResponse{Type: "entry"}
+	res := getStoryResponse{Type: "feed_entry"}
 	d := &res.Data
 	err = h.db.QueryRowContext(ctx, `
 		SELECT e.id, e.feed_id, e.url, e.title, e.description, e.content, e.snapshot_at, e.published_at
-		FROM entries e JOIN stories s ON e.id = s.entry_id
+		FROM feed_entries e JOIN stories s ON e.id = s.feed_entry_id
 		WHERE s.id = $1;
 	`, id).Scan(&d.ID, &d.FeedID, &d.URL, &d.Title, &d.Description, &d.Content, &d.SnapshotAt, &d.PublishedAt)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -224,7 +224,7 @@ func (h *handler) getFeedEntry(w http.ResponseWriter, r *http.Request) {
 	res := getFeedEntryResponse{}
 	err = h.db.QueryRowContext(ctx, `
 		SELECT id, feed_id, url, title, description, content, snapshot_at, published_at
-		FROM entries
+		FROM feed_entries
 		WHERE id = $1;
 	`, id).Scan(&res.ID, &res.FeedID, &res.URL, &res.Title, &res.Description, &res.Content, &res.SnapshotAt, &res.PublishedAt)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -375,7 +375,7 @@ func (h *handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
 	// TODO: Support pagination
 	rows, err := h.db.QueryContext(ctx, `
 		SELECT id, feed_id, url, title, description, published_at, snapshot_at
-		FROM entries
+		FROM feed_entries
 		WHERE feed_id = $1;
 	`, id)
 	if err != nil {

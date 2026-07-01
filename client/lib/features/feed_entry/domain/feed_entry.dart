@@ -3,7 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'feed_entry.freezed.dart';
 
 /// A single item fetched from a feed. Shared payload of both the Story Reader
-/// and the Entry Reader.
+/// and the Feed Entry Reader.
 @freezed
 abstract class FeedEntry with _$FeedEntry {
   const factory FeedEntry({

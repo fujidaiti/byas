@@ -43,9 +43,9 @@ void main() {
     await $(AppDebugKey.feedRow('Anthropic Engineering Blog')).tap();
     await $(AppDebugKey.feedDetailScreen).waitUntilVisible();
     await $(
-      AppDebugKey.entryRow('Effective harnesses for long-running agents'),
+      AppDebugKey.feedEntryRow('Effective harnesses for long-running agents'),
     ).tap();
-    await $(AppDebugKey.entryReaderScreen).waitUntilVisible();
+    await $(AppDebugKey.feedEntryReaderScreen).waitUntilVisible();
     await $(
       AppDebugKey.readerTitle('Effective harnesses for long-running agents'),
     ).waitUntilVisible();
