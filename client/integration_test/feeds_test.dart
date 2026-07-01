@@ -1,5 +1,5 @@
 import 'package:openapi/api.dart' as api;
-import 'package:paperdoll/test_keys.dart';
+import 'package:paperdoll/debug_keys.dart';
 import 'package:patrol/patrol.dart';
 
 import 'helpers.dart';
@@ -38,16 +38,16 @@ void main() {
     );
     adapter.onGet('/feed-entries/11', (s) => s.reply(200, entry.toJson()));
 
-    await $(AppTestKeys.feedsNavDestination).tap();
-    await $(AppTestKeys.feedsScreen).waitUntilVisible();
-    await $(AppTestKeys.feedRow('Anthropic Engineering Blog')).tap();
-    await $(AppTestKeys.feedDetailScreen).waitUntilVisible();
+    await $(AppDebugKey.feedsNavDestination).tap();
+    await $(AppDebugKey.feedsScreen).waitUntilVisible();
+    await $(AppDebugKey.feedRow('Anthropic Engineering Blog')).tap();
+    await $(AppDebugKey.feedDetailScreen).waitUntilVisible();
     await $(
-      AppTestKeys.entryRow('Effective harnesses for long-running agents'),
+      AppDebugKey.entryRow('Effective harnesses for long-running agents'),
     ).tap();
-    await $(AppTestKeys.entryReaderScreen).waitUntilVisible();
+    await $(AppDebugKey.entryReaderScreen).waitUntilVisible();
     await $(
-      AppTestKeys.readerTitle('Effective harnesses for long-running agents'),
+      AppDebugKey.readerTitle('Effective harnesses for long-running agents'),
     ).waitUntilVisible();
   });
 
@@ -96,16 +96,16 @@ void main() {
       data: {'url': 'https://dart.dev/blog/feed.xml'},
     );
 
-    await $(AppTestKeys.feedsNavDestination).tap();
-    await $(AppTestKeys.feedsScreen).waitUntilVisible();
-    await $(AppTestKeys.addFeedButton).tap();
-    await $(AppTestKeys.feedSearchScreen).waitUntilVisible();
+    await $(AppDebugKey.feedsNavDestination).tap();
+    await $(AppDebugKey.feedsScreen).waitUntilVisible();
+    await $(AppDebugKey.addFeedButton).tap();
+    await $(AppDebugKey.feedSearchScreen).waitUntilVisible();
     await $(
-      AppTestKeys.feedSearchTextField,
+      AppDebugKey.feedSearchTextField,
     ).enterText('https://dart.dev/blog/feed.xml');
-    await $(AppTestKeys.feedSearchButton).tap();
-    await $(AppTestKeys.feedCandidateTile('The Dart Blog')).tap();
-    await $(AppTestKeys.subscribeSuccessSnackBar).waitUntilVisible();
-    await $(AppTestKeys.feedRow('The Dart Blog')).waitUntilVisible();
+    await $(AppDebugKey.feedSearchButton).tap();
+    await $(AppDebugKey.feedCandidateTile('The Dart Blog')).tap();
+    await $(AppDebugKey.subscribeSuccessSnackBar).waitUntilVisible();
+    await $(AppDebugKey.feedRow('The Dart Blog')).waitUntilVisible();
   });
 }

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:paperdoll/core/router/routes.dart';
+import 'package:paperdoll/debug_keys.dart';
 import 'package:paperdoll/features/entry/presentation/entry_reader_screen.dart';
 import 'package:paperdoll/features/feed/presentation/feed_detail_screen.dart';
 import 'package:paperdoll/features/feed/presentation/feed_search_screen.dart';
 import 'package:paperdoll/features/feed/presentation/feeds_screen.dart';
 import 'package:paperdoll/features/newspaper/presentation/story_reader_screen.dart';
 import 'package:paperdoll/features/newspaper/presentation/today_screen.dart';
-import 'package:paperdoll/test_keys.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'app_router.g.dart';
@@ -99,13 +99,13 @@ class _ScaffoldWithNavBar extends StatelessWidget {
         onDestinationSelected: navigationShell.goBranch,
         destinations: const [
           NavigationDestination(
-            key: AppTestKeys.todayNavDestination,
+            key: AppDebugKey.todayNavDestination,
             icon: Icon(Icons.article_outlined),
             selectedIcon: Icon(Icons.article),
             label: 'Today',
           ),
           NavigationDestination(
-            key: AppTestKeys.feedsNavDestination,
+            key: AppDebugKey.feedsNavDestination,
             icon: Icon(Icons.rss_feed),
             label: 'Feeds',
           ),

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openapi/api.dart' as api;
-import 'package:paperdoll/test_keys.dart';
+import 'package:paperdoll/debug_keys.dart';
 import 'package:patrol/patrol.dart';
 
 import 'helpers.dart';
@@ -43,11 +43,11 @@ void main() {
       ),
     );
 
-    expect($(AppTestKeys.todayScreen), findsOneWidget);
-    await $(AppTestKeys.storyCard('Demystifying evals for AI agents')).tap();
-    await $(AppTestKeys.storyReaderScreen).waitUntilVisible();
+    expect($(AppDebugKey.todayScreen), findsOneWidget);
+    await $(AppDebugKey.storyCard('Demystifying evals for AI agents')).tap();
+    await $(AppDebugKey.storyReaderScreen).waitUntilVisible();
     await $(
-      AppTestKeys.readerTitle('Demystifying evals for AI agents'),
+      AppDebugKey.readerTitle('Demystifying evals for AI agents'),
     ).waitUntilVisible();
   });
 }

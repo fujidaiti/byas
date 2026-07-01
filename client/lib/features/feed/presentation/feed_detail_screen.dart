@@ -14,11 +14,11 @@ import 'package:paperdoll/core/ui/widgets/error_placeholder.dart';
 import 'package:paperdoll/core/ui/widgets/gap.dart';
 import 'package:paperdoll/core/ui/widgets/loading_indicator.dart';
 import 'package:paperdoll/core/util/link_launcher.dart';
+import 'package:paperdoll/debug_keys.dart';
 import 'package:paperdoll/features/entry/domain/feed_entry.dart';
 import 'package:paperdoll/features/entry/presentation/widgets/entry_row.dart';
 import 'package:paperdoll/features/feed/domain/feed.dart';
 import 'package:paperdoll/features/feed/presentation/providers/feed_providers.dart';
-import 'package:paperdoll/test_keys.dart';
 
 /// Feed Detail (Timeline): a feed's header and its full stream of entries.
 class FeedDetailScreen extends ConsumerWidget {
@@ -31,7 +31,7 @@ class FeedDetailScreen extends ConsumerWidget {
     final feedAsync = ref.watch(feedDetailProvider(id: id));
     final timelineAsync = ref.watch(feedTimelineProvider(id: id));
     return Scaffold(
-      key: AppTestKeys.feedDetailScreen,
+      key: AppDebugKey.feedDetailScreen,
       body: RefreshIndicator(
         onRefresh: () {
           ref.invalidate(feedDetailProvider(id: id));
@@ -112,7 +112,7 @@ class _FeedDetailBody extends StatelessWidget {
       itemBuilder: (context, index) {
         final entry = entries[index];
         return EntryRow(
-          key: AppTestKeys.entryRow(entry.title),
+          key: AppDebugKey.entryRow(entry.title),
           entry: entry,
           onTap: () => onOpenEntry(entry.id),
         );
