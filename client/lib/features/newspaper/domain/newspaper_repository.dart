@@ -1,4 +1,4 @@
-import 'package:paperdoll/features/entry/domain/feed_entry.dart';
+import 'package:paperdoll/features/feed_entry/domain/feed_entry.dart';
 import 'package:paperdoll/features/newspaper/domain/newspaper.dart';
 
 /// Reads the daily newspaper and the entries backing its stories.

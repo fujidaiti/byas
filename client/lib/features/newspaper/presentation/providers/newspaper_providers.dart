@@ -1,5 +1,5 @@
 import 'package:paperdoll/core/network/dio_provider.dart';
-import 'package:paperdoll/features/entry/domain/feed_entry.dart';
+import 'package:paperdoll/features/feed_entry/domain/feed_entry.dart';
 import 'package:paperdoll/features/newspaper/data/newspaper_repository_impl.dart';
 import 'package:paperdoll/features/newspaper/domain/newspaper.dart';
 import 'package:paperdoll/features/newspaper/domain/newspaper_repository.dart';

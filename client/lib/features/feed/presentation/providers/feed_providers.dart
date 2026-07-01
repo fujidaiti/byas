@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import 'package:paperdoll/core/network/dio_provider.dart';
-import 'package:paperdoll/features/entry/domain/feed_entry.dart';
 import 'package:paperdoll/features/feed/data/feed_repository_impl.dart';
 import 'package:paperdoll/features/feed/domain/feed.dart';
 import 'package:paperdoll/features/feed/domain/feed_candidate.dart';
 import 'package:paperdoll/features/feed/domain/feed_repository.dart';
+import 'package:paperdoll/features/feed_entry/domain/feed_entry.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'feed_providers.g.dart';

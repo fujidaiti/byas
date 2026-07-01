@@ -6,16 +6,17 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 /// Renders an entry's HTML `content` in a WebView. The controller is built
 /// once in initState (not in createState) so it survives rebuilds.
-class EntryContentWebView extends StatefulWidget {
-  const EntryContentWebView({required this.html, super.key});
+class FeedEntryContentWebView extends StatefulWidget {
+  const FeedEntryContentWebView({required this.html, super.key});
 
   final String html;
 
   @override
-  State<EntryContentWebView> createState() => _EntryContentWebViewState();
+  State<FeedEntryContentWebView> createState() =>
+      _FeedEntryContentWebViewState();
 }
 
-class _EntryContentWebViewState extends State<EntryContentWebView> {
+class _FeedEntryContentWebViewState extends State<FeedEntryContentWebView> {
   late final WebViewController _controller;
   var _isLoading = true;
 

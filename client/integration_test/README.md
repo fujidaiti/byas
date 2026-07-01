@@ -68,7 +68,7 @@ adapter.onGet('/newspapers/stories/1',
   (server) => server.reply(
     200,
     api.GetStory200Response(
-      type: api.GetStory200ResponseTypeEnum.entry,
+      type: api.GetStory200ResponseTypeEnum.feedEntry,
       data: storyEntry,
     ).toJson(),
   ),
@@ -77,7 +77,7 @@ adapter.onGet('/newspapers/stories/1',
 // Equivalent to above, but do not abuse this pattern
 adapter.onGet(
   '/newspapers/stories/1',
-  (server) => server.reply(200, { 'type': 'entry', 'data': storyEntry.toJson() }),
+  (server) => server.reply(200, { 'type': 'feed_entry', 'data': storyEntry.toJson() }),
 );
 ```
 
@@ -149,7 +149,7 @@ format is `<widget identifier>:<display text>`, e.g.:
 
 ```
 feed:Anthropic Engineering Blog   → AppDebugKey.feedRow('Anthropic Engineering Blog')
-entry:Effective harnesses…        → AppDebugKey.entryRow('Effective harnesses…')
+feedEntry:Effective harnesses…    → AppDebugKey.feedEntryRow('Effective harnesses…')
 story:Demystifying evals…         → AppDebugKey.storyCard('Demystifying evals…')
 readerTitle:Demystifying evals…   → AppDebugKey.readerTitle('Demystifying evals…')
 ```
@@ -209,15 +209,15 @@ After a tap that navigates to a new screen, assert on the destination screen's
 key before making content assertions:
 
 ```dart
-// In entry_reader_screen.dart
+// In feed_entry_reader_screen.dart
 return Scaffold(
-  key: AppDebugKey.entryReaderScreen,
+  key: AppDebugKey.feedEntryReaderScreen,
   ...
 );
 
 // In the test
-await $(AppDebugKey.entryRow('Entry title')).tap();
-await $(AppDebugKey.entryReaderScreen).waitUntilVisible(); // navigation confirmed
+await $(AppDebugKey.feedEntryRow('Entry title')).tap();
+await $(AppDebugKey.feedEntryReaderScreen).waitUntilVisible(); // navigation confirmed
 await $(AppDebugKey.readerTitle('Entry title')).waitUntilVisible(); // content loaded
 ```
 

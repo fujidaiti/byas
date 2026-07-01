@@ -64,11 +64,11 @@ stories:
               properties:
                 type:
                   type: string
-                  enum: [entry]
+                  enum: [feed_entry]
                 data:
                   $ref: "../components/schemas.yaml#/FeedEntry"
             example:
-              type: entry
+              type: feed_entry
               data:
                 id: 10
                 feed_id: 1

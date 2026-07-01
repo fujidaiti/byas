@@ -10,7 +10,7 @@ import (
 
 type Story struct {
 	ID          int
-	EntryID     int
+	FeedEntryID int
 	NewspaperID int
 	Title       string
 	Description string
@@ -24,15 +24,15 @@ type Story struct {
 	PublishedAt time.Time
 }
 
-func DraftStory(title, description, source string, entryID int, publishedAt time.Time) (Story, error) {
+func DraftStory(title, description, source string, feedEntryID int, publishedAt time.Time) (Story, error) {
 	if title == "" {
 		return Story{}, fmt.Errorf("title cannot be empty")
 	}
-	if entryID <= 0 {
-		return Story{}, fmt.Errorf("invalid entry ID: %d", entryID)
+	if feedEntryID <= 0 {
+		return Story{}, fmt.Errorf("invalid feed entry ID: %d", feedEntryID)
 	}
 	s := Story{
-		EntryID:     entryID,
+		FeedEntryID: feedEntryID,
 		Title:       title,
 		Description: description,
 		PublishedAt: publishedAt,
@@ -55,10 +55,10 @@ func SubmitStories(ctx context.Context, ss []Story, db *sql.DB) error {
 		pubDate := sql.NullTime{Time: s.PublishedAt, Valid: !s.PublishedAt.IsZero()}
 		k := i * 5
 		vals = append(vals, fmt.Sprintf("($%d, $%d, $%d, $%d, $%d)", k+1, k+2, k+3, k+4, k+5))
-		args = append(args, s.Title, desc, src, s.EntryID, pubDate)
+		args = append(args, s.Title, desc, src, s.FeedEntryID, pubDate)
 	}
 	_, err := db.ExecContext(ctx, fmt.Sprintf(`
-			INSERT INTO stories (title, description, source, entry_id, published_at)
+			INSERT INTO stories (title, description, source, feed_entry_id, published_at)
 			VALUES %s;
 		`, strings.Join(vals, ",")), args...)
 	if err != nil {

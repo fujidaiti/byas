@@ -1,11 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:openapi/api.dart' as api;
-
 import 'package:paperdoll/core/network/request_runner.dart';
-import 'package:paperdoll/features/entry/domain/feed_entry.dart';
 import 'package:paperdoll/features/feed/domain/feed.dart';
 import 'package:paperdoll/features/feed/domain/feed_candidate.dart';
 import 'package:paperdoll/features/feed/domain/feed_repository.dart';
+import 'package:paperdoll/features/feed_entry/domain/feed_entry.dart';
 
 class FeedRepositoryImpl implements FeedRepository {
   const FeedRepositoryImpl(this._dio);

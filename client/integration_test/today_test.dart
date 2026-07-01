@@ -32,7 +32,7 @@ void main() {
       (s) => s.reply(
         200,
         api.GetStory200Response(
-          type: api.GetStory200ResponseTypeEnum.entry,
+          type: api.GetStory200ResponseTypeEnum.feedEntry,
           data: api.FeedEntry(
             id: 1,
             feedId: 1,

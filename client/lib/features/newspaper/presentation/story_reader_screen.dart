@@ -6,8 +6,8 @@ import 'package:paperdoll/core/ui/widgets/async_value_view.dart';
 import 'package:paperdoll/core/ui/widgets/heading_text.dart';
 import 'package:paperdoll/core/util/link_launcher.dart';
 import 'package:paperdoll/debug_keys.dart';
-import 'package:paperdoll/features/entry/domain/feed_entry.dart';
-import 'package:paperdoll/features/entry/presentation/widgets/entry_reader_view.dart';
+import 'package:paperdoll/features/feed_entry/domain/feed_entry.dart';
+import 'package:paperdoll/features/feed_entry/presentation/widgets/feed_entry_reader_view.dart';
 import 'package:paperdoll/features/newspaper/presentation/providers/newspaper_providers.dart';
 
 class StoryReaderScreen extends ConsumerWidget {
@@ -39,7 +39,7 @@ class StoryReaderScreen extends ConsumerWidget {
       body: AsyncValueView<FeedEntry>(
         value: storyAsync,
         onRetry: () => ref.invalidate(storyProvider(id: id)),
-        data: (entry) => EntryReaderView(entry: entry),
+        data: (entry) => FeedEntryReaderView(entry: entry),
       ),
     );
   }
