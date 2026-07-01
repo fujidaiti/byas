@@ -1,6 +1,9 @@
-.claude/
+# Claude Code
+.claude/*
+!.claude/settings.json
 # Flutter
 .fvm/
 .dart_tool/
 # Xcode
 Assets.xcassets/
+

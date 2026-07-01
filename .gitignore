@@ -14,3 +14,9 @@ build/
 
 # Pub workspace
 .dart_tool/
+
+# Claude Code
+.claude/*
+!.claude/settings.json
+!.claude/skills/
+
