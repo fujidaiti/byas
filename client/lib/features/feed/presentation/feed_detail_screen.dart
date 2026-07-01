@@ -14,6 +14,7 @@ import 'package:paperdoll/core/ui/widgets/error_placeholder.dart';
 import 'package:paperdoll/core/ui/widgets/gap.dart';
 import 'package:paperdoll/core/ui/widgets/loading_indicator.dart';
 import 'package:paperdoll/core/util/link_launcher.dart';
+import 'package:paperdoll/debug_keys.dart';
 import 'package:paperdoll/features/entry/domain/feed_entry.dart';
 import 'package:paperdoll/features/entry/presentation/widgets/entry_row.dart';
 import 'package:paperdoll/features/feed/domain/feed.dart';
@@ -30,6 +31,7 @@ class FeedDetailScreen extends ConsumerWidget {
     final feedAsync = ref.watch(feedDetailProvider(id: id));
     final timelineAsync = ref.watch(feedTimelineProvider(id: id));
     return Scaffold(
+      key: AppDebugKey.feedDetailScreen,
       body: RefreshIndicator(
         onRefresh: () {
           ref.invalidate(feedDetailProvider(id: id));
@@ -109,7 +111,11 @@ class _FeedDetailBody extends StatelessWidget {
       separatorBuilder: (context, index) => const AppDivider(),
       itemBuilder: (context, index) {
         final entry = entries[index];
-        return EntryRow(entry: entry, onTap: () => onOpenEntry(entry.id));
+        return EntryRow(
+          key: AppDebugKey.entryRow(entry.title),
+          entry: entry,
+          onTap: () => onOpenEntry(entry.id),
+        );
       },
     );
   }

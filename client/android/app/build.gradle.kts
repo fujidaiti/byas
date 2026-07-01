@@ -4,6 +4,11 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+dependencies {
+    // Patrol: https://patrol.leancode.co/documentation
+    androidTestUtil("androidx.test:orchestrator:1.5.1")
+}
+
 android {
     namespace = "dev.norelease.paperdoll"
     compileSdk = flutter.compileSdkVersion
@@ -23,6 +28,15 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // Patrol: https://patrol.leancode.co/documentation
+        testInstrumentationRunner = "pl.leancode.patrol.PatrolJUnitRunner"
+        testInstrumentationRunnerArguments["clearPackageData"] = "true"
+    }
+
+    // Patrol: https://patrol.leancode.co/documentation
+    testOptions {
+        execution = "ANDROIDX_TEST_ORCHESTRATOR"
     }
 
     buildTypes {

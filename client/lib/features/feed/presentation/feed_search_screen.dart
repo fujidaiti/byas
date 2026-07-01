@@ -3,13 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:paperdoll/core/error/domain_error.dart';
 import 'package:paperdoll/core/ui/tokens/app_spacing.dart';
 import 'package:paperdoll/core/ui/widgets/app_divider.dart';
 import 'package:paperdoll/core/ui/widgets/async_value_view.dart';
 import 'package:paperdoll/core/ui/widgets/empty_placeholder.dart';
 import 'package:paperdoll/core/ui/widgets/gap.dart';
+import 'package:paperdoll/debug_keys.dart';
 import 'package:paperdoll/features/feed/domain/feed_candidate.dart';
 import 'package:paperdoll/features/feed/presentation/providers/feed_providers.dart';
 import 'package:paperdoll/features/feed/presentation/widgets/feed_candidate_tile.dart';
@@ -49,7 +49,10 @@ class _FeedSearchScreenState extends ConsumerState<FeedSearchScreen> {
           .read(feedSearchControllerProvider.notifier)
           .subscribe(candidate.url);
       messenger.showSnackBar(
-        SnackBar(content: Text('Subscribed to ${candidate.title}')),
+        SnackBar(
+          key: AppDebugKey.subscribeSuccessSnackBar,
+          content: Text('Subscribed to ${candidate.title}'),
+        ),
       );
       router.pop();
     } on DomainError catch (error) {
@@ -65,6 +68,7 @@ class _FeedSearchScreenState extends ConsumerState<FeedSearchScreen> {
   Widget build(BuildContext context) {
     final results = ref.watch(feedSearchControllerProvider);
     return Scaffold(
+      key: AppDebugKey.feedSearchScreen,
       appBar: AppBar(title: const Text('Add feed')),
       body: Column(
         children: [
@@ -74,6 +78,7 @@ class _FeedSearchScreenState extends ConsumerState<FeedSearchScreen> {
               children: [
                 Expanded(
                   child: TextField(
+                    key: AppDebugKey.feedSearchTextField,
                     controller: _queryController,
                     keyboardType: TextInputType.url,
                     decoration: const InputDecoration(
@@ -85,6 +90,7 @@ class _FeedSearchScreenState extends ConsumerState<FeedSearchScreen> {
                 ),
                 const Gap(spacingSm),
                 FilledButton(
+                  key: AppDebugKey.feedSearchButton,
                   onPressed: () => unawaited(_search()),
                   child: const Text('Search'),
                 ),
@@ -113,6 +119,7 @@ class _FeedSearchScreenState extends ConsumerState<FeedSearchScreen> {
       itemBuilder: (context, index) {
         final candidate = candidates[index];
         return FeedCandidateTile(
+          key: AppDebugKey.feedCandidateTile(candidate.title),
           candidate: candidate,
           isSubscribing: _subscribingIndex == index,
           onSubscribe: () => unawaited(_subscribe(candidate, index)),

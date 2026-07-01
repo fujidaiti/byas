@@ -9,6 +9,7 @@ import 'package:paperdoll/core/ui/widgets/caption_text.dart';
 import 'package:paperdoll/core/ui/widgets/empty_placeholder.dart';
 import 'package:paperdoll/core/ui/widgets/heading_text.dart';
 import 'package:paperdoll/core/util/date_format.dart';
+import 'package:paperdoll/debug_keys.dart';
 import 'package:paperdoll/features/newspaper/domain/newspaper.dart';
 import 'package:paperdoll/features/newspaper/presentation/providers/newspaper_providers.dart';
 import 'package:paperdoll/features/newspaper/presentation/widgets/story_card.dart';
@@ -21,6 +22,7 @@ class TodayScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final newspaperAsync = ref.watch(todayNewspaperProvider);
     return Scaffold(
+      key: AppDebugKey.todayScreen,
       body: RefreshIndicator(
         onRefresh: () => ref.refresh(todayNewspaperProvider.future),
         child: AsyncValueView<Newspaper>(
@@ -74,6 +76,7 @@ class _NewspaperView extends StatelessWidget {
             itemBuilder: (context, index) {
               final story = stories[index];
               return StoryCard(
+                key: AppDebugKey.storyCard(story.title),
                 story: story,
                 onTap: () => context.pushNamed(
                   routeStoryName,

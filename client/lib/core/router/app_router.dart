@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:paperdoll/core/router/routes.dart';
+import 'package:paperdoll/debug_keys.dart';
 import 'package:paperdoll/features/entry/presentation/entry_reader_screen.dart';
 import 'package:paperdoll/features/feed/presentation/feed_detail_screen.dart';
 import 'package:paperdoll/features/feed/presentation/feed_search_screen.dart';
@@ -98,11 +99,16 @@ class _ScaffoldWithNavBar extends StatelessWidget {
         onDestinationSelected: navigationShell.goBranch,
         destinations: const [
           NavigationDestination(
+            key: AppDebugKey.todayNavDestination,
             icon: Icon(Icons.article_outlined),
             selectedIcon: Icon(Icons.article),
             label: 'Today',
           ),
-          NavigationDestination(icon: Icon(Icons.rss_feed), label: 'Feeds'),
+          NavigationDestination(
+            key: AppDebugKey.feedsNavDestination,
+            icon: Icon(Icons.rss_feed),
+            label: 'Feeds',
+          ),
         ],
       ),
     );
