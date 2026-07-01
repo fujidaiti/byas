@@ -20,6 +20,8 @@ paths:
     $ref: "./paths/feeds.yaml#/timeline"
   /feed-entries/{id}:
     $ref: "./paths/feed-entries.yaml"
+  /reading-list:
+    $ref: "./paths/reading-list.yaml"
 
 components:
   schemas:

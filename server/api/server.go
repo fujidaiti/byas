@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/fujidaiti/paperdoll/feature/feed"
+	"github.com/fujidaiti/paperdoll/feature/readinglist"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -47,6 +48,7 @@ func StartServer(ctx context.Context) {
 	mux.HandleFunc("GET /feeds/{id}", h.getFeed)
 	mux.HandleFunc("GET /feeds/{id}/timeline", h.getFeedTimeline)
 	mux.HandleFunc("GET /feed-entries/{id}", h.getFeedEntry)
+	mux.HandleFunc("POST /reading-list", h.saveToReadingList)
 
 	srv := http.Server{
 		Addr:    ":8080",
@@ -499,6 +501,50 @@ func (h *handler) subscribeToFeed(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	w.Write(jres)
+}
+
+type saveToReadingListReqBody struct {
+	URL *string `json:"url"`
+	// TODO: Add FeedEntryID *int
+}
+
+func (h *handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
+	var b saveToReadingListReqBody
+	// TODO: Limit request body size (http.MaxBytesReader)
+	err := json.NewDecoder(r.Body).Decode(&b)
+	if err != nil {
+		fmt.Println(err)
+		serverError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+	if u := b.URL; u == nil || *u == "" {
+		// Temporally no-op
+		// TODO: Check if FeedEntryID exists, and handle it if specififed. Otherwise return an error.
+		// TODO: DRY JSON response creation
+		jres, _ := json.Marshal(map[string]string{})
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		w.Write(jres)
+		return
+	}
+	u, err := url.Parse(*b.URL)
+	if err != nil {
+		serverError(w, http.StatusBadRequest, "Invalid URL")
+		return
+	}
+
+	err = readinglist.SaveWebArticle(r.Context(), h.db, *u)
+	if err != nil {
+		fmt.Println(err)
+		serverError(w, http.StatusInternalServerError, "Failed to save article")
+		return
+	}
+
+	// TODO: DRY JSON response creation
+	jres, _ := json.Marshal(map[string]string{})
+	w.Header().Set("Content-Type", "appliation/json")
+	w.WriteHeader(http.StatusCreated)
 	w.Write(jres)
 }
 
