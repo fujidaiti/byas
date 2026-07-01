@@ -127,8 +127,8 @@ patrolTest('Open a story', ($) async { ... });
 patrolTest('Tap feed and scroll to entry', ($) async { ... });
 ```
 
-Use sentence case (capital first word only). Keep names short enough to read at
-a glance in test output — one phrase, no punctuation.
+Keep names short enough to read at a glance in test output — one phrase, no
+punctuation.
 
 ## Test key conventions
 
