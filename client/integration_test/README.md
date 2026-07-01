@@ -1,9 +1,8 @@
-# Integration Test Guide
+# Integration Test
 
 Tests live in `integration_test/` and run with
-[Patrol](https://patrol.leancode.co/). HTTP calls are intercepted in-process
-using [http_mock_adapter](https://pub.dev/packages/http_mock_adapter) — no
-external mock server is required.
+[Patrol](https://patrol.leancode.co/). HTTP calls are intercepted in-process, so
+no external mock server is required.
 
 ## File organisation
 
@@ -11,7 +10,6 @@ Each app feature has its own test file:
 
 ```
 integration_test/
-  helpers.dart        # pumpApp and httpMockAdapter helpers
   today_test.dart     # today / newspaper feature
   feeds_test.dart     # feeds feature
 ```
@@ -29,19 +27,16 @@ make integration-test D=<device-id>
 The test suite targets Android. List connected devices with
 `fvm flutter devices`.
 
----
-
 ## How mocking works
 
 Each test uses two helpers from `helpers.dart`:
 
 - `pumpApp($)` — starts the app inside a `ProviderScope` with a dummy base URL.
-- `httpMockAdapter($)` — reads the live `Dio` from the Riverpod container and
-  returns a `DioAdapter` configured with `FullHttpRequestMatcher`. All
-  subsequent HTTP calls go through the adapter instead of the network.
+- `httpMockAdapter($)` — creates a `DioAdapter` which all subsequent HTTP calls
+  go through instead of the network.
 
 Both must be called before the first Patrol action that triggers an HTTP
-request:
+request. A typlical test suit would look something like this:
 
 ```dart
 patrolTest('...', ($) async {
@@ -51,7 +46,7 @@ patrolTest('...', ($) async {
   adapter.onGet('/some/path', (server) => server.reply(200, responseBody));
 
   // Test actions follow.
-  await $(AppTestKeys.someScreen).waitUntilVisible();
+  await $(AppDebugKey.someScreen).waitUntilVisible();
   // ...
 });
 ```
@@ -59,25 +54,36 @@ patrolTest('...', ($) async {
 ### Building response bodies
 
 Use the auto-generated `api.*` model constructors (from `package:openapi`) for
-type safety. `server.reply()` passes the data through `jsonEncode`, which
-recursively calls `.toJson()` on nested objects — so wrapper types work
-correctly even though their own `toJson()` stores nested model instances rather
-than pre-serialized Maps:
+type safety:
 
 ```dart
 final feed = api.Feed(id: 1, url: '...', title: 'Anthropic Engineering Blog');
+```
 
-// Wrapper model — pass directly to .toJson(); jsonEncode handles the nested Feed objects
-adapter.onGet('/feeds', (server) => server.reply(200,
-  api.GetFeeds200Response(feeds: [feed]).toJson(),
-));
+Prefer using generated models over raw Map objects for each response as well:
 
-adapter.onGet('/newspapers/stories/1', (server) => server.reply(200,
-  api.GetStory200Response(
-    type: api.GetStory200ResponseTypeEnum.entry,
-    data: storyEntry,
-  ).toJson(),
-));
+```dart
+// Good
+adapter.onGet('/newspapers/stories/1',
+  (server) => server.reply(
+    200,
+    api.GetStory200Response(
+      type: api.GetStory200ResponseTypeEnum.entry,
+      data: storyEntry,
+    ).toJson(),
+  ),
+);
+
+// Equivalent to above, but do not abuse this pattern
+adapter.onGet('/newspapers/stories/1',
+  (server) => server.reply(
+    200,
+    {
+      'type': 'entry',
+      'data': storyEntry.toJson(),
+    },
+  ),
+);
 ```
 
 ### Multiple replies for the same route
@@ -92,12 +98,11 @@ adapter.onGet('/feeds', (server) => server.reply(200, api.GetFeeds200Response().
 adapter.onGet('/feeds', (server) => server.reply(200, api.GetFeeds200Response(feeds: [feed]).toJson()));
 ```
 
-### Matching PUT / POST with a body
+### Matching PUT / POST / PATCH with a body
 
-`FullHttpRequestMatcher` matches the handler's `data` against the serialized
-request body. Always pass the exact expected body when the shape is known — this
-turns the mock registration into an implicit assertion that the app sends the
-right payload:
+Always pass the exact expected body to the handler's `data` when the shape is
+known — this turns the mock registration into an implicit assertion that the app
+sends the right payload:
 
 ```dart
 adapter.onPut(
@@ -110,8 +115,6 @@ adapter.onPut(
 Only fall back to `Matchers.any` when the body is genuinely variable or
 irrelevant to the scenario being tested. Avoid it for `onPost` and `onPatch`
 handlers — those mutations are exactly where body correctness matters most.
-
----
 
 ## Naming tests
 
@@ -132,11 +135,9 @@ patrolTest('Tap feed and scroll to entry', ($) async { ... });
 Use sentence case (capital first word only). Keep names short enough to read at
 a glance in test output — one phrase, no punctuation.
 
----
-
 ## Test key conventions
 
-Keys are defined in `lib/test_keys.dart` and shared between app code and tests.
+Keys are defined in `lib/debug_keys.dart` and shared between app code and tests.
 
 ### Static keys
 
@@ -152,10 +153,10 @@ Assign a parameterized key to dynamically-generated list items. The key value
 format is `<widget identifier>:<display text>`, e.g.:
 
 ```
-feed:Anthropic Engineering Blog   → AppTestKeys.feedRow('Anthropic Engineering Blog')
-entry:Effective harnesses…        → AppTestKeys.entryRow('Effective harnesses…')
-story:Demystifying evals…         → AppTestKeys.storyCard('Demystifying evals…')
-readerTitle:Demystifying evals…   → AppTestKeys.readerTitle('Demystifying evals…')
+feed:Anthropic Engineering Blog   → AppDebugKey.feedRow('Anthropic Engineering Blog')
+entry:Effective harnesses…        → AppDebugKey.entryRow('Effective harnesses…')
+story:Demystifying evals…         → AppDebugKey.storyCard('Demystifying evals…')
+readerTitle:Demystifying evals…   → AppDebugKey.readerTitle('Demystifying evals…')
 ```
 
 Parameterized keys make the widget identifier unambiguous even when the same
@@ -164,13 +165,11 @@ list builder:
 
 ```dart
 return FeedRow(
-  key: AppTestKeys.feedRow(feed.title),
+  key: AppDebugKey.feedRow(feed.title),
   feed: feed,
   onTap: ...,
 );
 ```
-
----
 
 ## Writing assertions
 
@@ -182,16 +181,16 @@ For the initial screen after `pumpApp` (no animation, synchronous), use a plain
 
 ```dart
 await pumpApp($);
-expect($(AppTestKeys.todayScreen), findsOneWidget);
-await $(AppTestKeys.storyCard('Story title')).tap();
+expect($(AppDebugKey.todayScreen), findsOneWidget);
+await $(AppDebugKey.storyCard('Story title')).tap();
 ```
 
 After a navigation tap (animation in progress), use `waitUntilVisible`:
 
 ```dart
-await $(AppTestKeys.feedsNavDestination).tap();
-await $(AppTestKeys.feedsScreen).waitUntilVisible();
-await $(AppTestKeys.feedRow('Anthropic Engineering Blog')).tap();
+await $(AppDebugKey.feedsNavDestination).tap();
+await $(AppDebugKey.feedsScreen).waitUntilVisible();
+await $(AppDebugKey.feedRow('Anthropic Engineering Blog')).tap();
 ```
 
 ### Tap list items by parameterized key
@@ -202,7 +201,7 @@ current screen — it fails if no widget with that key exists:
 
 ```dart
 // Good — parameterized key ties the locator to the specific widget and title
-await $(AppTestKeys.feedRow('Anthropic Engineering Blog')).tap();
+await $(AppDebugKey.feedRow('Anthropic Engineering Blog')).tap();
 
 // Avoid — a text finder matches any widget on any screen with that string,
 // which can cause false passes if the same text is present in the background
@@ -217,28 +216,28 @@ key before making content assertions:
 ```dart
 // In entry_reader_screen.dart
 return Scaffold(
-  key: AppTestKeys.entryReaderScreen,
+  key: AppDebugKey.entryReaderScreen,
   ...
 );
 
 // In the test
-await $(AppTestKeys.entryRow('Entry title')).tap();
-await $(AppTestKeys.entryReaderScreen).waitUntilVisible(); // navigation confirmed
-await $(AppTestKeys.readerTitle('Entry title')).waitUntilVisible(); // content loaded
+await $(AppDebugKey.entryRow('Entry title')).tap();
+await $(AppDebugKey.entryReaderScreen).waitUntilVisible(); // navigation confirmed
+await $(AppDebugKey.readerTitle('Entry title')).waitUntilVisible(); // content loaded
 ```
 
 ### The full pattern for each navigation step
 
 ```dart
 // 1. Assert current screen is visible (expect for sync, waitUntilVisible after animation)
-expect($(AppTestKeys.sourceScreen), findsOneWidget);
+expect($(AppDebugKey.sourceScreen), findsOneWidget);
 
 // 2. Tap by parameterized key (locates the widget and verifies its title)
-await $(AppTestKeys.feedRow('Label on source screen')).tap();
+await $(AppDebugKey.feedRow('Label on source screen')).tap();
 
 // 3. Assert the destination screen is present (navigation confirmed)
-await $(AppTestKeys.destinationScreen).waitUntilVisible();
+await $(AppDebugKey.destinationScreen).waitUntilVisible();
 
 // 4. Assert the correct entity loaded
-await $(AppTestKeys.readerTitle('Expected content on destination')).waitUntilVisible();
+await $(AppDebugKey.readerTitle('Expected content on destination')).waitUntilVisible();
 ```
