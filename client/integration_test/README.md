@@ -75,14 +75,9 @@ adapter.onGet('/newspapers/stories/1',
 );
 
 // Equivalent to above, but do not abuse this pattern
-adapter.onGet('/newspapers/stories/1',
-  (server) => server.reply(
-    200,
-    {
-      'type': 'entry',
-      'data': storyEntry.toJson(),
-    },
-  ),
+adapter.onGet(
+  '/newspapers/stories/1',
+  (server) => server.reply(200, { 'type': 'entry', 'data': storyEntry.toJson() }),
 );
 ```
 
