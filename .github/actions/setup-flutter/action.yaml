@@ -1,0 +1,32 @@
+name: Set up Flutter SDK
+description:
+  Installs the Flutter SDK pinned in .fvmrc and caches pub dependencies
+
+runs:
+  using: composite
+  steps:
+    - name: Get Flutter SDK version
+      id: flutter-version
+      shell: bash
+      run: |
+        version=$(cat .fvmrc | jq -r .flutter)
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+
+    - name: Install Flutter SDK
+      uses: subosito/flutter-action@v2
+      with:
+        channel: stable
+        flutter-version-file: .fvmrc
+        cache: true
+        cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
+        cache-path:
+          "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:"
+
+    - name: Cache pub dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.pub-cache
+        key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-pub-

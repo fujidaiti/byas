@@ -17,22 +17,15 @@ jobs:
   build-docs:
     name: Build documentation
     runs-on: ubuntu-latest
-    env:
-      REDOCLY_VERSION: 2.35.1
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-
-      - uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: redocly-cli-${{ env.REDOCLY_VERSION }}
+      - name: Set up Redocly CLI
+        id: redocly
+        uses: ./.github/actions/setup-redocly
 
       - name: Build
-        run: npx @redocly/cli@${{ env.REDOCLY_VERSION }} build-docs api/api.yaml -o dist/index.html
+        run: npx @redocly/cli@${{ steps.redocly.outputs.version }} build-docs api/api.yaml -o dist/index.html
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
