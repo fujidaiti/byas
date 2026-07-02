@@ -14,12 +14,16 @@ class ReadingListItem {
   /// Returns a new [ReadingListItem] instance.
   ReadingListItem({
     required this.id,
+    required this.kind,
     required this.title,
     this.description,
     required this.savedAt,
   });
 
   int id;
+
+  /// The kind of the reading list item.
+  ReadingListItemKindEnum kind;
 
   String title;
 
@@ -38,6 +42,7 @@ class ReadingListItem {
       identical(this, other) ||
       other is ReadingListItem &&
           other.id == id &&
+          other.kind == kind &&
           other.title == title &&
           other.description == description &&
           other.savedAt == savedAt;
@@ -46,17 +51,19 @@ class ReadingListItem {
   int get hashCode =>
       // ignore: unnecessary_parenthesis
       (id.hashCode) +
+      (kind.hashCode) +
       (title.hashCode) +
       (description == null ? 0 : description!.hashCode) +
       (savedAt.hashCode);
 
   @override
   String toString() =>
-      'ReadingListItem[id=$id, title=$title, description=$description, savedAt=$savedAt]';
+      'ReadingListItem[id=$id, kind=$kind, title=$title, description=$description, savedAt=$savedAt]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
     json[r'id'] = this.id;
+    json[r'kind'] = this.kind;
     json[r'title'] = this.title;
     if (this.description != null) {
       json[r'description'] = this.description;
@@ -82,6 +89,10 @@ class ReadingListItem {
             'Required key "ReadingListItem[id]" is missing from JSON.');
         assert(json[r'id'] != null,
             'Required key "ReadingListItem[id]" has a null value in JSON.');
+        assert(json.containsKey(r'kind'),
+            'Required key "ReadingListItem[kind]" is missing from JSON.');
+        assert(json[r'kind'] != null,
+            'Required key "ReadingListItem[kind]" has a null value in JSON.');
         assert(json.containsKey(r'title'),
             'Required key "ReadingListItem[title]" is missing from JSON.');
         assert(json[r'title'] != null,
@@ -95,6 +106,7 @@ class ReadingListItem {
 
       return ReadingListItem(
         id: mapValueOfType<int>(json, r'id')!,
+        kind: ReadingListItemKindEnum.fromJson(json[r'kind'])!,
         title: mapValueOfType<String>(json, r'title')!,
         description: mapValueOfType<String>(json, r'description'),
         savedAt: mapDateTime(json, r'saved_at', r'')!,
@@ -155,7 +167,88 @@ class ReadingListItem {
   /// The list of required keys that must be present in a JSON.
   static const requiredKeys = <String>{
     'id',
+    'kind',
     'title',
     'saved_at',
   };
+}
+
+/// The kind of the reading list item.
+class ReadingListItemKindEnum {
+  /// Instantiate a new enum with the provided [value].
+  const ReadingListItemKindEnum._(this.value);
+
+  /// The underlying value of this enum member.
+  final String value;
+
+  @override
+  String toString() => value;
+
+  String toJson() => value;
+
+  static const webArticle = ReadingListItemKindEnum._(r'web_article');
+  static const feedEntry = ReadingListItemKindEnum._(r'feed_entry');
+
+  /// List of all possible values in this [enum][ReadingListItemKindEnum].
+  static const values = <ReadingListItemKindEnum>[
+    webArticle,
+    feedEntry,
+  ];
+
+  static ReadingListItemKindEnum? fromJson(dynamic value) =>
+      ReadingListItemKindEnumTypeTransformer().decode(value);
+
+  static List<ReadingListItemKindEnum> listFromJson(
+    dynamic json, {
+    bool growable = false,
+  }) {
+    final result = <ReadingListItemKindEnum>[];
+    if (json is List && json.isNotEmpty) {
+      for (final row in json) {
+        final value = ReadingListItemKindEnum.fromJson(row);
+        if (value != null) {
+          result.add(value);
+        }
+      }
+    }
+    return result.toList(growable: growable);
+  }
+}
+
+/// Transformation class that can [encode] an instance of [ReadingListItemKindEnum] to String,
+/// and [decode] dynamic data back to [ReadingListItemKindEnum].
+class ReadingListItemKindEnumTypeTransformer {
+  factory ReadingListItemKindEnumTypeTransformer() =>
+      _instance ??= const ReadingListItemKindEnumTypeTransformer._();
+
+  const ReadingListItemKindEnumTypeTransformer._();
+
+  String encode(ReadingListItemKindEnum data) => data.value;
+
+  /// Decodes a [dynamic value][data] to a ReadingListItemKindEnum.
+  ///
+  /// If [allowNull] is true and the [dynamic value][data] cannot be decoded successfully,
+  /// then null is returned. However, if [allowNull] is false and the [dynamic value][data]
+  /// cannot be decoded successfully, then an [UnimplementedError] is thrown.
+  ///
+  /// The [allowNull] is very handy when an API changes and a new enum value is added or removed,
+  /// and users are still using an old app with the old code.
+  ReadingListItemKindEnum? decode(dynamic data, {bool allowNull = true}) {
+    if (data != null) {
+      switch (data) {
+        case r'web_article':
+          return ReadingListItemKindEnum.webArticle;
+        case r'feed_entry':
+          return ReadingListItemKindEnum.feedEntry;
+        default:
+          if (!allowNull) {
+            throw ArgumentError('Unknown enum value to decode: $data');
+          }
+      }
+    }
+    return null;
+  }
+
+  /// Singleton [ReadingListItemKindEnumTypeTransformer] instance.
+  static ReadingListItemKindEnumTypeTransformer? _instance;
 }

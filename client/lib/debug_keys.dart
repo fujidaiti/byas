@@ -14,6 +14,14 @@ abstract final class AppDebugKey {
   static const feedSearchTextField = Key('feedSearchTextField');
   static const feedsNavDestination = Key('feedsNavDestination');
   static const feedsScreen = Key('feedsScreen');
+  static const readingListNavDestination = Key('readingListNavDestination');
+  static const readingListScreen = Key('readingListScreen');
+  static const readingListWebArticleReaderScreen = Key(
+    'readingListWebArticleReaderScreen',
+  );
+  static const readingListWebArticleReaderOpenOriginalButton = Key(
+    'readingListWebArticleReaderOpenOriginalButton',
+  );
   static const storyReaderOpenOriginalButton = Key(
     'storyReaderOpenOriginalButton',
   );
@@ -25,6 +33,7 @@ abstract final class AppDebugKey {
   static Key feedCandidateTile(String title) => Key('feedCandidate:$title');
   static Key feedEntryRow(String title) => Key('feedEntry:$title');
   static Key feedRow(String title) => Key('feed:$title');
+  static Key readingListRow(String title) => Key('readingList:$title');
   static Key readerTitle(String title) => Key('readerTitle:$title');
   static Key storyCard(String title) => Key('story:$title');
 }
