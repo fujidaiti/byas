@@ -14,24 +14,15 @@ import (
 )
 
 func SaveFeedEntry(ctx context.Context, db *sql.DB, id int) error {
-	var title string
-	var desc sql.NullString
 	err := db.QueryRowContext(ctx, `
-		SELECT title, description
-		FROM feed_entries
-		WHERE id = $1;
-	`, id).Scan(&title, &desc)
-	if err != nil {
-		return err
-	}
-	_, err = db.QueryContext(ctx, `
 		INSERT INTO reading_list_items (kind, feed_entry_id, title, description)
-		VALUES ('feed_entry', $1, $2, $3)
-	`, id, title, desc)
-	if err != nil {
-		return err
-	}
-	return nil
+		SELECT 'feed_entry', id, title, description
+		FROM feed_entries
+		WHERE id = $1
+		RETURNING id;
+	`, id).Scan(new(int))
+	// TODO: Return a dedicated error for the case where the id doesn't exist
+	return err
 }
 
 // SaveWebArticle appends the web article specified by the URL

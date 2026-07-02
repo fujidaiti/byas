@@ -554,6 +554,7 @@ func (h *handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 		w.Write(jres)
 
 	case b.FeedEntryID != nil:
+		// TODO: Return 404 instead of 500 when the given ID doesn't exist
 		err := readinglist.SaveFeedEntry(ctx, h.db, *b.FeedEntryID)
 		if err != nil {
 			fmt.Println(err)
