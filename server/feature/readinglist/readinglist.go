@@ -13,6 +13,27 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 )
 
+func SaveFeedEntry(ctx context.Context, db *sql.DB, id int) error {
+	var title string
+	var desc sql.NullString
+	err := db.QueryRowContext(ctx, `
+		SELECT title, description
+		FROM feed_entries
+		WHERE id = $1;
+	`, id).Scan(&title, &desc)
+	if err != nil {
+		return err
+	}
+	_, err = db.QueryContext(ctx, `
+		INSERT INTO reading_list_items (kind, feed_entry_id, title, description)
+		VALUES ('feed_entry', $1, $2, $3)
+	`, id, title, desc)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // SaveWebArticle appends the web article specified by the URL
 // to the reading list. Reports nil if succeeds.
 //
@@ -30,8 +51,8 @@ func SaveWebArticle(ctx context.Context, db *sql.DB, u url.URL) error {
 	defer tx.Rollback()
 	var id int
 	err = tx.QueryRowContext(ctx, `
-		INSERT INTO reading_list_items (kind, title, saved_at)
-		VALUES ('web_article', '', now())
+		INSERT INTO reading_list_items (kind, title)
+		VALUES ('web_article', '')
 		RETURNING id;
 	`).Scan(&id)
 	if err != nil {
