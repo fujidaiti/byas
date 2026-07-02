@@ -15,6 +15,7 @@ abstract final class AppDebugKey {
   static const feedsNavDestination = Key('feedsNavDestination');
   static const feedsScreen = Key('feedsScreen');
   static const readingListNavDestination = Key('readingListNavDestination');
+  static const readingListScreen = Key('readingListScreen');
   static const readingListWebArticleReaderScreen = Key(
     'readingListWebArticleReaderScreen',
   );

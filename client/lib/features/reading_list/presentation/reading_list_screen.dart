@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:paperdoll/core/ui/widgets/app_divider.dart';
 import 'package:paperdoll/core/ui/widgets/async_value_view.dart';
 import 'package:paperdoll/core/ui/widgets/empty_placeholder.dart';
+import 'package:paperdoll/debug_keys.dart';
 import 'package:paperdoll/features/reading_list/domain/reading_list_item.dart';
 import 'package:paperdoll/features/reading_list/presentation/providers/reading_list_providers.dart';
 import 'package:paperdoll/features/reading_list/presentation/widgets/reading_list_row.dart';
@@ -15,6 +16,7 @@ class ReadingListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final itemsAsync = ref.watch(readingListProvider());
     return Scaffold(
+      key: AppDebugKey.readingListScreen,
       appBar: AppBar(),
       body: RefreshIndicator(
         onRefresh: () => ref.refresh(readingListProvider().future),
