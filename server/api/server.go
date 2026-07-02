@@ -49,6 +49,7 @@ func StartServer(ctx context.Context) {
 	mux.HandleFunc("GET /feeds/{id}/timeline", h.getFeedTimeline)
 	mux.HandleFunc("GET /feed-entries/{id}", h.getFeedEntry)
 	mux.HandleFunc("POST /reading-list", h.saveToReadingList)
+	mux.HandleFunc("GET /reading-list", h.getReadingList)
 
 	srv := http.Server{
 		Addr:    ":8080",
@@ -545,6 +546,63 @@ func (h *handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 	jres, _ := json.Marshal(map[string]string{})
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
+	w.Write(jres)
+}
+
+type getReadingListResBody struct {
+	Items []readingListItem `json:"items"`
+}
+
+type readingListItem struct {
+	ID          int       `json:"id"`
+	Title       string    `json:"title"`
+	Description *string   `json:"description,omitempty"`
+	SavedAt     time.Time `json:"saved_at"`
+}
+
+// TODO: Support pagination; add a tiebreaker to ORDER BY in case saved_at timestamps are the same
+// TODO: Report pending/failed articles separately from the Items, if any
+func (h *handler) getReadingList(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	rows, err := h.db.QueryContext(ctx, `
+		SELECT r.id, r.title, r.description, r.saved_at
+		FROM reading_list_items r
+		JOIN reading_list_item_web_article_details w
+		ON w.reading_list_item_id = r.id
+		WHERE r.archived = false AND w.fetch_status = 'done'
+		ORDER BY r.saved_at DESC;
+	`)
+	if err != nil {
+		fmt.Println(err)
+		serverError(w, http.StatusInternalServerError, "Failed to fetch reading list")
+		return
+	}
+	defer rows.Close()
+	res := getReadingListResBody{Items: []readingListItem{}}
+	for rows.Next() {
+		var li readingListItem
+		err := rows.Scan(&li.ID, &li.Title, &li.Description, &li.SavedAt)
+		if err != nil {
+			fmt.Println(err)
+			serverError(w, http.StatusInternalServerError, "Failed to fetch reading list item")
+			return
+		}
+		res.Items = append(res.Items, li)
+	}
+	if err := rows.Err(); err != nil {
+		fmt.Println(err)
+		serverError(w, http.StatusInternalServerError, "Failed to fetch reading list")
+		return
+	}
+
+	jres, err := json.Marshal(res)
+	if err != nil {
+		fmt.Println(err)
+		serverError(w, http.StatusInternalServerError, "Failed to construct JSON response")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	w.Write(jres)
 }
 
