@@ -8,6 +8,7 @@ import 'package:paperdoll/features/feed/presentation/feeds_screen.dart';
 import 'package:paperdoll/features/feed_entry/presentation/feed_entry_reader_screen.dart';
 import 'package:paperdoll/features/newspaper/presentation/story_reader_screen.dart';
 import 'package:paperdoll/features/newspaper/presentation/today_screen.dart';
+import 'package:paperdoll/features/reading_list/presentation/reading_list_screen.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'app_router.g.dart';
@@ -42,6 +43,15 @@ GoRouter goRouter(Ref ref) {
                         StoryReaderScreen(id: _idParam(state, 'id')),
                   ),
                 ],
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: routeReadingListPath,
+                name: routeReadingListName,
+                builder: (context, state) => const ReadingListScreen(),
               ),
             ],
           ),
@@ -104,6 +114,11 @@ class _ScaffoldWithNavBar extends StatelessWidget {
             icon: Icon(Icons.article_outlined),
             selectedIcon: Icon(Icons.article),
             label: 'Today',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.bookmark_outline),
+            selectedIcon: Icon(Icons.bookmark),
+            label: 'Reading list',
           ),
           NavigationDestination(
             key: AppDebugKey.feedsNavDestination,
