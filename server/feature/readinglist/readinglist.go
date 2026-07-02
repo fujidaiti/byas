@@ -37,7 +37,7 @@ func SaveWebArticle(ctx context.Context, db *sql.DB, u url.URL) error {
 	if err != nil {
 		return err
 	}
-	_, err = tx.QueryContext(ctx, `
+	_, err = tx.ExecContext(ctx, `
 		INSERT INTO reading_list_item_web_article_details (reading_list_item_id, url)
 		VALUES ($1, $2);
 	`, id, u.String())
@@ -58,16 +58,19 @@ func SaveWebArticle(ctx context.Context, db *sql.DB, u url.URL) error {
 }
 
 func tryFetchWebArticle(db *sql.DB, id int, u url.URL) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	err := fetchWebArticle(ctx, db, id, u)
 	if err == nil {
 		return nil
 	}
-	_, dbErr := db.QueryContext(ctx, `
+	ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	_, dbErr := db.ExecContext(ctx, `
 		UPDATE reading_list_item_web_article_details
-		SET fetch_status = 'failed';
-	`)
+		SET fetch_status = 'failed'
+		WHERE reading_list_item_id = $1;
+	`, id)
 	if dbErr != nil {
 		return errors.Join(err, dbErr)
 	}
@@ -86,10 +89,10 @@ func fetchWebArticle(ctx context.Context, db *sql.DB, id int, u url.URL) error {
 	if err != nil {
 		return err
 	}
+	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("HTTP GET failed with status code %d", res.StatusCode)
 	}
-	defer res.Body.Close()
 
 	buf := bluemonday.UGCPolicy().AllowElements("head", "title").SanitizeReader(res.Body)
 	if buf.Len() == 0 {

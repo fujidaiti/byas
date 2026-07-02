@@ -543,7 +543,7 @@ func (h *handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: DRY JSON response creation
 	jres, _ := json.Marshal(map[string]string{})
-	w.Header().Set("Content-Type", "appliation/json")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	w.Write(jres)
 }
