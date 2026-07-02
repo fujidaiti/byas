@@ -62,6 +62,20 @@ FeedEntry:
       type: string
       format: date-time
 
+ReadingListItem:
+  type: object
+  required: [id, title, saved_at]
+  properties:
+    id:
+      type: integer
+    title:
+      type: string
+    description:
+      type: string
+    saved_at:
+      type: string
+      format: date-time
+
 Story:
   type: object
   required: [id, title]

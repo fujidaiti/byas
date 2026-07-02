@@ -1,3 +1,26 @@
+get:
+  summary: Get the reading list
+  description:
+    Returns the saved reading list items. Only web articles whose content has
+    been fetched successfully are included; items still pending or failed are
+    omitted. Archived items are excluded.
+  operationId: getReadingList
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [items]
+            properties:
+              items:
+                type: array
+                items:
+                  $ref: "../components/schemas.yaml#/ReadingListItem"
+    "500":
+      $ref: "../components/responses.yaml#/InternalServerError"
+
 post:
   summary: Save an item to the reading list
   description:
