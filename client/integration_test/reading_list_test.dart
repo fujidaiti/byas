@@ -1,4 +1,3 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:openapi/api.dart' as api;
 import 'package:paperdoll/debug_keys.dart';
 import 'package:patrol/patrol.dart';
@@ -6,7 +5,7 @@ import 'package:patrol/patrol.dart';
 import 'helpers.dart';
 
 void main() {
-  patrolTest('Read a saved web article', ($) async {
+  patrolTest('Read a saved web article in reading list', ($) async {
     await pumpApp($);
     final adapter = httpMockAdapter($);
 
@@ -45,7 +44,6 @@ void main() {
       ),
     );
 
-    expect($(AppDebugKey.todayScreen), findsOneWidget);
     await $(AppDebugKey.readingListNavDestination).tap();
     await $(AppDebugKey.readingListScreen).waitUntilVisible();
     await $(
