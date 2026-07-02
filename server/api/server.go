@@ -575,6 +575,7 @@ type getReadingListResBody struct {
 
 type readingListItem struct {
 	ID          int       `json:"id"`
+	Kind        string    `json:"kind"`
 	Title       string    `json:"title"`
 	Description *string   `json:"description,omitempty"`
 	SavedAt     time.Time `json:"saved_at"`
@@ -585,7 +586,7 @@ type readingListItem struct {
 func (h *handler) getReadingList(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	rows, err := h.db.QueryContext(ctx, `
-		SELECT r.id, r.title, r.description, r.saved_at
+		SELECT r.id, r.kind, r.title, r.description, r.saved_at
 		FROM reading_list_items r
 		JOIN reading_list_item_web_article_details w
 		ON w.reading_list_item_id = r.id
@@ -601,7 +602,7 @@ func (h *handler) getReadingList(w http.ResponseWriter, r *http.Request) {
 	res := getReadingListResBody{Items: []readingListItem{}}
 	for rows.Next() {
 		var li readingListItem
-		err := rows.Scan(&li.ID, &li.Title, &li.Description, &li.SavedAt)
+		err := rows.Scan(&li.ID, &li.Kind, &li.Title, &li.Description, &li.SavedAt)
 		if err != nil {
 			fmt.Println(err)
 			serverError(w, http.StatusInternalServerError, "Failed to fetch reading list item")

@@ -64,10 +64,14 @@ FeedEntry:
 
 ReadingListItem:
   type: object
-  required: [id, title, saved_at]
+  required: [id, kind, title, saved_at]
   properties:
     id:
       type: integer
+    kind:
+      description: The kind of the reading list item.
+      type: string
+      enum: [web_article, feed_entry]
     title:
       type: string
     description:
