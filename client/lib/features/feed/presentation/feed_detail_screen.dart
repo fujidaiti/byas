@@ -30,26 +30,38 @@ class FeedDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final feedAsync = ref.watch(feedDetailProvider(id: id));
     final timelineAsync = ref.watch(feedTimelineProvider(id: id));
-    return Scaffold(
-      key: AppDebugKey.feedDetailScreen,
-      body: RefreshIndicator(
-        onRefresh: () {
-          ref.invalidate(feedDetailProvider(id: id));
-          return ref.refresh(feedTimelineProvider(id: id).future);
-        },
-        child: AsyncValueView<Feed>(
-          value: feedAsync,
-          onRetry: () => ref.invalidate(feedDetailProvider(id: id)),
-          data: (feed) => _FeedDetailBody(
-            feed: feed,
-            timeline: timelineAsync,
-            onRetryTimeline: () => ref.invalidate(feedTimelineProvider(id: id)),
-            onOpenEntry: (entryId) => context.pushNamed(
-              routeFeedEntryReaderName,
-              pathParameters: {
-                'id': id.toString(),
-                'feedEntryId': entryId.toString(),
-              },
+    // The entry reader is pushed on the root navigator (parentNavigatorKey) so
+    // it covers the bottom nav bar, but this route stays "current" in the Feeds
+    // branch navigator while covered. Android's predictive back gesture commits
+    // to every current+enabled route, so without opting out this screen would
+    // also pop, skipping past it to FeedsScreen. Suppress the gesture here
+    // while a child route (the reader) is on top; the reader pops on its own.
+    final routerState = GoRouterState.of(context);
+    final readerIsOpen = routerState.uri.path != routerState.matchedLocation;
+    return PopScope(
+      canPop: !readerIsOpen,
+      child: Scaffold(
+        key: AppDebugKey.feedDetailScreen,
+        body: RefreshIndicator(
+          onRefresh: () {
+            ref.invalidate(feedDetailProvider(id: id));
+            return ref.refresh(feedTimelineProvider(id: id).future);
+          },
+          child: AsyncValueView<Feed>(
+            value: feedAsync,
+            onRetry: () => ref.invalidate(feedDetailProvider(id: id)),
+            data: (feed) => _FeedDetailBody(
+              feed: feed,
+              timeline: timelineAsync,
+              onRetryTimeline: () =>
+                  ref.invalidate(feedTimelineProvider(id: id)),
+              onOpenEntry: (entryId) => context.pushNamed(
+                routeFeedEntryReaderName,
+                pathParameters: {
+                  'id': id.toString(),
+                  'feedEntryId': entryId.toString(),
+                },
+              ),
             ),
           ),
         ),
