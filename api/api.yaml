@@ -22,6 +22,8 @@ paths:
     $ref: "./paths/feed-entries.yaml"
   /reading-list:
     $ref: "./paths/reading-list.yaml"
+  /reading-list/{id}:
+    $ref: "./paths/reading-list-item.yaml"
 
 components:
   schemas:
@@ -33,6 +35,8 @@ components:
       $ref: "./components/schemas.yaml#/FeedEntry"
     ReadingListItem:
       $ref: "./components/schemas.yaml#/ReadingListItem"
+    WebArticle:
+      $ref: "./components/schemas.yaml#/WebArticle"
     Story:
       $ref: "./components/schemas.yaml#/Story"
     Error:

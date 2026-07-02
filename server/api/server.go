@@ -50,6 +50,7 @@ func StartServer(ctx context.Context) {
 	mux.HandleFunc("GET /feed-entries/{id}", h.getFeedEntry)
 	mux.HandleFunc("POST /reading-list", h.saveToReadingList)
 	mux.HandleFunc("GET /reading-list", h.getReadingList)
+	mux.HandleFunc("GET /reading-list/{id}", h.getReadingListItem)
 
 	srv := http.Server{
 		Addr:    ":8080",
@@ -598,6 +599,80 @@ func (h *handler) getReadingList(w http.ResponseWriter, r *http.Request) {
 	jres, err := json.Marshal(res)
 	if err != nil {
 		fmt.Println(err)
+		serverError(w, http.StatusInternalServerError, "Failed to construct JSON response")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(jres)
+}
+
+type getReadingListItemResBody struct {
+	ID       int       `json:"id"`
+	Kind     string    `json:"kind"`
+	Archived bool      `json:"archived"`
+	SavedAt  time.Time `json:"saved_at"`
+	Attrs    any       `json:"attributes"`
+}
+
+type readingListWebArticleAttrs struct {
+	URL         string  `json:"url"`
+	Title       string  `json:"title"`
+	Description *string `json:"description,omitempty"`
+	Content     *string `json:"content,omitempty"`
+}
+
+func (h *handler) getReadingListItem(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		fmt.Println(err)
+		serverError(w, http.StatusBadRequest, "Invalid ID")
+		return
+	}
+
+	ctx := r.Context()
+	var res getReadingListItemResBody
+	var title string
+	var desc *string
+	err = h.db.QueryRowContext(ctx, `
+		SELECT id, kind, archived, saved_at, title, description
+		FROM reading_list_items
+		WHERE id = $1;
+	`, id).Scan(&res.ID, &res.Kind, &res.Archived, &res.SavedAt, &title, &desc)
+	if errors.Is(err, sql.ErrNoRows) {
+		serverError(w, http.StatusNotFound, "Item not found")
+		return
+	} else if err != nil {
+		fmt.Println(err)
+		serverError(w, http.StatusInternalServerError, "Failed to fetch item")
+		return
+	}
+
+	switch res.Kind {
+	case "web_article":
+		a := readingListWebArticleAttrs{Title: title, Description: desc}
+		err = h.db.QueryRowContext(ctx, `
+			SELECT url, content
+			FROM reading_list_item_web_article_details
+			WHERE reading_list_item_id = $1;
+		`, id).Scan(&a.URL, &a.Content)
+		if err != nil {
+			fmt.Println(err)
+			serverError(w, http.StatusInternalServerError, "Failed to fetch web article details")
+			return
+		}
+		res.Attrs = a
+
+	// TODO: Add case "feed_entry"
+	default:
+		fmt.Printf("Unknown reading list item kind: %s\n", res.Kind)
+		serverError(w, http.StatusInternalServerError, "Failed to fetch item details")
+		return
+	}
+
+	// TODO: DRY JSON response creation
+	jres, err := json.Marshal(res)
+	if err != nil {
 		serverError(w, http.StatusInternalServerError, "Failed to construct JSON response")
 		return
 	}
