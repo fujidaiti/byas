@@ -1,0 +1,33 @@
+post:
+  summary: Save an item to the reading list
+  description:
+    Saves a web article to the reading list. A placeholder item is appended
+    immediately, and its content is fetched and filled in asynchronously
+    afterwards. A 201 response only means the placeholder was appended
+    successfully — the article fetch may still fail behind the scenes.
+  operationId: saveToReadingList
+  requestBody:
+    description: The web article to save.
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            url:
+              description: The URL of the web article to save.
+              type: string
+              format: uri
+          example:
+            url: "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents"
+  responses:
+    "201":
+      description: Created
+      content:
+        application/json:
+          schema:
+            type: object
+          example: {}
+    "400":
+      $ref: "../components/responses.yaml#/BadRequest"
+    "500":
+      $ref: "../components/responses.yaml#/InternalServerError"
