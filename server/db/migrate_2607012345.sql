@@ -5,7 +5,7 @@ CREATE TABLE reading_list_items (
   title         text NOT NULL,
   description   text,
   archived      boolean NOT NULL DEFAULT false,
-  saved_at      timestamptz NOT NULL,
+  saved_at      timestamptz NOT NULL DEFAULT now(),
 
   CONSTRAINT chk_kind_and_id CHECK (
     (kind = 'feed_entry' AND feed_entry_id IS NOT NULL) OR

@@ -507,8 +507,8 @@ func (h *handler) subscribeToFeed(w http.ResponseWriter, r *http.Request) {
 }
 
 type saveToReadingListReqBody struct {
-	URL *string `json:"url"`
-	// TODO: Add FeedEntryID *int
+	URL         *string `json:"url"`
+	FeedEntryID *int    `json:"feed_entry_id"`
 }
 
 func (h *handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
@@ -520,34 +520,53 @@ func (h *handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 		serverError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
-	if u := b.URL; u == nil || *u == "" {
-		// Temporally no-op
-		// TODO: Check if FeedEntryID exists, and handle it if specififed. Otherwise return an error.
+	argn := 0
+	if b.URL != nil {
+		argn++
+	}
+	if b.FeedEntryID != nil {
+		argn++
+	}
+	if argn != 1 {
+		serverError(w, http.StatusBadRequest, "Specify exactly one item to save")
+		return
+	}
+
+	ctx := r.Context()
+	switch {
+	case b.URL != nil:
+		// TODO: Validate URL (schema and host)
+		u, err := url.Parse(*b.URL)
+		if err != nil || *b.URL == "" {
+			serverError(w, http.StatusBadRequest, "Invalid URL")
+			return
+		}
+		err = readinglist.SaveWebArticle(ctx, h.db, *u)
+		if err != nil {
+			fmt.Println(err)
+			serverError(w, http.StatusInternalServerError, "Failed to save article")
+			return
+		}
 		// TODO: DRY JSON response creation
 		jres, _ := json.Marshal(map[string]string{})
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		w.Write(jres)
-		return
-	}
-	u, err := url.Parse(*b.URL)
-	if err != nil {
-		serverError(w, http.StatusBadRequest, "Invalid URL")
-		return
-	}
 
-	err = readinglist.SaveWebArticle(r.Context(), h.db, *u)
-	if err != nil {
-		fmt.Println(err)
-		serverError(w, http.StatusInternalServerError, "Failed to save article")
-		return
+	case b.FeedEntryID != nil:
+		// TODO: Return 404 instead of 500 when the given ID doesn't exist
+		err := readinglist.SaveFeedEntry(ctx, h.db, *b.FeedEntryID)
+		if err != nil {
+			fmt.Println(err)
+			serverError(w, http.StatusInternalServerError, "Failed to save feed entry")
+			return
+		}
+		// TODO: DRY JSON response creation
+		jres, _ := json.Marshal(map[string]string{})
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		w.Write(jres)
 	}
-
-	// TODO: DRY JSON response creation
-	jres, _ := json.Marshal(map[string]string{})
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	w.Write(jres)
 }
 
 type getReadingListResBody struct {
