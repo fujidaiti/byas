@@ -76,6 +76,20 @@ ReadingListItem:
       type: string
       format: date-time
 
+WebArticle:
+  type: object
+  required: [url, title]
+  properties:
+    url:
+      type: string
+      format: uri
+    title:
+      type: string
+    description:
+      type: string
+    content:
+      type: string
+
 Story:
   type: object
   required: [id, title]
