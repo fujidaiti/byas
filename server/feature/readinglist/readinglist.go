@@ -49,6 +49,7 @@ func SaveWebArticle(ctx context.Context, db *sql.DB, u url.URL) error {
 	}
 
 	go func() {
+		// TODO: Recover from panic
 		err := tryFetchWebArticle(db, id, u)
 		if err != nil {
 			fmt.Println(err)
