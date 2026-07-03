@@ -83,10 +83,7 @@ reach a local dev server at any address — `10.0.2.2` on the emulator, a LAN IP
 on a physical device (e.g. `192.168.x.x`), or a Prism mock. Release builds keep
 HTTPS-only enforcement.
 
-Test without a real share sheet using an explicit intent:
+See also:
 
-```sh
-adb shell am start -n dev.norelease.paperdoll/.SaveWebArticleActivity \
-  -a android.intent.action.SEND -t text/plain \
-  --es android.intent.extra.TEXT "Cool Article https://example.com/x"
-```
+- [Set up the Compose Compiler Gradle plugin](https://developer.android.com/develop/ui/compose/setup-compose-dependencies-and-compiler)
+
