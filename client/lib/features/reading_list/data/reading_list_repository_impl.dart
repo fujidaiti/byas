@@ -36,6 +36,7 @@ class ReadingListRepositoryImpl implements ReadingListRepository {
 
   ReadingListItem _toItem(api.ReadingListItem i) => ReadingListItem(
     id: i.id,
+    resourceId: i.resourceId,
     kind: _toKind(i.kind),
     title: i.title,
     savedAt: i.savedAt,

@@ -25,7 +25,7 @@ class ReadingListRow extends StatelessWidget {
     final description = item.description;
     final title = item.title.isEmpty ? 'Fetching…' : item.title;
     return ListTile(
-      key: AppDebugKey.readingListRow(item.id),
+      key: AppDebugKey.readingListRow(title),
       onTap: () => _open(context),
       title: HeadingText(title, maxLines: 2, overflow: TextOverflow.ellipsis),
       subtitle: Column(
@@ -53,9 +53,12 @@ class ReadingListRow extends StatelessWidget {
           ),
         );
       case ReadingListItemKind.feedEntry:
-        // TODO: Route to the feed entry reader once it supports reading list
-        // items. The list never returns feed_entry today.
-        break;
+        unawaited(
+          context.pushNamed(
+            routeReadingListFeedEntryReaderName,
+            pathParameters: {'feedEntryId': '${item.resourceId}'},
+          ),
+        );
     }
   }
 }
