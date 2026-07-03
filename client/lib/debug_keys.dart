@@ -33,7 +33,7 @@ abstract final class AppDebugKey {
   static Key feedCandidateTile(String title) => Key('feedCandidate:$title');
   static Key feedEntryRow(String title) => Key('feedEntry:$title');
   static Key feedRow(String title) => Key('feed:$title');
-  static Key readingListRow(String title) => Key('readingList:$title');
+  static Key readingListRow(int id) => Key('readingList:$id');
   static Key readerTitle(String title) => Key('readerTitle:$title');
   static Key storyCard(String title) => Key('story:$title');
 }
