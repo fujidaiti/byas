@@ -1,9 +1,9 @@
 get:
   summary: Get the reading list
   description:
-    Returns the saved reading list items. Only web articles whose content has
-    been fetched successfully are included; items still pending or failed are
-    omitted. Archived items are excluded.
+    Returns all unarchived reading list items, most recently saved first. Web
+    articles whose content hasn't been fetched yet (or whose fetch failed) are
+    still included, with an empty `title`.
   operationId: getReadingList
   responses:
     "200":

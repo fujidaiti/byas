@@ -61,6 +61,7 @@ GoRouter goRouter(Ref ref) {
                     builder: (context, state) =>
                         ReadingListWebArticleReaderScreen(
                           id: _idParam(state, 'id'),
+                          initialTitle: state.extra! as String,
                         ),
                   ),
                 ],

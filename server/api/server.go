@@ -586,12 +586,10 @@ type readingListItem struct {
 func (h *handler) getReadingList(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	rows, err := h.db.QueryContext(ctx, `
-		SELECT r.id, r.kind, r.title, r.description, r.saved_at
-		FROM reading_list_items r
-		JOIN reading_list_item_web_article_details w
-		ON w.reading_list_item_id = r.id
-		WHERE r.archived = false AND w.fetch_status = 'done'
-		ORDER BY r.saved_at DESC;
+		SELECT id, kind, title, description, saved_at
+		FROM reading_list_items
+		WHERE archived = false
+		ORDER BY saved_at DESC;
 	`)
 	if err != nil {
 		fmt.Println(err)

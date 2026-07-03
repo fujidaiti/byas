@@ -46,9 +46,7 @@ void main() {
 
     await $(AppDebugKey.readingListNavDestination).tap();
     await $(AppDebugKey.readingListScreen).waitUntilVisible();
-    await $(
-      AppDebugKey.readingListRow('Demystifying evals for AI agents'),
-    ).tap();
+    await $(AppDebugKey.readingListRow(1)).tap();
     await $(AppDebugKey.readingListWebArticleReaderScreen).waitUntilVisible();
     await $(
       AppDebugKey.readerTitle('Demystifying evals for AI agents'),

@@ -13,19 +13,32 @@ import 'package:paperdoll/features/reading_list/presentation/widgets/reading_lis
 /// Reader for a `web_article` reading list item: fetches the article's details
 /// and renders its content, falling back to a placeholder when there is none.
 class ReadingListWebArticleReaderScreen extends ConsumerWidget {
-  const ReadingListWebArticleReaderScreen({required this.id, super.key});
+  const ReadingListWebArticleReaderScreen({
+    required this.id,
+    this.initialTitle,
+    super.key,
+  });
 
   final int id;
+
+  /// The title already known from the reading list row, shown while the
+  /// article details are still loading so the app bar isn't blank.
+  final String? initialTitle;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final articleAsync = ref.watch(webArticleProvider(id: id));
     final article = articleAsync.asData?.value;
+    final title = switch ((article?.title, initialTitle)) {
+      (final title?, _) when title.isNotEmpty => title,
+      (_, final title?) when title.isNotEmpty => title,
+      _ => 'Fetching…',
+    };
     return Scaffold(
       key: AppDebugKey.readingListWebArticleReaderScreen,
       appBar: AppBar(
         title: HeadingText(
-          article?.title ?? '',
+          title,
           key: article != null ? AppDebugKey.readerTitle(article.title) : null,
         ),
         actions: [
