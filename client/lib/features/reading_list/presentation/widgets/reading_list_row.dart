@@ -53,9 +53,12 @@ class ReadingListRow extends StatelessWidget {
           ),
         );
       case ReadingListItemKind.feedEntry:
-        // TODO: Route to the feed entry reader once it supports reading list
-        // items. The list never returns feed_entry today.
-        break;
+        unawaited(
+          context.pushNamed(
+            routeReadingListFeedEntryReaderName,
+            pathParameters: {'feedEntryId': '${item.resourceId}'},
+          ),
+        );
     }
   }
 }

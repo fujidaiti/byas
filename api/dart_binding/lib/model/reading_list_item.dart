@@ -14,6 +14,7 @@ class ReadingListItem {
   /// Returns a new [ReadingListItem] instance.
   ReadingListItem({
     required this.id,
+    required this.resourceId,
     required this.kind,
     required this.title,
     this.description,
@@ -21,6 +22,9 @@ class ReadingListItem {
   });
 
   int id;
+
+  /// The ID of the resource backing this item — its own `id` for `web_article`, or the feed entry ID for `feed_entry`. Use this to navigate directly to the appropriate reader.
+  int resourceId;
 
   /// The kind of the reading list item.
   ReadingListItemKindEnum kind;
@@ -42,6 +46,7 @@ class ReadingListItem {
       identical(this, other) ||
       other is ReadingListItem &&
           other.id == id &&
+          other.resourceId == resourceId &&
           other.kind == kind &&
           other.title == title &&
           other.description == description &&
@@ -51,6 +56,7 @@ class ReadingListItem {
   int get hashCode =>
       // ignore: unnecessary_parenthesis
       (id.hashCode) +
+      (resourceId.hashCode) +
       (kind.hashCode) +
       (title.hashCode) +
       (description == null ? 0 : description!.hashCode) +
@@ -58,11 +64,12 @@ class ReadingListItem {
 
   @override
   String toString() =>
-      'ReadingListItem[id=$id, kind=$kind, title=$title, description=$description, savedAt=$savedAt]';
+      'ReadingListItem[id=$id, resourceId=$resourceId, kind=$kind, title=$title, description=$description, savedAt=$savedAt]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
     json[r'id'] = this.id;
+    json[r'resource_id'] = this.resourceId;
     json[r'kind'] = this.kind;
     json[r'title'] = this.title;
     if (this.description != null) {
@@ -89,6 +96,10 @@ class ReadingListItem {
             'Required key "ReadingListItem[id]" is missing from JSON.');
         assert(json[r'id'] != null,
             'Required key "ReadingListItem[id]" has a null value in JSON.');
+        assert(json.containsKey(r'resource_id'),
+            'Required key "ReadingListItem[resource_id]" is missing from JSON.');
+        assert(json[r'resource_id'] != null,
+            'Required key "ReadingListItem[resource_id]" has a null value in JSON.');
         assert(json.containsKey(r'kind'),
             'Required key "ReadingListItem[kind]" is missing from JSON.');
         assert(json[r'kind'] != null,
@@ -106,6 +117,7 @@ class ReadingListItem {
 
       return ReadingListItem(
         id: mapValueOfType<int>(json, r'id')!,
+        resourceId: mapValueOfType<int>(json, r'resource_id')!,
         kind: ReadingListItemKindEnum.fromJson(json[r'kind'])!,
         title: mapValueOfType<String>(json, r'title')!,
         description: mapValueOfType<String>(json, r'description'),
@@ -167,6 +179,7 @@ class ReadingListItem {
   /// The list of required keys that must be present in a JSON.
   static const requiredKeys = <String>{
     'id',
+    'resource_id',
     'kind',
     'title',
     'saved_at',

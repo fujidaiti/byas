@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ReadingListItem {
 
- int get id; ReadingListItemKind get kind; String get title; DateTime get savedAt; String? get description;
+ int get id; int get resourceId; ReadingListItemKind get kind; String get title; DateTime get savedAt; String? get description;
 /// Create a copy of ReadingListItem
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $ReadingListItemCopyWith<ReadingListItem> get copyWith => _$ReadingListItemCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReadingListItem&&(identical(other.id, id) || other.id == id)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.title, title) || other.title == title)&&(identical(other.savedAt, savedAt) || other.savedAt == savedAt)&&(identical(other.description, description) || other.description == description));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReadingListItem&&(identical(other.id, id) || other.id == id)&&(identical(other.resourceId, resourceId) || other.resourceId == resourceId)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.title, title) || other.title == title)&&(identical(other.savedAt, savedAt) || other.savedAt == savedAt)&&(identical(other.description, description) || other.description == description));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,kind,title,savedAt,description);
+int get hashCode => Object.hash(runtimeType,id,resourceId,kind,title,savedAt,description);
 
 @override
 String toString() {
-  return 'ReadingListItem(id: $id, kind: $kind, title: $title, savedAt: $savedAt, description: $description)';
+  return 'ReadingListItem(id: $id, resourceId: $resourceId, kind: $kind, title: $title, savedAt: $savedAt, description: $description)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $ReadingListItemCopyWith<$Res>  {
   factory $ReadingListItemCopyWith(ReadingListItem value, $Res Function(ReadingListItem) _then) = _$ReadingListItemCopyWithImpl;
 @useResult
 $Res call({
- int id, ReadingListItemKind kind, String title, DateTime savedAt, String? description
+ int id, int resourceId, ReadingListItemKind kind, String title, DateTime savedAt, String? description
 });
 
 
@@ -62,9 +62,10 @@ class _$ReadingListItemCopyWithImpl<$Res>
 
 /// Create a copy of ReadingListItem
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? kind = null,Object? title = null,Object? savedAt = null,Object? description = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? resourceId = null,Object? kind = null,Object? title = null,Object? savedAt = null,Object? description = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as int,resourceId: null == resourceId ? _self.resourceId : resourceId // ignore: cast_nullable_to_non_nullable
 as int,kind: null == kind ? _self.kind : kind // ignore: cast_nullable_to_non_nullable
 as ReadingListItemKind,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,savedAt: null == savedAt ? _self.savedAt : savedAt // ignore: cast_nullable_to_non_nullable
@@ -154,10 +155,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  ReadingListItemKind kind,  String title,  DateTime savedAt,  String? description)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  int resourceId,  ReadingListItemKind kind,  String title,  DateTime savedAt,  String? description)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ReadingListItem() when $default != null:
-return $default(_that.id,_that.kind,_that.title,_that.savedAt,_that.description);case _:
+return $default(_that.id,_that.resourceId,_that.kind,_that.title,_that.savedAt,_that.description);case _:
   return orElse();
 
 }
@@ -175,10 +176,10 @@ return $default(_that.id,_that.kind,_that.title,_that.savedAt,_that.description)
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  ReadingListItemKind kind,  String title,  DateTime savedAt,  String? description)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  int resourceId,  ReadingListItemKind kind,  String title,  DateTime savedAt,  String? description)  $default,) {final _that = this;
 switch (_that) {
 case _ReadingListItem():
-return $default(_that.id,_that.kind,_that.title,_that.savedAt,_that.description);case _:
+return $default(_that.id,_that.resourceId,_that.kind,_that.title,_that.savedAt,_that.description);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -195,10 +196,10 @@ return $default(_that.id,_that.kind,_that.title,_that.savedAt,_that.description)
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  ReadingListItemKind kind,  String title,  DateTime savedAt,  String? description)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  int resourceId,  ReadingListItemKind kind,  String title,  DateTime savedAt,  String? description)?  $default,) {final _that = this;
 switch (_that) {
 case _ReadingListItem() when $default != null:
-return $default(_that.id,_that.kind,_that.title,_that.savedAt,_that.description);case _:
+return $default(_that.id,_that.resourceId,_that.kind,_that.title,_that.savedAt,_that.description);case _:
   return null;
 
 }
@@ -210,10 +211,11 @@ return $default(_that.id,_that.kind,_that.title,_that.savedAt,_that.description)
 
 
 class _ReadingListItem implements ReadingListItem {
-  const _ReadingListItem({required this.id, required this.kind, required this.title, required this.savedAt, this.description});
+  const _ReadingListItem({required this.id, required this.resourceId, required this.kind, required this.title, required this.savedAt, this.description});
   
 
 @override final  int id;
+@override final  int resourceId;
 @override final  ReadingListItemKind kind;
 @override final  String title;
 @override final  DateTime savedAt;
@@ -229,16 +231,16 @@ _$ReadingListItemCopyWith<_ReadingListItem> get copyWith => __$ReadingListItemCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReadingListItem&&(identical(other.id, id) || other.id == id)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.title, title) || other.title == title)&&(identical(other.savedAt, savedAt) || other.savedAt == savedAt)&&(identical(other.description, description) || other.description == description));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReadingListItem&&(identical(other.id, id) || other.id == id)&&(identical(other.resourceId, resourceId) || other.resourceId == resourceId)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.title, title) || other.title == title)&&(identical(other.savedAt, savedAt) || other.savedAt == savedAt)&&(identical(other.description, description) || other.description == description));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,kind,title,savedAt,description);
+int get hashCode => Object.hash(runtimeType,id,resourceId,kind,title,savedAt,description);
 
 @override
 String toString() {
-  return 'ReadingListItem(id: $id, kind: $kind, title: $title, savedAt: $savedAt, description: $description)';
+  return 'ReadingListItem(id: $id, resourceId: $resourceId, kind: $kind, title: $title, savedAt: $savedAt, description: $description)';
 }
 
 
@@ -249,7 +251,7 @@ abstract mixin class _$ReadingListItemCopyWith<$Res> implements $ReadingListItem
   factory _$ReadingListItemCopyWith(_ReadingListItem value, $Res Function(_ReadingListItem) _then) = __$ReadingListItemCopyWithImpl;
 @override @useResult
 $Res call({
- int id, ReadingListItemKind kind, String title, DateTime savedAt, String? description
+ int id, int resourceId, ReadingListItemKind kind, String title, DateTime savedAt, String? description
 });
 
 
@@ -266,9 +268,10 @@ class __$ReadingListItemCopyWithImpl<$Res>
 
 /// Create a copy of ReadingListItem
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? kind = null,Object? title = null,Object? savedAt = null,Object? description = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? resourceId = null,Object? kind = null,Object? title = null,Object? savedAt = null,Object? description = freezed,}) {
   return _then(_ReadingListItem(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as int,resourceId: null == resourceId ? _self.resourceId : resourceId // ignore: cast_nullable_to_non_nullable
 as int,kind: null == kind ? _self.kind : kind // ignore: cast_nullable_to_non_nullable
 as ReadingListItemKind,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,savedAt: null == savedAt ? _self.savedAt : savedAt // ignore: cast_nullable_to_non_nullable
