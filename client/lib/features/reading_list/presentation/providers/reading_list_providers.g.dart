@@ -98,7 +98,7 @@ final class ReadingListProvider
   }
 }
 
-String _$readingListHash() => r'dd9468478282f8201518721b5a453fb8d99baa42';
+String _$readingListHash() => r'386747c03b5d98f8fa10b9a993b752dadc91d552';
 
 final class ReadingListFamily extends $Family
     with
