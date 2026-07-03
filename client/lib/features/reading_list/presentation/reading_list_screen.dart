@@ -1,5 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:paperdoll/core/error/domain_error.dart';
+import 'package:paperdoll/core/ui/tokens/app_colors.dart';
+import 'package:paperdoll/core/ui/tokens/app_spacing.dart';
 import 'package:paperdoll/core/ui/widgets/app_divider.dart';
 import 'package:paperdoll/core/ui/widgets/async_value_view.dart';
 import 'package:paperdoll/core/ui/widgets/empty_placeholder.dart';
@@ -30,23 +35,85 @@ class ReadingListScreen extends ConsumerWidget {
   }
 }
 
-class _ReadingList extends StatelessWidget {
+class _ReadingList extends ConsumerStatefulWidget {
   const _ReadingList({required this.items});
 
   final List<ReadingListItem> items;
 
   @override
+  ConsumerState<_ReadingList> createState() => _ReadingListState();
+}
+
+class _ReadingListState extends ConsumerState<_ReadingList> {
+  @override
   Widget build(BuildContext context) {
-    if (items.isEmpty) {
+    if (widget.items.isEmpty) {
       return const EmptyPlaceholder(message: 'Your reading list is empty.');
     }
     return ListView.separated(
-      itemCount: items.length,
+      itemCount: widget.items.length,
       separatorBuilder: (context, index) => const AppDivider(),
       itemBuilder: (context, index) {
-        final item = items[index];
-        return ReadingListRow(item: item);
+        final item = widget.items[index];
+        return Dismissible(
+          key: ValueKey(item.id),
+          direction: DismissDirection.startToEnd,
+          background: Container(
+            color: colorAccent,
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.symmetric(horizontal: spacingMd),
+            child: const Icon(
+              Icons.archive,
+              color: colorBackground,
+              size: iconSize,
+            ),
+          ),
+          onDismissed: (_) => _archive(item, index),
+          child: ReadingListRow(item: item),
+        );
       },
+    );
+  }
+
+  void _archive(ReadingListItem item, int index) {
+    final messenger = ScaffoldMessenger.of(context);
+    unawaited(
+      ref
+          .read(readingListProvider().notifier)
+          .archive(item)
+          .then(
+            (_) {
+              messenger.showSnackBar(
+                SnackBar(
+                  key: AppDebugKey.archiveSuccessSnackBar,
+                  content: Text('Archived "${item.title}"'),
+                  action: SnackBarAction(
+                    label: 'Undo',
+                    onPressed: () => _unarchive(item, index),
+                  ),
+                ),
+              );
+            },
+            onError: (Object error) {
+              messenger.showSnackBar(
+                SnackBar(content: Text(describeError(error))),
+              );
+            },
+          ),
+    );
+  }
+
+  void _unarchive(ReadingListItem item, int index) {
+    final messenger = ScaffoldMessenger.of(context);
+    unawaited(
+      ref
+          .read(readingListProvider().notifier)
+          .unarchive(item, index)
+          .catchError((Object error) {
+            messenger.showSnackBar(
+              SnackBar(content: Text(describeError(error))),
+            );
+          }),
     );
   }
 }

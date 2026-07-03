@@ -57,19 +57,11 @@ final class ReadingListRepositoryProvider
 String _$readingListRepositoryHash() =>
     r'115ada14fd69a0d3589bc2a49ffde3a02b5ea366';
 
-@ProviderFor(readingList)
+@ProviderFor(ReadingList)
 final readingListProvider = ReadingListFamily._();
 
 final class ReadingListProvider
-    extends
-        $FunctionalProvider<
-          AsyncValue<List<ReadingListItem>>,
-          List<ReadingListItem>,
-          FutureOr<List<ReadingListItem>>
-        >
-    with
-        $FutureModifier<List<ReadingListItem>>,
-        $FutureProvider<List<ReadingListItem>> {
+    extends $AsyncNotifierProvider<ReadingList, List<ReadingListItem>> {
   ReadingListProvider._({
     required ReadingListFamily super.from,
     required String? super.argument,
@@ -93,15 +85,7 @@ final class ReadingListProvider
 
   @$internal
   @override
-  $FutureProviderElement<List<ReadingListItem>> $createElement(
-    $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
-
-  @override
-  FutureOr<List<ReadingListItem>> create(Ref ref) {
-    final argument = this.argument as String?;
-    return readingList(ref, cursor: argument);
-  }
+  ReadingList create() => ReadingList();
 
   @override
   bool operator ==(Object other) {
@@ -114,10 +98,17 @@ final class ReadingListProvider
   }
 }
 
-String _$readingListHash() => r'2a5c9b83b6d839b437fd023767e19d8427b991fe';
+String _$readingListHash() => r'dd9468478282f8201518721b5a453fb8d99baa42';
 
 final class ReadingListFamily extends $Family
-    with $FunctionalFamilyOverride<FutureOr<List<ReadingListItem>>, String?> {
+    with
+        $ClassFamilyOverride<
+          ReadingList,
+          AsyncValue<List<ReadingListItem>>,
+          List<ReadingListItem>,
+          FutureOr<List<ReadingListItem>>,
+          String?
+        > {
   ReadingListFamily._()
     : super(
         retry: null,
@@ -132,6 +123,32 @@ final class ReadingListFamily extends $Family
 
   @override
   String toString() => r'readingListProvider';
+}
+
+abstract class _$ReadingList extends $AsyncNotifier<List<ReadingListItem>> {
+  late final _$args = ref.$arg as String?;
+  String? get cursor => _$args;
+
+  FutureOr<List<ReadingListItem>> build({String? cursor});
+  @$mustCallSuper
+  @override
+  WhenComplete runBuild() {
+    final ref =
+        this.ref
+            as $Ref<AsyncValue<List<ReadingListItem>>, List<ReadingListItem>>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<
+                AsyncValue<List<ReadingListItem>>,
+                List<ReadingListItem>
+              >,
+              AsyncValue<List<ReadingListItem>>,
+              Object?,
+              Object?
+            >;
+    return element.handleCreate(ref, () => build(cursor: _$args));
+  }
 }
 
 @ProviderFor(webArticle)

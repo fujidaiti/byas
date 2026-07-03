@@ -52,3 +52,32 @@ get:
       $ref: "../components/responses.yaml#/NotFound"
     "500":
       $ref: "../components/responses.yaml#/InternalServerError"
+
+patch:
+  summary: Archive or unarchive a reading list item
+  operationId: setReadingListItemArchivedStatus
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required: [archived]
+          properties:
+            archived:
+              type: boolean
+        example:
+          archived: true
+  responses:
+    "204":
+      description: No Content
+    "400":
+      $ref: "../components/responses.yaml#/BadRequest"
+    "500":
+      $ref: "../components/responses.yaml#/InternalServerError"
