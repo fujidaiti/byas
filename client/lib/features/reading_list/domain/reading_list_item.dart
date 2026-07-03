@@ -10,6 +10,7 @@ enum ReadingListItemKind { webArticle, feedEntry }
 abstract class ReadingListItem with _$ReadingListItem {
   const factory ReadingListItem({
     required int id,
+    required int resourceId,
     required ReadingListItemKind kind,
     required String title,
     required DateTime savedAt,
