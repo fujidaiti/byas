@@ -13,6 +13,31 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 )
 
+func ArchiveItem(ctx context.Context, db *sql.DB, id int) error {
+	return setItemArchivedStatus(ctx, db, id, true)
+}
+
+func UnarchiveItem(ctx context.Context, db *sql.DB, id int) error {
+	return setItemArchivedStatus(ctx, db, id, false)
+}
+
+func setItemArchivedStatus(ctx context.Context, db *sql.DB, id int, s bool) error {
+	res, err := db.ExecContext(ctx, `
+		UPDATE reading_list_items
+		SET archived = $1
+		WHERE id = $2;
+	`, s, id)
+	if err != nil {
+		return err
+	}
+	if n, err := res.RowsAffected(); err != nil {
+		return nil
+	} else if n == 0 {
+		return errors.New("item not found")
+	}
+	return nil
+}
+
 func SaveFeedEntry(ctx context.Context, db *sql.DB, id int) error {
 	err := db.QueryRowContext(ctx, `
 		INSERT INTO reading_list_items (kind, feed_entry_id, title, description)
