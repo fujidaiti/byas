@@ -85,5 +85,5 @@ HTTPS-only enforcement.
 
 See also:
 
-- [Set up the Compose Compiler Gradle plugin](https://developer.android.com/develop/ui/compose/setup-compose-dependencies-and-compiler)
+- [Set up the Compose Compiler Gradle plugin](https://developer.android.com/develop/ui/compose/setup-compose-dependencies-and-compiler#setup-compose-compiler-without-version-catalog)
 
