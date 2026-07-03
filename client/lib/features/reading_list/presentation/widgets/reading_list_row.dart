@@ -23,14 +23,11 @@ class ReadingListRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final description = item.description;
+    final title = item.title.isEmpty ? 'Fetching…' : item.title;
     return ListTile(
-      key: AppDebugKey.readingListRow(item.title),
+      key: AppDebugKey.readingListRow(title),
       onTap: () => _open(context),
-      title: HeadingText(
-        item.title,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-      ),
+      title: HeadingText(title, maxLines: 2, overflow: TextOverflow.ellipsis),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -52,12 +49,16 @@ class ReadingListRow extends StatelessWidget {
           context.pushNamed(
             routeReadingListWebArticleReaderName,
             pathParameters: {'id': '${item.id}'},
+            extra: item.title,
           ),
         );
       case ReadingListItemKind.feedEntry:
-        // TODO: Route to the feed entry reader once it supports reading list
-        // items. The list never returns feed_entry today.
-        break;
+        unawaited(
+          context.pushNamed(
+            routeReadingListFeedEntryReaderName,
+            pathParameters: {'feedEntryId': '${item.resourceId}'},
+          ),
+        );
     }
   }
 }

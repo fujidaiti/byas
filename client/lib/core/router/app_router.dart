@@ -61,7 +61,16 @@ GoRouter goRouter(Ref ref) {
                     builder: (context, state) =>
                         ReadingListWebArticleReaderScreen(
                           id: _idParam(state, 'id'),
+                          initialTitle: state.extra! as String,
                         ),
+                  ),
+                  GoRoute(
+                    path: routeReadingListFeedEntryReaderPath,
+                    name: routeReadingListFeedEntryReaderName,
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => FeedEntryReaderScreen(
+                      id: _idParam(state, 'feedEntryId'),
+                    ),
                   ),
                 ],
               ),

@@ -14,6 +14,7 @@ class SaveToReadingListRequest {
   /// Returns a new [SaveToReadingListRequest] instance.
   SaveToReadingListRequest({
     this.url,
+    this.feedEntryId,
   });
 
   /// The URL of the web article to save.
@@ -25,18 +26,31 @@ class SaveToReadingListRequest {
   ///
   String? url;
 
+  /// The ID of the feed entry to save.
+  ///
+  /// Please note: This property should have been non-nullable! Since the specification file
+  /// does not include a default value (using the "default:" property), however, the generated
+  /// source code must fall back to having a nullable type.
+  /// Consider adding a "default:" property in the specification file to hide this note.
+  ///
+  int? feedEntryId;
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is SaveToReadingListRequest && other.url == url;
+      other is SaveToReadingListRequest &&
+          other.url == url &&
+          other.feedEntryId == feedEntryId;
 
   @override
   int get hashCode =>
       // ignore: unnecessary_parenthesis
-      (url == null ? 0 : url!.hashCode);
+      (url == null ? 0 : url!.hashCode) +
+      (feedEntryId == null ? 0 : feedEntryId!.hashCode);
 
   @override
-  String toString() => 'SaveToReadingListRequest[url=$url]';
+  String toString() =>
+      'SaveToReadingListRequest[url=$url, feedEntryId=$feedEntryId]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -44,6 +58,11 @@ class SaveToReadingListRequest {
       json[r'url'] = this.url;
     } else {
       json[r'url'] = null;
+    }
+    if (this.feedEntryId != null) {
+      json[r'feed_entry_id'] = this.feedEntryId;
+    } else {
+      json[r'feed_entry_id'] = null;
     }
     return json;
   }
@@ -64,6 +83,7 @@ class SaveToReadingListRequest {
 
       return SaveToReadingListRequest(
         url: mapValueOfType<String>(json, r'url'),
+        feedEntryId: mapValueOfType<int>(json, r'feed_entry_id'),
       );
     }
     return null;

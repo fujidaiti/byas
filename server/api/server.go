@@ -575,6 +575,7 @@ type getReadingListResBody struct {
 
 type readingListItem struct {
 	ID          int       `json:"id"`
+	ResourceID  int       `json:"resource_id"`
 	Kind        string    `json:"kind"`
 	Title       string    `json:"title"`
 	Description *string   `json:"description,omitempty"`
@@ -586,12 +587,10 @@ type readingListItem struct {
 func (h *handler) getReadingList(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	rows, err := h.db.QueryContext(ctx, `
-		SELECT r.id, r.kind, r.title, r.description, r.saved_at
-		FROM reading_list_items r
-		JOIN reading_list_item_web_article_details w
-		ON w.reading_list_item_id = r.id
-		WHERE r.archived = false AND w.fetch_status = 'done'
-		ORDER BY r.saved_at DESC;
+		SELECT id, kind, title, description, saved_at, feed_entry_id
+		FROM reading_list_items
+		WHERE archived = false
+		ORDER BY saved_at DESC;
 	`)
 	if err != nil {
 		fmt.Println(err)
@@ -602,9 +601,27 @@ func (h *handler) getReadingList(w http.ResponseWriter, r *http.Request) {
 	res := getReadingListResBody{Items: []readingListItem{}}
 	for rows.Next() {
 		var li readingListItem
-		err := rows.Scan(&li.ID, &li.Kind, &li.Title, &li.Description, &li.SavedAt)
+		var feID *int
+		err := rows.Scan(&li.ID, &li.Kind, &li.Title, &li.Description, &li.SavedAt, &feID)
 		if err != nil {
 			fmt.Println(err)
+			serverError(w, http.StatusInternalServerError, "Failed to fetch reading list item")
+			return
+		}
+		switch li.Kind {
+		case "web_article":
+			li.ResourceID = li.ID
+
+		case "feed_entry":
+			if feID == nil {
+				fmt.Println("Malformed data: a reading list item of kind 'feed_entry' is expected to have a feed entry ID, but it doesn't.")
+				serverError(w, http.StatusInternalServerError, "Failed to fetch reading list item")
+				return
+			}
+			li.ResourceID = *feID
+
+		default:
+			fmt.Printf("Unknown reading list item kind: %s\n", li.Kind)
 			serverError(w, http.StatusInternalServerError, "Failed to fetch reading list item")
 			return
 		}

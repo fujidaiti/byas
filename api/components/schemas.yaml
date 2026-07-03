@@ -64,9 +64,15 @@ FeedEntry:
 
 ReadingListItem:
   type: object
-  required: [id, kind, title, saved_at]
+  required: [id, resource_id, kind, title, saved_at]
   properties:
     id:
+      type: integer
+    resource_id:
+      description:
+        The ID of the resource backing this item — its own `id` for
+        `web_article`, or the feed entry ID for `feed_entry`. Use this to
+        navigate directly to the appropriate reader.
       type: integer
     kind:
       description: The kind of the reading list item.
