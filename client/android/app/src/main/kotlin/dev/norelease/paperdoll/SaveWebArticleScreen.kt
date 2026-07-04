@@ -153,7 +153,7 @@ private fun truncateTitle(title: String): String =
  * non-2xx response or any I/O failure.
  */
 fun postToReadingList(url: String, title: String?) {
-    val endpoint = URL(BuildConfig.API_BASE_URL.trimEnd('/') + "/reading-list")
+    val endpoint = URL(BuildConfig.API_BASE_URL + "/reading-list")
     val connection = endpoint.openConnection() as HttpURLConnection
     try {
         connection.requestMethod = "POST"

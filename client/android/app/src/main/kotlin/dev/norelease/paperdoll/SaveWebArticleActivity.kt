@@ -1,12 +1,19 @@
 package dev.norelease.paperdoll
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.util.Patterns
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.ui.platform.LocalContext
 
 /**
  * Dialog-style activity launched from the browser's share sheet. It extracts the shared
@@ -35,7 +42,18 @@ class SaveWebArticleActivity : ComponentActivity() {
         val title = sendIntent.getStringExtra(Intent.EXTRA_SUBJECT)
 
         setContent {
-            MaterialTheme {
+            val context = LocalContext.current
+            val dark = isSystemInDarkTheme()
+            // Material You dynamic color (wallpaper-derived) is only available on Android 12
+            // (API 31) and up; fall back to the Material 3 baseline scheme below that.
+            val colorScheme =
+                when {
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
+                        if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+                    dark -> darkColorScheme()
+                    else -> lightColorScheme()
+                }
+            MaterialTheme(colorScheme = colorScheme) {
                 Surface {
                     SaveWebArticleScreen(url = url, title = title, onClose = { finish() })
                 }
