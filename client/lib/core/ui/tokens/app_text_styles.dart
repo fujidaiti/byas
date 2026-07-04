@@ -14,3 +14,8 @@ const textHeading = TextStyle(
 );
 const textBody = TextStyle(fontSize: 15, height: 1.4, color: colorText);
 const textCaption = TextStyle(fontSize: 13, color: colorTextMuted);
+const textLabel = TextStyle(
+  fontSize: 14,
+  fontWeight: FontWeight.w600,
+  color: colorTextMuted,
+);

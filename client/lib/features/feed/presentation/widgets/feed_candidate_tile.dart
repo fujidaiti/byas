@@ -33,8 +33,8 @@ class FeedCandidateTile extends StatelessWidget {
           : BodyText(description, maxLines: 2, overflow: TextOverflow.ellipsis),
       trailing: isSubscribing
           ? const SizedBox(
-              width: iconSize,
-              height: iconSize,
+              width: iconMd,
+              height: iconMd,
               child: Padding(
                 padding: EdgeInsets.all(spacingSm),
                 child: CircularProgressIndicator.adaptive(),

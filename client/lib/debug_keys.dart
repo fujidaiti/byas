@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 // ignore: avoid_classes_with_only_static_members
 abstract final class AppDebugKey {
   static const addFeedButton = Key('addFeedButton');
+  static const archiveSuccessSnackBar = Key('archiveSuccessSnackBar');
   static const feedDetailScreen = Key('feedDetailScreen');
   static const feedEntryReaderOpenOriginalButton = Key(
     'feedEntryReaderOpenOriginalButton',
