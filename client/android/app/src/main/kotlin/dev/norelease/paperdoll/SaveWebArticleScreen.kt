@@ -80,7 +80,7 @@ private fun SaveState.statusHeadline(): String =
     }
 
 /** Fixed height of the share dialog, so its size doesn't jump between the load states. */
-private val DIALOG_HEIGHT = 320.dp
+private val DIALOG_HEIGHT = 280.dp
 
 @Composable
 fun SaveWebArticleScreen(url: String, title: String?, onClose: () -> Unit) {
@@ -124,7 +124,7 @@ fun SaveWebArticleScreen(url: String, title: String?, onClose: () -> Unit) {
             modifier = Modifier.fillMaxWidth(),
             style = MaterialTheme.typography.titleLarge,
         )
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(24.dp))
 
         when (val s = state) {
             is SaveState.Loading -> {
@@ -138,14 +138,14 @@ fun SaveWebArticleScreen(url: String, title: String?, onClose: () -> Unit) {
             }
 
             is SaveState.Error -> {
-                Text(s.kind.message(), textAlign = TextAlign.Center)
+                Text(s.kind.message(), textAlign = TextAlign.Left)
             }
         }
 
         // Domain sits just above the close button, but only when a title is displayed
         // and we're actually showing the page (not an error message).
         if (domain != null && state !is SaveState.Error) {
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(8.dp))
             Text(
                 domain,
                 modifier = Modifier.fillMaxWidth(),
@@ -175,6 +175,7 @@ private fun domainOf(url: String): String? =
 private fun PageTitle(text: String) {
     Text(
         text,
+        modifier = Modifier.fillMaxWidth(),
         style = MaterialTheme.typography.bodyLarge,
         textAlign = TextAlign.Left,
         maxLines = 4,

@@ -7,21 +7,16 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-// The native SaveWebArticleActivity cannot read Flutter's `--dart-define-from-file=.env`
-// value (that is Dart-only), so we read the same client/.env here and bake API_BASE_URL
-// into BuildConfig. `.env` is a plain KEY=value file, parsed via java.util.Properties.
-// A missing .env or an empty/absent API_BASE_URL fails the build rather than silently
-// baking in a wrong host — there is no sensible default to fall back to.
 val apiBaseUrl: String =
     run {
-        val envFile = rootProject.file("../.env") // client/android -> client/.env
+        val envFile = rootProject.file("../.env")
         if (!envFile.exists()) {
-            throw GradleException("client/.env not found; API_BASE_URL is required to build.")
+            throw GradleException(".env not found.")
         }
         val props = Properties()
         envFile.inputStream().use { props.load(it) }
         props.getProperty("API_BASE_URL")?.trim()?.takeIf { it.isNotEmpty() }
-            ?: throw GradleException("API_BASE_URL is missing or empty in client/.env.")
+            ?: throw GradleException("API_BASE_URL is missing or empty.")
     }
 
 dependencies {
@@ -32,10 +27,9 @@ dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2026.06.00")
     implementation(composeBom)
     implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
     debugImplementation("androidx.compose.ui:ui-tooling")
-    implementation("androidx.activity:activity-compose:1.10.0")
+    implementation("androidx.activity:activity-compose")
 }
 
 android {
@@ -50,15 +44,12 @@ android {
 
     buildFeatures {
         compose = true
-        // Required on AGP 8+/9 for BuildConfig.API_BASE_URL to be generated.
         buildConfig = true
     }
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "dev.norelease.paperdoll"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -68,7 +59,7 @@ android {
         testInstrumentationRunner = "pl.leancode.patrol.PatrolJUnitRunner"
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
 
-        // Base URL for the native reading-list POST (see apiBaseUrl above).
+        // Base URL for the native reading-list POST
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
     }
 
