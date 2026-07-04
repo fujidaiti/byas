@@ -18,10 +18,8 @@ class SaveWebArticleActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val sharedText =
-            intent
-                ?.takeIf { it.action == Intent.ACTION_SEND }
-                ?.getStringExtra(Intent.EXTRA_TEXT)
+        val sendIntent = intent?.takeIf { it.action == Intent.ACTION_SEND }
+        val sharedText = sendIntent?.getStringExtra(Intent.EXTRA_TEXT)
 
         // The manifest can only filter by MIME type (text/plain), which also matches
         // non-URL text shares, so validate the actual content here at runtime.
@@ -31,10 +29,15 @@ class SaveWebArticleActivity : ComponentActivity() {
             return
         }
 
+        // Browsers (e.g. Chrome) put the page title in EXTRA_SUBJECT. Use it as a
+        // placeholder title so the item has a meaningful label before the server's
+        // async fetch fills in the real one. May be null; blanks are dropped downstream.
+        val title = sendIntent.getStringExtra(Intent.EXTRA_SUBJECT)
+
         setContent {
             MaterialTheme {
                 Surface {
-                    SaveWebArticleScreen(url = url, onClose = { finish() })
+                    SaveWebArticleScreen(url = url, title = title, onClose = { finish() })
                 }
             }
         }

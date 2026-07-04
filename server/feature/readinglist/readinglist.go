@@ -57,7 +57,7 @@ func SaveFeedEntry(ctx context.Context, db *sql.DB, id int) error {
 // a placeholder reading list item. It then tries fetching
 // the article itself asynchronously, and fills the placeholders
 // with actual metadata.
-func SaveWebArticle(ctx context.Context, db *sql.DB, u url.URL) error {
+func SaveWebArticle(ctx context.Context, db *sql.DB, u url.URL, title string) error {
 	// TODO: Cleanup URL
 	// TODO: Validate URL (schema, host)
 	tx, err := db.BeginTx(ctx, nil)
@@ -66,11 +66,14 @@ func SaveWebArticle(ctx context.Context, db *sql.DB, u url.URL) error {
 	}
 	defer tx.Rollback()
 	var id int
+	// title is a placeholder (e.g. the page title shared by the browser); it is
+	// replaced by the extracted title once the async fetch succeeds. Defaults to
+	// the empty string when the caller supplies none.
 	err = tx.QueryRowContext(ctx, `
 		INSERT INTO reading_list_items (kind, title)
-		VALUES ('web_article', '')
+		VALUES ('web_article', $1)
 		RETURNING id;
-	`).Scan(&id)
+	`, title).Scan(&id)
 	if err != nil {
 		return err
 	}
@@ -165,13 +168,17 @@ func fetchWebArticle(ctx context.Context, db *sql.DB, id int, u url.URL) error {
 		return err
 	}
 	defer tx.Rollback()
-	_, err = tx.ExecContext(ctx, `
-		UPDATE reading_list_items
-		SET title = $1
-		WHERE id = $2;
-	`, article.Title(), id)
-	if err != nil {
-		return err
+	// Only overwrite the title when the fetch actually extracted one; otherwise
+	// keep the existing (placeholder) title rather than clobbering it with ''.
+	if extractedTitle := article.Title(); extractedTitle != "" {
+		_, err = tx.ExecContext(ctx, `
+			UPDATE reading_list_items
+			SET title = $1
+			WHERE id = $2;
+		`, extractedTitle, id)
+		if err != nil {
+			return err
+		}
 	}
 	_, err = tx.ExecContext(ctx, `
 		UPDATE reading_list_item_web_article_details

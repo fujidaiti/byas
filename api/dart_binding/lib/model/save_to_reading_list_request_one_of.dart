@@ -10,12 +10,11 @@
 
 part of openapi.api;
 
-class SaveToReadingListRequest {
-  /// Returns a new [SaveToReadingListRequest] instance.
-  SaveToReadingListRequest({
+class SaveToReadingListRequestOneOf {
+  /// Returns a new [SaveToReadingListRequestOneOf] instance.
+  SaveToReadingListRequestOneOf({
     required this.url,
     this.title,
-    required this.feedEntryId,
   });
 
   /// The URL of the web article to save.
@@ -30,27 +29,20 @@ class SaveToReadingListRequest {
   ///
   String? title;
 
-  /// The ID of the feed entry to save.
-  int feedEntryId;
-
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is SaveToReadingListRequest &&
+      other is SaveToReadingListRequestOneOf &&
           other.url == url &&
-          other.title == title &&
-          other.feedEntryId == feedEntryId;
+          other.title == title;
 
   @override
   int get hashCode =>
       // ignore: unnecessary_parenthesis
-      (url.hashCode) +
-      (title == null ? 0 : title!.hashCode) +
-      (feedEntryId.hashCode);
+      (url.hashCode) + (title == null ? 0 : title!.hashCode);
 
   @override
-  String toString() =>
-      'SaveToReadingListRequest[url=$url, title=$title, feedEntryId=$feedEntryId]';
+  String toString() => 'SaveToReadingListRequestOneOf[url=$url, title=$title]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -60,14 +52,13 @@ class SaveToReadingListRequest {
     } else {
       json[r'title'] = null;
     }
-    json[r'feed_entry_id'] = this.feedEntryId;
     return json;
   }
 
-  /// Returns a new [SaveToReadingListRequest] instance and imports its values from
+  /// Returns a new [SaveToReadingListRequestOneOf] instance and imports its values from
   /// [value] if it's a [Map], null otherwise.
   // ignore: prefer_constructors_over_static_methods
-  static SaveToReadingListRequest? fromJson(dynamic value) {
+  static SaveToReadingListRequestOneOf? fromJson(dynamic value) {
     if (value is Map) {
       final json = value.cast<String, dynamic>();
 
@@ -76,33 +67,28 @@ class SaveToReadingListRequest {
       // Note 2: this code is stripped in release mode!
       assert(() {
         assert(json.containsKey(r'url'),
-            'Required key "SaveToReadingListRequest[url]" is missing from JSON.');
+            'Required key "SaveToReadingListRequestOneOf[url]" is missing from JSON.');
         assert(json[r'url'] != null,
-            'Required key "SaveToReadingListRequest[url]" has a null value in JSON.');
-        assert(json.containsKey(r'feed_entry_id'),
-            'Required key "SaveToReadingListRequest[feed_entry_id]" is missing from JSON.');
-        assert(json[r'feed_entry_id'] != null,
-            'Required key "SaveToReadingListRequest[feed_entry_id]" has a null value in JSON.');
+            'Required key "SaveToReadingListRequestOneOf[url]" has a null value in JSON.');
         return true;
       }());
 
-      return SaveToReadingListRequest(
+      return SaveToReadingListRequestOneOf(
         url: mapValueOfType<String>(json, r'url')!,
         title: mapValueOfType<String>(json, r'title'),
-        feedEntryId: mapValueOfType<int>(json, r'feed_entry_id')!,
       );
     }
     return null;
   }
 
-  static List<SaveToReadingListRequest> listFromJson(
+  static List<SaveToReadingListRequestOneOf> listFromJson(
     dynamic json, {
     bool growable = false,
   }) {
-    final result = <SaveToReadingListRequest>[];
+    final result = <SaveToReadingListRequestOneOf>[];
     if (json is List && json.isNotEmpty) {
       for (final row in json) {
-        final value = SaveToReadingListRequest.fromJson(row);
+        final value = SaveToReadingListRequestOneOf.fromJson(row);
         if (value != null) {
           result.add(value);
         }
@@ -111,12 +97,12 @@ class SaveToReadingListRequest {
     return result.toList(growable: growable);
   }
 
-  static Map<String, SaveToReadingListRequest> mapFromJson(dynamic json) {
-    final map = <String, SaveToReadingListRequest>{};
+  static Map<String, SaveToReadingListRequestOneOf> mapFromJson(dynamic json) {
+    final map = <String, SaveToReadingListRequestOneOf>{};
     if (json is Map && json.isNotEmpty) {
       json = json.cast<String, dynamic>(); // ignore: parameter_assignments
       for (final entry in json.entries) {
-        final value = SaveToReadingListRequest.fromJson(entry.value);
+        final value = SaveToReadingListRequestOneOf.fromJson(entry.value);
         if (value != null) {
           map[entry.key] = value;
         }
@@ -125,17 +111,17 @@ class SaveToReadingListRequest {
     return map;
   }
 
-  // maps a json object with a list of SaveToReadingListRequest-objects as value to a dart map
-  static Map<String, List<SaveToReadingListRequest>> mapListFromJson(
+  // maps a json object with a list of SaveToReadingListRequestOneOf-objects as value to a dart map
+  static Map<String, List<SaveToReadingListRequestOneOf>> mapListFromJson(
     dynamic json, {
     bool growable = false,
   }) {
-    final map = <String, List<SaveToReadingListRequest>>{};
+    final map = <String, List<SaveToReadingListRequestOneOf>>{};
     if (json is Map && json.isNotEmpty) {
       // ignore: parameter_assignments
       json = json.cast<String, dynamic>();
       for (final entry in json.entries) {
-        map[entry.key] = SaveToReadingListRequest.listFromJson(
+        map[entry.key] = SaveToReadingListRequestOneOf.listFromJson(
           entry.value,
           growable: growable,
         );
@@ -147,6 +133,5 @@ class SaveToReadingListRequest {
   /// The list of required keys that must be present in a JSON.
   static const requiredKeys = <String>{
     'url',
-    'feed_entry_id',
   };
 }
