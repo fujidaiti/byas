@@ -33,9 +33,7 @@ import java.net.URL
 
 /**
  * Process-lifetime scope. Work started here survives dismissal of the activity, so the
- * user can close the dialog mid-request without losing the save. It does NOT survive
- * process death — if the OS reclaims the (now empty) app process before the request
- * completes, the save is lost. That window is accepted here in lieu of WorkManager.
+ * user can close the dialog mid-request without losing the save.
  */
 object SaveScope {
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -49,11 +47,6 @@ sealed interface SaveState {
     data class Error(val kind: SaveErrorKind) : SaveState
 }
 
-/**
- * Categories of save failure. Kept coarse on purpose: the UI shows a fixed, user-facing
- * message per category and never surfaces the underlying exception, which may leak internal
- * details (server error bodies, stack info, etc.).
- */
 enum class SaveErrorKind {
     /** The request never reached the server (no connectivity, timeout, etc.). */
     Network,
@@ -71,7 +64,6 @@ private fun SaveErrorKind.message(): String =
             "Couldn't add to your reading list. Please try again."
     }
 
-/** Short status headline shown at the top of the dialog for the current save state. */
 private fun SaveState.statusHeadline(): String =
     when (this) {
         SaveState.Loading -> "Adding to Reading List…"
@@ -79,7 +71,6 @@ private fun SaveState.statusHeadline(): String =
         is SaveState.Error -> "Couldn't Save"
     }
 
-/** Fixed height of the share dialog, so its size doesn't jump between the load states. */
 private val DIALOG_HEIGHT = 280.dp
 
 @Composable
@@ -141,9 +132,6 @@ fun SaveWebArticleScreen(url: String, title: String?, onClose: () -> Unit) {
                 Text(s.kind.message(), textAlign = TextAlign.Left)
             }
         }
-
-        // Domain sits just above the close button, but only when a title is displayed
-        // and we're actually showing the page (not an error message).
         if (domain != null && state !is SaveState.Error) {
             Spacer(Modifier.height(8.dp))
             Text(
@@ -156,12 +144,7 @@ fun SaveWebArticleScreen(url: String, title: String?, onClose: () -> Unit) {
                 overflow = TextOverflow.Ellipsis,
             )
         }
-
-        // Push the domain + close button to the bottom, whatever the content above.
         Spacer(Modifier.weight(1f))
-
-        // While loading, closing is a de-emphasized action (the request keeps running
-        // in SaveScope), so use a text button; once settled it's the primary action.
         Button(onClick = onClose, modifier = Modifier.align(Alignment.End)) { Text("Close") }
     }
 }
@@ -197,13 +180,6 @@ private fun truncateTitle(title: String): String =
         title
     }
 
-/**
- * POSTs `{"url": url}` (plus an optional `title` placeholder, when a non-blank one was
- * shared) to the reading-list endpoint. The title is capped at [MAX_TITLE_LENGTH]
- * characters. The API responds 201 with an empty `{}` body, so there is nothing to parse —
- * success is the status code alone. There is no auth header (the API has none). Throws on a
- * non-2xx response or any I/O failure.
- */
 fun postToReadingList(url: String, title: String?) {
     val endpoint = URL(BuildConfig.API_BASE_URL + "/reading-list")
     val connection = endpoint.openConnection() as HttpURLConnection

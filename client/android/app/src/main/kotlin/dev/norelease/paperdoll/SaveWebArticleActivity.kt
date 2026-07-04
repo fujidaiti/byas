@@ -17,8 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 
 /**
  * Dialog-style activity launched from the browser's share sheet. It extracts the shared
- * URL, POSTs it to the reading list, and shows the result. It intentionally extends
- * [ComponentActivity] rather than FlutterActivity so it never boots the Flutter engine.
+ * URL, POSTs it to the reading list, and shows the result.
  */
 class SaveWebArticleActivity : ComponentActivity() {
 
@@ -27,15 +26,11 @@ class SaveWebArticleActivity : ComponentActivity() {
 
         val sendIntent = intent?.takeIf { it.action == Intent.ACTION_SEND }
         val sharedText = sendIntent?.getStringExtra(Intent.EXTRA_TEXT)
-
-        // The manifest can only filter by MIME type (text/plain), which also matches
-        // non-URL text shares, so validate the actual content here at runtime.
         val url = sharedText?.let { extractUrl(it) }
         if (url == null) {
             finish()
             return
         }
-
         // Browsers (e.g. Chrome) put the page title in EXTRA_SUBJECT. Use it as a
         // placeholder title so the item has a meaningful label before the server's
         // async fetch fills in the real one. May be null; blanks are dropped downstream.
@@ -62,7 +57,7 @@ class SaveWebArticleActivity : ComponentActivity() {
     }
 
     /**
-     * Browsers often share "Page Title https://example.com/x", so [Patterns.WEB_URL]
+     * Apps may share "Page Title https://example.com/x", so [Patterns.WEB_URL]
      * `.matches()` (which requires the whole string to be a URL) is not enough. Return the
      * first http(s) URL found in the text; the scheme check avoids matching a bare
      * "example.com" that happens to appear in the title.

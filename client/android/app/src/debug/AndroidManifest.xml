@@ -4,7 +4,6 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
-    <!-- Debug-only: permit cleartext HTTP to the local dev server / Prism mock so the
-         share activity can reach it. Merged into the main <application> for debug builds. -->
+    <!-- Debug-only: permit cleartext HTTP to the local dev server so the share activity can reach it. -->
     <application android:networkSecurityConfig="@xml/network_security_config" />
 </manifest>

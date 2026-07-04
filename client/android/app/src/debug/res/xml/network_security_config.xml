@@ -1,8 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Debug-only: permit cleartext HTTP so the share activity can reach a local dev server
-     regardless of its address — the emulator host loopback (10.0.2.2), a LAN IP for a
-     physical device, or a Prism mock. Release builds do not include this file, so they
-     keep Android's default HTTPS-only enforcement. -->
 <network-security-config>
     <base-config cleartextTrafficPermitted="true" />
 </network-security-config>
