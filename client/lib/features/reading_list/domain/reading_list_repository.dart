@@ -11,4 +11,10 @@ abstract interface class ReadingListRepository {
 
   /// `GET /reading-list/{id}` → a single web_article item's details.
   Future<WebArticle> getWebArticle(int id);
+
+  /// `PATCH /reading-list/{id}` with `{"archived": true}` → archives the item.
+  Future<void> archive(int id);
+
+  /// `PATCH /reading-list/{id}` with `{"archived": false}` → unarchives the item.
+  Future<void> unarchive(int id);
 }

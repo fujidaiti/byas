@@ -31,6 +31,7 @@ part 'model/get_todays_newspaper200_response.dart';
 part 'model/reading_list_item.dart';
 part 'model/save_to_reading_list_request.dart';
 part 'model/search_feeds200_response.dart';
+part 'model/set_reading_list_item_archived_status_request.dart';
 part 'model/story.dart';
 part 'model/subscribe_to_feed_request.dart';
 part 'model/web_article.dart';
