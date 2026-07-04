@@ -71,6 +71,17 @@ private fun SaveErrorKind.message(): String =
             "Couldn't add to your reading list. Please try again."
     }
 
+/** Short status headline shown at the top of the dialog for the current save state. */
+private fun SaveState.statusHeadline(): String =
+    when (this) {
+        SaveState.Loading -> "Adding to Reading List…"
+        SaveState.Success -> "Added to Reading List"
+        is SaveState.Error -> "Couldn't Save"
+    }
+
+/** Fixed height of the share dialog, so its size doesn't jump between the load states. */
+private val DIALOG_HEIGHT = 320.dp
+
 @Composable
 fun SaveWebArticleScreen(url: String, title: String?, onClose: () -> Unit) {
     var state by remember { mutableStateOf<SaveState>(SaveState.Loading) }
@@ -94,41 +105,81 @@ fun SaveWebArticleScreen(url: String, title: String?, onClose: () -> Unit) {
         }
     }
 
+    // Fall back to the raw URL when the browser didn't share a page title.
+    val trimmedTitle = title?.takeIf { it.isNotBlank() }
+    val label = trimmedTitle ?: url
+    // When a title is shown, surface the URL's domain beneath it. When it isn't, the URL is
+    // already the label, so there's nothing extra to show.
+    val domain = if (trimmedTitle != null) domainOf(url) else null
+
     Column(
-        modifier = Modifier.fillMaxWidth().padding(24.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(DIALOG_HEIGHT)
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        Text(
+            state.statusHeadline(),
+            modifier = Modifier.fillMaxWidth(),
+            style = MaterialTheme.typography.titleLarge,
+        )
+        Spacer(Modifier.height(16.dp))
+
         when (val s = state) {
             is SaveState.Loading -> {
                 CircularProgressIndicator()
                 Spacer(Modifier.height(16.dp))
-                Text("Adding to Reading List…")
-                Spacer(Modifier.height(16.dp))
-                // The user can close at any time; the request keeps running in SaveScope.
-                TextButton(onClick = onClose) { Text("Close") }
+                PageTitle(label)
             }
+
             is SaveState.Success -> {
-                Text("Added to Reading List")
-                if (!title.isNullOrBlank()) {
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        title,
-                        style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                Spacer(Modifier.height(16.dp))
-                Button(onClick = onClose) { Text("Close") }
+                PageTitle(label)
             }
+
             is SaveState.Error -> {
                 Text(s.kind.message(), textAlign = TextAlign.Center)
-                Spacer(Modifier.height(16.dp))
-                Button(onClick = onClose) { Text("Close") }
             }
         }
+
+        // Domain sits just above the close button, but only when a title is displayed
+        // and we're actually showing the page (not an error message).
+        if (domain != null && state !is SaveState.Error) {
+            Spacer(Modifier.height(16.dp))
+            Text(
+                domain,
+                modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Left,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+
+        // Push the domain + close button to the bottom, whatever the content above.
+        Spacer(Modifier.weight(1f))
+
+        // While loading, closing is a de-emphasized action (the request keeps running
+        // in SaveScope), so use a text button; once settled it's the primary action.
+        Button(onClick = onClose, modifier = Modifier.align(Alignment.End)) { Text("Close") }
     }
+}
+
+/** Best-effort host of [url] (e.g. "example.com"), or null if it can't be parsed. */
+private fun domainOf(url: String): String? =
+    runCatching { URL(url).host }.getOrNull()?.removePrefix("www.")?.takeIf { it.isNotBlank() }
+
+/** The saved page's title (or its URL when no title was shared), in a prominent style. */
+@Composable
+private fun PageTitle(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.bodyLarge,
+        textAlign = TextAlign.Left,
+        maxLines = 4,
+        overflow = TextOverflow.Ellipsis,
+    )
 }
 
 /** Maximum length of the placeholder title sent to the server (URL is left as-is). */
