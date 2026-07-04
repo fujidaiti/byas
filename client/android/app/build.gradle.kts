@@ -10,18 +10,18 @@ plugins {
 // The native SaveWebArticleActivity cannot read Flutter's `--dart-define-from-file=.env`
 // value (that is Dart-only), so we read the same client/.env here and bake API_BASE_URL
 // into BuildConfig. `.env` is a plain KEY=value file, parsed via java.util.Properties.
-// Falls back to the emulator host loopback (Prism mock) when .env is absent (e.g. CI).
+// A missing .env or an empty/absent API_BASE_URL fails the build rather than silently
+// baking in a wrong host — there is no sensible default to fall back to.
 val apiBaseUrl: String =
     run {
         val envFile = rootProject.file("../.env") // client/android -> client/.env
-        val fallback = "http://10.0.2.2:4010"
         if (!envFile.exists()) {
-            fallback
-        } else {
-            val props = Properties()
-            envFile.inputStream().use { props.load(it) }
-            props.getProperty("API_BASE_URL")?.trim()?.takeIf { it.isNotEmpty() } ?: fallback
+            throw GradleException("client/.env not found; API_BASE_URL is required to build.")
         }
+        val props = Properties()
+        envFile.inputStream().use { props.load(it) }
+        props.getProperty("API_BASE_URL")?.trim()?.takeIf { it.isNotEmpty() }
+            ?: throw GradleException("API_BASE_URL is missing or empty in client/.env.")
     }
 
 dependencies {
