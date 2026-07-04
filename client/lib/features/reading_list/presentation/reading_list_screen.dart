@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:paperdoll/core/error/domain_error.dart';
+import 'package:paperdoll/core/logging/app_logger.dart';
 import 'package:paperdoll/core/ui/tokens/app_colors.dart';
 import 'package:paperdoll/core/ui/tokens/app_spacing.dart';
 import 'package:paperdoll/core/ui/tokens/app_text_styles.dart';
@@ -87,45 +88,43 @@ class _ReadingListState extends ConsumerState<_ReadingList> {
     );
   }
 
-  void _archive(ReadingListItem item, int index) {
-    final messenger = ScaffoldMessenger.of(context);
-    unawaited(
-      ref
-          .read(readingListProvider().notifier)
-          .archive(item)
-          .then(
-            (_) {
-              messenger.showSnackBar(
-                SnackBar(
-                  key: AppDebugKey.archiveSuccessSnackBar,
-                  content: Text('Archived "${item.title}"'),
-                  action: SnackBarAction(
-                    label: 'Undo',
-                    onPressed: () => _unarchive(item, index),
-                  ),
-                ),
-              );
-            },
-            onError: (Object error) {
-              messenger.showSnackBar(
-                SnackBar(content: Text(describeError(error))),
-              );
-            },
-          ),
+  Future<void> _archive(ReadingListItem item, int index) async {
+    // Optimistically update UI first
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        key: AppDebugKey.archiveSuccessSnackBar,
+        persist: false,
+        content: Text(
+          'Archived "${item.title}"',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () => _unarchive(item, index),
+        ),
+      ),
     );
+    try {
+      await ref.read(readingListProvider().notifier).archive(item);
+    } on Exception {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Something went wrong', maxLines: 1)),
+        );
+      }
+    }
   }
 
-  void _unarchive(ReadingListItem item, int index) {
-    final messenger = ScaffoldMessenger.of(context);
-    unawaited(
-      ref
-          .read(readingListProvider().notifier)
-          .unarchive(item, index)
-          .catchError((Object error) {
-            messenger.showSnackBar(
-              SnackBar(content: Text(describeError(error))),
-            );
-          }),
-    );
+  Future<void> _unarchive(ReadingListItem item, int index) async {
+    try {
+      await ref.read(readingListProvider().notifier).unarchive(item, index);
+    } on Exception {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Something went wrong', maxLines: 1)),
+        );
+      }
+    }
   }
 }
