@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:paperdoll/core/error/domain_error.dart';
 import 'package:paperdoll/core/ui/tokens/app_colors.dart';
 import 'package:paperdoll/core/ui/tokens/app_spacing.dart';
+import 'package:paperdoll/core/ui/tokens/app_text_styles.dart';
 import 'package:paperdoll/core/ui/widgets/app_divider.dart';
 import 'package:paperdoll/core/ui/widgets/async_value_view.dart';
 import 'package:paperdoll/core/ui/widgets/empty_placeholder.dart';
@@ -58,14 +59,25 @@ class _ReadingListState extends ConsumerState<_ReadingList> {
         return Dismissible(
           key: ValueKey(item.id),
           direction: DismissDirection.startToEnd,
-          background: Container(
+          background: ColoredBox(
             color: colorAccent,
-            alignment: Alignment.centerLeft,
-            padding: const EdgeInsets.symmetric(horizontal: spacingMd),
-            child: const Icon(
-              Icons.archive,
-              color: colorBackground,
-              size: iconSize,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: spacingMd),
+              child: Row(
+                spacing: spacingSm,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.archive,
+                    color: colorBackground,
+                    size: iconSm,
+                  ),
+                  Text(
+                    'Archive',
+                    style: textLabel.copyWith(color: colorBackground),
+                  ),
+                ],
+              ),
             ),
           ),
           onDismissed: (_) => _archive(item, index),

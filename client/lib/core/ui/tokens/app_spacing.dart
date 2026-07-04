@@ -6,5 +6,6 @@ const double spacingLg = 24;
 const double spacingXl = 32;
 
 // Fixed element sizes.
-const double iconSize = 40;
+const double iconMd = 40;
+const double iconSm = 24;
 const double dividerHeight = 1;
