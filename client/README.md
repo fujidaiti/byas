@@ -27,23 +27,6 @@ Find the target device's ID using `fvm flutter devices`, then:
 fvm flutter run -d [device-id] --dart-define-from-file=.env
 ```
 
-## Testing
-
-Integration tests drive the real app against a
-[Prism](https://stoplight.io/open-source/prism) mock server backed by the
-OpenAPI spec. Start the mock first (from the repo root):
-
-```sh
-prism mock api/api.yaml          # serves http://127.0.0.1:4010
-```
-
-The test harness points the app at Prism by overriding the config provider, so
-no `--dart-define` is needed:
-
-```sh
-fvm flutter test integration_test/app_test.dart -d [device-id]
-```
-
 ## Sharing to the reading list (Android)
 
 Users can save a web page to the reading list directly from a browser's share
