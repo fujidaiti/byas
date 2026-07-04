@@ -9,7 +9,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -67,6 +66,7 @@ private fun SaveErrorKind.message(): String =
     when (this) {
         SaveErrorKind.Network ->
             "Couldn't reach the server. Check your connection and try again."
+
         SaveErrorKind.Unexpected ->
             "Couldn't add to your reading list. Please try again."
     }
