@@ -50,13 +50,11 @@ func SaveFeedEntry(ctx context.Context, db *sql.DB, id int) error {
 	return err
 }
 
-// SaveWebArticle appends the web article specified by the URL
-// to the reading list. Reports nil if succeeds.
+// SaveWebArticle appends the web article specified by the URL to the reading list.
+// Reports nil if succeeds.
 //
-// Note that this function immediately returns after creating
-// a placeholder reading list item. It then tries fetching
-// the article itself asynchronously, and fills the placeholders
-// with actual metadata.
+// Note that this function immediately returns after creating a placeholder reading list item.
+// It then tries fetching the article itself asynchronously, and fills the placeholders with actual metadata.
 func SaveWebArticle(ctx context.Context, db *sql.DB, u url.URL, title string) error {
 	// TODO: Cleanup URL
 	// TODO: Validate URL (schema, host)
@@ -66,9 +64,6 @@ func SaveWebArticle(ctx context.Context, db *sql.DB, u url.URL, title string) er
 	}
 	defer tx.Rollback()
 	var id int
-	// title is a placeholder (e.g. the page title shared by the browser); it is
-	// replaced by the extracted title once the async fetch succeeds. Defaults to
-	// the empty string when the caller supplies none.
 	err = tx.QueryRowContext(ctx, `
 		INSERT INTO reading_list_items (kind, title)
 		VALUES ('web_article', $1)
