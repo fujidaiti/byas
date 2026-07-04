@@ -97,4 +97,43 @@ void main() {
     expect($(AppDebugKey.feedEntryReaderScreen), findsOneWidget);
     expect($(AppDebugKey.readerTitle(targetEntryTitle)), findsOneWidget);
   });
+
+  patrolTest('Archive a reading list item by swiping', ($) async {
+    await pumpApp($);
+    final adapter = httpMockAdapter($);
+
+    const articleTitle = 'Demystifying evals for AI agents';
+    adapter.onGet(
+      '/reading-list',
+      (s) => s.reply(
+        200,
+        api.GetReadingList200Response(
+          items: [
+            api.ReadingListItem(
+              id: 1,
+              resourceId: 1,
+              kind: api.ReadingListItemKindEnum.webArticle,
+              title: articleTitle,
+              savedAt: DateTime.utc(2026, 7, 1),
+            ),
+          ],
+        ).toJson(),
+      ),
+    );
+    adapter.onPatch(
+      '/reading-list/1',
+      (s) => s.reply(204, <String, dynamic>{}),
+      data: {'archived': true},
+    );
+
+    await $(AppDebugKey.readingListNavDestination).tap();
+    expect($(AppDebugKey.readingListRow(articleTitle)), findsOneWidget);
+    await $.tester.fling(
+      $(AppDebugKey.readingListRow(articleTitle)).finder,
+      const Offset(100, 0),
+      1000,
+    );
+    await $(AppDebugKey.archiveSuccessSnackBar).waitUntilVisible();
+    expect($(AppDebugKey.readingListRow(articleTitle)), findsNothing);
+  }, tags: ['archive']);
 }

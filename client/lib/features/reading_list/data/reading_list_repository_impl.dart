@@ -34,6 +34,23 @@ class ReadingListRepositoryImpl implements ReadingListRepository {
     });
   }
 
+  @override
+  Future<void> archive(int id) => _setArchived(id, archived: true);
+
+  @override
+  Future<void> unarchive(int id) => _setArchived(id, archived: false);
+
+  Future<void> _setArchived(int id, {required bool archived}) {
+    return runRequest(() async {
+      await _dio.patch<void>(
+        '/reading-list/$id',
+        data: api.SetReadingListItemArchivedStatusRequest(
+          archived: archived,
+        ).toJson(),
+      );
+    });
+  }
+
   ReadingListItem _toItem(api.ReadingListItem i) => ReadingListItem(
     id: i.id,
     resourceId: i.resourceId,
