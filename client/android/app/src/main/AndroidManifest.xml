@@ -27,6 +27,24 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Lightweight dialog activity shown from the browser's share sheet to save a
+             web page URL to the reading list. No MAIN/LAUNCHER filter, so it does not
+             appear in the launcher. Its own task affinity + noHistory keep it out of the
+             main app task and off recents, so closing it returns cleanly to the browser. -->
+        <activity
+            android:name=".SaveWebArticleActivity"
+            android:theme="@style/Theme.SaveWebArticle.Dialog"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:label="Save to Reading List">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

@@ -23,7 +23,7 @@ class ReadingListRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final description = item.description;
-    final title = item.title.isEmpty ? 'Fetching…' : item.title;
+    final title = item.title.isEmpty ? 'NO TITLE' : item.title;
     return ListTile(
       key: AppDebugKey.readingListRow(title),
       onTap: () => _open(context),

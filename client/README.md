@@ -27,19 +27,15 @@ Find the target device's ID using `fvm flutter devices`, then:
 fvm flutter run -d [device-id] --dart-define-from-file=.env
 ```
 
-## Testing
+## Sharing to the reading list (Android)
 
-Integration tests drive the real app against a
-[Prism](https://stoplight.io/open-source/prism) mock server backed by the
-OpenAPI spec. Start the mock first (from the repo root):
+Users can save a web page to the reading list directly from a browser's share
+sheet, without opening the full app. The flow:
 
-```sh
-prism mock api/api.yaml          # serves http://127.0.0.1:4010
-```
+1. The user shares a page from a browser and picks "Save to Reading List".
+2. The activity extracts the first `http(s)` URL from the shared text.
+3. It fires a request to `POST /reading-list`.
 
-The test harness points the app at Prism by overriding the config provider, so
-no `--dart-define` is needed:
+See also:
 
-```sh
-fvm flutter test integration_test/app_test.dart -d [device-id]
-```
+- [Set up the Compose Compiler Gradle plugin](https://developer.android.com/develop/ui/compose/setup-compose-dependencies-and-compiler#setup-compose-compiler-without-version-catalog)

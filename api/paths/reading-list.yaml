@@ -29,7 +29,9 @@ post:
     When saving a web article, a placeholder item is appended immediately, and
     its content is fetched and filled in asynchronously afterwards; in this case
     a 201 response only means the placeholder was appended successfully — the
-    article fetch may still fail behind the scenes.
+    article fetch may still fail behind the scenes. An optional `title` may be
+    supplied alongside `url` (e.g. the page title shared by the browser) to give
+    the placeholder a meaningful label until the fetch fills in the real one.
   operationId: saveToReadingList
   requestBody:
     description:
@@ -37,15 +39,28 @@ post:
     content:
       application/json:
         schema:
-          type: object
-          properties:
-            url:
-              description: The URL of the web article to save.
-              type: string
-              format: uri
-            feed_entry_id:
-              description: The ID of the feed entry to save.
-              type: integer
+          oneOf:
+            - type: object
+              additionalProperties: false
+              required: [url]
+              properties:
+                url:
+                  description: The URL of the web article to save.
+                  type: string
+                  format: uri
+                title:
+                  description:
+                    Optional placeholder title (e.g. the page title shared by
+                    the browser). Shown until the article is fetched; a
+                    successful fetch replaces it with the extracted title.
+                  type: string
+            - type: object
+              additionalProperties: false
+              required: [feed_entry_id]
+              properties:
+                feed_entry_id:
+                  description: The ID of the feed entry to save.
+                  type: integer
           example:
             url: "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents"
   responses:

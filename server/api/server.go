@@ -508,8 +508,13 @@ func (h *handler) subscribeToFeed(w http.ResponseWriter, r *http.Request) {
 }
 
 type saveToReadingListReqBody struct {
-	URL         *string `json:"url"`
-	FeedEntryID *int    `json:"feed_entry_id"`
+	URL *string `json:"url"`
+
+	// Title is the optional placeholder, e.g. the page title shared by the browser.
+	// This is only honored on the URL path; it is ignored for feed entries.
+	Title *string `json:"title"`
+
+	FeedEntryID *int `json:"feed_entry_id"`
 }
 
 func (h *handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
@@ -542,7 +547,12 @@ func (h *handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 			serverError(w, http.StatusBadRequest, "Invalid URL")
 			return
 		}
-		err = readinglist.SaveWebArticle(ctx, h.db, *u)
+		// TODO: trim and length-cap the client-supplied title
+		var title string
+		if b.Title != nil {
+			title = *b.Title
+		}
+		err = readinglist.SaveWebArticle(ctx, h.db, *u, title)
 		if err != nil {
 			fmt.Println(err)
 			serverError(w, http.StatusInternalServerError, "Failed to save article")
