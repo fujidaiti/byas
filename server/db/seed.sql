@@ -42,9 +42,26 @@ CREATE TABLE newspaper_schedules (
     minute_of_date integer NOT NULL CHECK (minute_of_date BETWEEN 0 AND 1439)
 );
 
+CREATE TABLE web_articles (
+  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  url text NOT NULL,
+  title text,
+  description text,
+  content text,
+  fetch_status text NOT NULL DEFAULT 'pending'
+    CHECK (fetch_status IN ('pending', 'done', 'failed')),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+
+  CONSTRAINT chk_content_when_done CHECK (
+    (fetch_status = 'done' AND content IS NOT NULL) OR
+    (fetch_status != 'done' AND content IS NULL)
+  )
+);
+
 CREATE TABLE reading_list_items (
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   kind          text NOT NULL CHECK (kind IN ('feed_entry', 'web_article')),
+  web_article_id bigint REFERENCES web_articles (id),
   feed_entry_id bigint REFERENCES feed_entries (id),
   title         text NOT NULL,
   description   text,
@@ -52,24 +69,8 @@ CREATE TABLE reading_list_items (
   saved_at      timestamptz NOT NULL DEFAULT now(),
 
   CONSTRAINT chk_kind_and_id CHECK (
-    (kind = 'feed_entry' AND feed_entry_id IS NOT NULL) OR
-    (kind = 'web_article' AND feed_entry_id IS NULL)
-  )
-);
-
-CREATE TABLE reading_list_item_web_article_details (
-  reading_list_item_id bigint PRIMARY KEY
-                            REFERENCES reading_list_items (id)
-                            ON DELETE CASCADE,
-  url                   text NOT NULL,
-  content               text,
-  fetch_status          text NOT NULL DEFAULT 'pending'
-                            CHECK (fetch_status IN ('pending', 'done', 'failed')),
-  updated_at            timestamptz NOT NULL DEFAULT now(),
-
-  CONSTRAINT chk_content_when_done CHECK (
-    (fetch_status = 'done' AND content IS NOT NULL) OR
-    (fetch_status != 'done' AND content IS NULL)
+    (kind = 'feed_entry' AND feed_entry_id IS NOT NULL AND web_article_id IS NULL) OR
+    (kind = 'web_article' AND feed_entry_id IS NULL AND web_article_id is NOT NULL)
   )
 );
 
@@ -81,8 +82,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_reading_list_item_web_article_details_updated_at
-BEFORE UPDATE ON reading_list_item_web_article_details
+CREATE TRIGGER trg_web_articles_updated_at
+BEFORE UPDATE ON web_articles
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 INSERT INTO newspaper_schedules (label, minute_of_date)
