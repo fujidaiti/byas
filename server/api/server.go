@@ -683,11 +683,12 @@ func (h *handler) getReadingListItem(w http.ResponseWriter, r *http.Request) {
 	var res getReadingListItemResBody
 	var title string
 	var desc *string
+	var waID *int
 	err = h.db.QueryRowContext(ctx, `
-		SELECT id, kind, archived, saved_at, title, description
+		SELECT id, kind, archived, saved_at, title, description, web_article_id
 		FROM reading_list_items
 		WHERE id = $1;
-	`, id).Scan(&res.ID, &res.Kind, &res.Archived, &res.SavedAt, &title, &desc)
+	`, id).Scan(&res.ID, &res.Kind, &res.Archived, &res.SavedAt, &title, &desc, &waID)
 	if errors.Is(err, sql.ErrNoRows) {
 		serverError(w, http.StatusNotFound, "Item not found")
 		return
@@ -699,14 +700,24 @@ func (h *handler) getReadingListItem(w http.ResponseWriter, r *http.Request) {
 
 	switch res.Kind {
 	case "web_article":
+		if waID == nil {
+			fmt.Printf("Malformed data: A reading list item (ID=%d) of kind web_article "+
+				"should have a web article ID, but it doesn't.", id)
+			serverError(w, http.StatusInternalServerError, "Something went wrong")
+			return
+		}
 		a := readingListWebArticleAttrs{Title: title, Description: desc}
 		err = h.db.QueryRowContext(ctx, `
 			SELECT url, content
-			FROM reading_list_item_web_article_details
-			WHERE reading_list_item_id = $1;
-		`, id).Scan(&a.URL, &a.Content)
+			FROM web_articles
+			WHERE id = $1;
+		`, waID).Scan(&a.URL, &a.Content)
 		if err != nil {
-			fmt.Println(err)
+			if errors.Is(err, sql.ErrNoRows) {
+				fmt.Printf("Malformed data: a web article of ID=%d does not exist.", *waID)
+			} else {
+				fmt.Println(err)
+			}
 			serverError(w, http.StatusInternalServerError, "Failed to fetch web article details")
 			return
 		}
