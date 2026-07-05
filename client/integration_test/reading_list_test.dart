@@ -18,8 +18,11 @@ void main() {
         api.GetReadingList200Response(
           items: [
             api.ReadingListItem(
+              // The reading list item id and the web article id are distinct id
+              // spaces now; the reader is navigated by resource_id (the web
+              // article id).
               id: 1,
-              resourceId: 1,
+              resourceId: 7,
               kind: api.ReadingListItemKindEnum.webArticle,
               title: articleTitle,
               savedAt: DateTime.utc(2026, 7, 1),
@@ -29,20 +32,15 @@ void main() {
       ),
     );
     adapter.onGet(
-      '/reading-list/1',
+      '/web-articles/7',
       (s) => s.reply(
         200,
-        api.GetReadingListItem200Response(
-          id: 1,
-          kind: api.GetReadingListItem200ResponseKindEnum.webArticle,
-          archived: false,
-          savedAt: DateTime.utc(2026, 7, 1),
-          attributes: api.WebArticle(
-            url: 'https://www.anthropic.com/engineering/demystifying-evals',
-            title: articleTitle,
-            content:
-                '<article><p>Good evaluations help teams ship.</p></article>',
-          ),
+        api.GetWebArticle200Response(
+          id: 7,
+          url: 'https://www.anthropic.com/engineering/demystifying-evals',
+          title: articleTitle,
+          content:
+              '<article><p>Good evaluations help teams ship.</p></article>',
         ).toJson(),
       ),
     );
@@ -50,7 +48,7 @@ void main() {
     await $(AppDebugKey.readingListNavDestination).tap();
     expect($(AppDebugKey.readingListScreen), findsOneWidget);
     await $(AppDebugKey.readingListRow(articleTitle)).tap();
-    expect($(AppDebugKey.readingListWebArticleReaderScreen), findsOneWidget);
+    expect($(AppDebugKey.webArticleReaderScreen), findsOneWidget);
     expect($(AppDebugKey.readerTitle(articleTitle)), findsOneWidget);
   });
 

@@ -1,0 +1,45 @@
+get:
+  summary: Get a web article by ID
+  operationId: getWebArticle
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [id, url, title]
+            properties:
+              id:
+                type: integer
+              url:
+                type: string
+                format: uri
+              title:
+                type: string
+              description:
+                type: string
+              content:
+                type: string
+          example:
+            id: 1
+            url: "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents"
+            title: "Demystifying evals for AI agents"
+            description:
+              "The capabilities that make agents useful also make them difficult
+              to evaluate."
+            content:
+              "<article><h2>Introduction</h2><p>Good evaluations help teams ship
+              AI agents more confidently...</p></article>"
+    "400":
+      $ref: "../components/responses.yaml#/BadRequest"
+    "404":
+      $ref: "../components/responses.yaml#/NotFound"
+    "500":
+      $ref: "../components/responses.yaml#/InternalServerError"
