@@ -13,6 +13,18 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 )
 
+// DeleteItem removes an item from the list.
+// if the item kind is web_article, the associated web article data is also deleted.
+//
+// The operations for inexistent IDs report no error.
+func DeleteItem(ctx context.Context, db *sql.DB, id int) error {
+	_, err := db.ExecContext(ctx, `
+		DELETE FROM reading_list_items
+		WHERE id = $1;
+	`, id)
+	return err
+}
+
 func ArchiveItem(ctx context.Context, db *sql.DB, id int) error {
 	return setItemArchivedStatus(ctx, db, id, true)
 }

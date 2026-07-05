@@ -51,6 +51,7 @@ func StartServer(ctx context.Context) {
 	mux.HandleFunc("POST /reading-list", h.saveToReadingList)
 	mux.HandleFunc("GET /reading-list", h.getReadingList)
 	mux.HandleFunc("GET /reading-list/{id}", h.getReadingListItem)
+	mux.HandleFunc("DELETE /reading-list/{id}", h.deleteReadingListItem)
 	mux.HandleFunc("PATCH /reading-list/{id}", h.setReadingListItemArchivedStatus)
 
 	srv := http.Server{
@@ -726,6 +727,29 @@ func (h *handler) getReadingListItem(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	w.Write(jres)
+}
+
+func (h *handler) deleteReadingListItem(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		serverError(w, http.StatusBadRequest, "Malformed ID")
+		return
+	}
+	err = readinglist.DeleteItem(r.Context(), h.db, id)
+	if err != nil {
+		fmt.Println(err)
+		serverError(w, http.StatusInternalServerError, "Something went wrong.")
+		return
+	}
+	// TODO: DRY JSON response creation
+	jres, err := json.Marshal(map[string]string{})
+	if err != nil {
+		serverError(w, http.StatusInternalServerError, "Failed to construct JSON response")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusNoContent)
 	w.Write(jres)
 }
 
