@@ -18,9 +18,6 @@ void main() {
         api.GetReadingList200Response(
           items: [
             api.ReadingListItem(
-              // The reading list item id and the web article id are distinct id
-              // spaces now; the reader is navigated by resource_id (the web
-              // article id).
               id: 1,
               resourceId: 7,
               kind: api.ReadingListItemKindEnum.webArticle,

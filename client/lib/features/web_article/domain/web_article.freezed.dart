@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$WebArticle {
 
- String get url; String get title; String? get description; String? get content;
+ String get url; String? get title; String? get description; String? get content;
 /// Create a copy of WebArticle
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -45,7 +45,7 @@ abstract mixin class $WebArticleCopyWith<$Res>  {
   factory $WebArticleCopyWith(WebArticle value, $Res Function(WebArticle) _then) = _$WebArticleCopyWithImpl;
 @useResult
 $Res call({
- String url, String title, String? description, String? content
+ String url, String? title, String? description, String? content
 });
 
 
@@ -62,11 +62,11 @@ class _$WebArticleCopyWithImpl<$Res>
 
 /// Create a copy of WebArticle
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? url = null,Object? title = null,Object? description = freezed,Object? content = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? url = null,Object? title = freezed,Object? description = freezed,Object? content = freezed,}) {
   return _then(_self.copyWith(
 url: null == url ? _self.url : url // ignore: cast_nullable_to_non_nullable
-as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
-as String,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
+as String,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
+as String?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String?,content: freezed == content ? _self.content : content // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
@@ -153,7 +153,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String url,  String title,  String? description,  String? content)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String url,  String? title,  String? description,  String? content)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _WebArticle() when $default != null:
 return $default(_that.url,_that.title,_that.description,_that.content);case _:
@@ -174,7 +174,7 @@ return $default(_that.url,_that.title,_that.description,_that.content);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String url,  String title,  String? description,  String? content)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String url,  String? title,  String? description,  String? content)  $default,) {final _that = this;
 switch (_that) {
 case _WebArticle():
 return $default(_that.url,_that.title,_that.description,_that.content);case _:
@@ -194,7 +194,7 @@ return $default(_that.url,_that.title,_that.description,_that.content);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String url,  String title,  String? description,  String? content)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String url,  String? title,  String? description,  String? content)?  $default,) {final _that = this;
 switch (_that) {
 case _WebArticle() when $default != null:
 return $default(_that.url,_that.title,_that.description,_that.content);case _:
@@ -209,11 +209,11 @@ return $default(_that.url,_that.title,_that.description,_that.content);case _:
 
 
 class _WebArticle implements WebArticle {
-  const _WebArticle({required this.url, required this.title, this.description, this.content});
+  const _WebArticle({required this.url, this.title, this.description, this.content});
   
 
 @override final  String url;
-@override final  String title;
+@override final  String? title;
 @override final  String? description;
 @override final  String? content;
 
@@ -247,7 +247,7 @@ abstract mixin class _$WebArticleCopyWith<$Res> implements $WebArticleCopyWith<$
   factory _$WebArticleCopyWith(_WebArticle value, $Res Function(_WebArticle) _then) = __$WebArticleCopyWithImpl;
 @override @useResult
 $Res call({
- String url, String title, String? description, String? content
+ String url, String? title, String? description, String? content
 });
 
 
@@ -264,11 +264,11 @@ class __$WebArticleCopyWithImpl<$Res>
 
 /// Create a copy of WebArticle
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? url = null,Object? title = null,Object? description = freezed,Object? content = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? url = null,Object? title = freezed,Object? description = freezed,Object? content = freezed,}) {
   return _then(_WebArticle(
 url: null == url ? _self.url : url // ignore: cast_nullable_to_non_nullable
-as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
-as String,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
+as String,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
+as String?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String?,content: freezed == content ? _self.content : content // ignore: cast_nullable_to_non_nullable
 as String?,
   ));

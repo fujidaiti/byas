@@ -15,7 +15,7 @@ class GetWebArticle200Response {
   GetWebArticle200Response({
     required this.id,
     required this.url,
-    required this.title,
+    this.title,
     this.description,
     this.content,
   });
@@ -24,7 +24,13 @@ class GetWebArticle200Response {
 
   String url;
 
-  String title;
+  ///
+  /// Please note: This property should have been non-nullable! Since the specification file
+  /// does not include a default value (using the "default:" property), however, the generated
+  /// source code must fall back to having a nullable type.
+  /// Consider adding a "default:" property in the specification file to hide this note.
+  ///
+  String? title;
 
   ///
   /// Please note: This property should have been non-nullable! Since the specification file
@@ -57,7 +63,7 @@ class GetWebArticle200Response {
       // ignore: unnecessary_parenthesis
       (id.hashCode) +
       (url.hashCode) +
-      (title.hashCode) +
+      (title == null ? 0 : title!.hashCode) +
       (description == null ? 0 : description!.hashCode) +
       (content == null ? 0 : content!.hashCode);
 
@@ -69,7 +75,11 @@ class GetWebArticle200Response {
     final json = <String, dynamic>{};
     json[r'id'] = this.id;
     json[r'url'] = this.url;
-    json[r'title'] = this.title;
+    if (this.title != null) {
+      json[r'title'] = this.title;
+    } else {
+      json[r'title'] = null;
+    }
     if (this.description != null) {
       json[r'description'] = this.description;
     } else {
@@ -102,17 +112,13 @@ class GetWebArticle200Response {
             'Required key "GetWebArticle200Response[url]" is missing from JSON.');
         assert(json[r'url'] != null,
             'Required key "GetWebArticle200Response[url]" has a null value in JSON.');
-        assert(json.containsKey(r'title'),
-            'Required key "GetWebArticle200Response[title]" is missing from JSON.');
-        assert(json[r'title'] != null,
-            'Required key "GetWebArticle200Response[title]" has a null value in JSON.');
         return true;
       }());
 
       return GetWebArticle200Response(
         id: mapValueOfType<int>(json, r'id')!,
         url: mapValueOfType<String>(json, r'url')!,
-        title: mapValueOfType<String>(json, r'title')!,
+        title: mapValueOfType<String>(json, r'title'),
         description: mapValueOfType<String>(json, r'description'),
         content: mapValueOfType<String>(json, r'content'),
       );
@@ -173,6 +179,5 @@ class GetWebArticle200Response {
   static const requiredKeys = <String>{
     'id',
     'url',
-    'title',
   };
 }

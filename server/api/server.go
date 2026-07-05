@@ -664,7 +664,7 @@ func (h *handler) getReadingList(w http.ResponseWriter, r *http.Request) {
 type getWebArticleResBody struct {
 	ID          int     `json:"id"`
 	URL         string  `json:"url"`
-	Title       string  `json:"title"`
+	Title       *string `json:"title,omitempty"`
 	Description *string `json:"description,omitempty"`
 	Content     *string `json:"content,omitempty"`
 }
@@ -679,14 +679,11 @@ func (h *handler) getWebArticle(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	var res getWebArticleResBody
-	// web_articles.title is nullable (empty until the fetch extracts one), but
-	// the response's title is required, so coalesce NULL to an empty string.
-	var title *string
 	err = h.db.QueryRowContext(ctx, `
 		SELECT id, url, title, description, content
 		FROM web_articles
 		WHERE id = $1;
-	`, id).Scan(&res.ID, &res.URL, &title, &res.Description, &res.Content)
+	`, id).Scan(&res.ID, &res.URL, &res.Title, &res.Description, &res.Content)
 	if errors.Is(err, sql.ErrNoRows) {
 		serverError(w, http.StatusNotFound, "Web article not found.")
 		return
@@ -694,9 +691,6 @@ func (h *handler) getWebArticle(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 		serverError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to fetch web article by ID=%d", id))
 		return
-	}
-	if title != nil {
-		res.Title = *title
 	}
 
 	jres, err := json.Marshal(res)

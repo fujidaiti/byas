@@ -39,7 +39,9 @@ class WebArticleReaderScreen extends ConsumerWidget {
       appBar: AppBar(
         title: HeadingText(
           title,
-          key: article != null ? AppDebugKey.readerTitle(article.title) : null,
+          key: article != null
+              ? AppDebugKey.readerTitle(article.title ?? '')
+              : null,
         ),
         actions: [
           if (article != null)
