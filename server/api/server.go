@@ -48,9 +48,9 @@ func StartServer(ctx context.Context) {
 	mux.HandleFunc("GET /feeds/{id}", h.getFeed)
 	mux.HandleFunc("GET /feeds/{id}/timeline", h.getFeedTimeline)
 	mux.HandleFunc("GET /feed-entries/{id}", h.getFeedEntry)
+	mux.HandleFunc("GET /web-articles/{id}", h.getWebArticle)
 	mux.HandleFunc("POST /reading-list", h.saveToReadingList)
 	mux.HandleFunc("GET /reading-list", h.getReadingList)
-	mux.HandleFunc("GET /reading-list/{id}", h.getReadingListItem)
 	mux.HandleFunc("DELETE /reading-list/{id}", h.deleteReadingListItem)
 	mux.HandleFunc("PATCH /reading-list/{id}", h.setReadingListItemArchivedStatus)
 
@@ -599,7 +599,7 @@ type readingListItem struct {
 func (h *handler) getReadingList(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	rows, err := h.db.QueryContext(ctx, `
-		SELECT id, kind, title, description, saved_at, feed_entry_id
+		SELECT id, kind, title, description, saved_at, web_article_id, feed_entry_id
 		FROM reading_list_items
 		WHERE archived = false
 		ORDER BY saved_at DESC;
@@ -613,8 +613,8 @@ func (h *handler) getReadingList(w http.ResponseWriter, r *http.Request) {
 	res := getReadingListResBody{Items: []readingListItem{}}
 	for rows.Next() {
 		var li readingListItem
-		var feID *int
-		err := rows.Scan(&li.ID, &li.Kind, &li.Title, &li.Description, &li.SavedAt, &feID)
+		var waID, feID *int
+		err := rows.Scan(&li.ID, &li.Kind, &li.Title, &li.Description, &li.SavedAt, &waID, &feID)
 		if err != nil {
 			fmt.Println(err)
 			serverError(w, http.StatusInternalServerError, "Failed to fetch reading list item")
@@ -622,7 +622,12 @@ func (h *handler) getReadingList(w http.ResponseWriter, r *http.Request) {
 		}
 		switch li.Kind {
 		case "web_article":
-			li.ResourceID = li.ID
+			if waID == nil {
+				fmt.Println("Malformed data: a reading list item of kind 'web_article' is expected to have a web article ID, but it doesn't.")
+				serverError(w, http.StatusInternalServerError, "Failed to fetch reading list item")
+				return
+			}
+			li.ResourceID = *waID
 
 		case "feed_entry":
 			if feID == nil {
@@ -656,84 +661,41 @@ func (h *handler) getReadingList(w http.ResponseWriter, r *http.Request) {
 	w.Write(jres)
 }
 
-type getReadingListItemResBody struct {
-	ID       int       `json:"id"`
-	Kind     string    `json:"kind"`
-	Archived bool      `json:"archived"`
-	SavedAt  time.Time `json:"saved_at"`
-	Attrs    any       `json:"attributes"`
-}
-
-type readingListWebArticleAttrs struct {
+type getWebArticleResBody struct {
+	ID          int     `json:"id"`
 	URL         string  `json:"url"`
-	Title       string  `json:"title"`
+	Title       *string `json:"title,omitempty"`
 	Description *string `json:"description,omitempty"`
 	Content     *string `json:"content,omitempty"`
 }
 
-func (h *handler) getReadingListItem(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
+func (h *handler) getWebArticle(w http.ResponseWriter, r *http.Request) {
+	rawId := r.PathValue("id")
+	id, err := strconv.Atoi(rawId)
 	if err != nil {
-		fmt.Println(err)
-		serverError(w, http.StatusBadRequest, "Invalid ID")
+		serverError(w, http.StatusBadRequest, fmt.Sprintf("Invalid web article ID: %s", rawId))
 		return
 	}
 
 	ctx := r.Context()
-	var res getReadingListItemResBody
-	var title string
-	var desc *string
-	var waID *int
+	var res getWebArticleResBody
 	err = h.db.QueryRowContext(ctx, `
-		SELECT id, kind, archived, saved_at, title, description, web_article_id
-		FROM reading_list_items
+		SELECT id, url, title, description, content
+		FROM web_articles
 		WHERE id = $1;
-	`, id).Scan(&res.ID, &res.Kind, &res.Archived, &res.SavedAt, &title, &desc, &waID)
+	`, id).Scan(&res.ID, &res.URL, &res.Title, &res.Description, &res.Content)
 	if errors.Is(err, sql.ErrNoRows) {
-		serverError(w, http.StatusNotFound, "Item not found")
+		serverError(w, http.StatusNotFound, "Web article not found.")
 		return
 	} else if err != nil {
 		fmt.Println(err)
-		serverError(w, http.StatusInternalServerError, "Failed to fetch item")
+		serverError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to fetch web article by ID=%d", id))
 		return
 	}
 
-	switch res.Kind {
-	case "web_article":
-		if waID == nil {
-			fmt.Printf("Malformed data: A reading list item (ID=%d) of kind web_article "+
-				"should have a web article ID, but it doesn't.", id)
-			serverError(w, http.StatusInternalServerError, "Something went wrong")
-			return
-		}
-		a := readingListWebArticleAttrs{Title: title, Description: desc}
-		err = h.db.QueryRowContext(ctx, `
-			SELECT url, content
-			FROM web_articles
-			WHERE id = $1;
-		`, waID).Scan(&a.URL, &a.Content)
-		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				fmt.Printf("Malformed data: a web article of ID=%d does not exist.", *waID)
-			} else {
-				fmt.Println(err)
-			}
-			serverError(w, http.StatusInternalServerError, "Failed to fetch web article details")
-			return
-		}
-		res.Attrs = a
-
-	// TODO: Add case "feed_entry"
-	default:
-		fmt.Printf("Unknown reading list item kind: %s\n", res.Kind)
-		serverError(w, http.StatusInternalServerError, "Failed to fetch item details")
-		return
-	}
-
-	// TODO: DRY JSON response creation
 	jres, err := json.Marshal(res)
 	if err != nil {
-		serverError(w, http.StatusInternalServerError, "Failed to construct JSON response")
+		serverError(w, http.StatusInternalServerError, "Failed to construct a JSON response.")
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
