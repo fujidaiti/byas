@@ -736,10 +736,14 @@ func (h *handler) deleteReadingListItem(w http.ResponseWriter, r *http.Request) 
 		serverError(w, http.StatusBadRequest, "Malformed ID")
 		return
 	}
-	err = readinglist.DeleteItem(r.Context(), h.db, id)
+	ok, err := readinglist.DeleteItem(r.Context(), h.db, id)
 	if err != nil {
 		fmt.Println(err)
 		serverError(w, http.StatusInternalServerError, "Something went wrong.")
+		return
+	}
+	if !ok {
+		serverError(w, http.StatusNotFound, "Item not found")
 		return
 	}
 	// TODO: DRY JSON response creation
