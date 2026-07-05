@@ -21,6 +21,9 @@ abstract final class AppDebugKey {
   static const readingListNavDestination = Key('readingListNavDestination');
   static const readingListScreen = Key('readingListScreen');
   static const webArticleReaderScreen = Key('webArticleReaderScreen');
+  static const webArticleReaderBookmarkButton = Key(
+    'webArticleReaderBookmarkButton',
+  );
   static const webArticleReaderOpenOriginalButton = Key(
     'webArticleReaderOpenOriginalButton',
   );

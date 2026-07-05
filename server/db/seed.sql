@@ -63,7 +63,7 @@ CREATE TABLE reading_list_items (
   kind          text NOT NULL CHECK (kind IN ('feed_entry', 'web_article')),
   web_article_id bigint REFERENCES web_articles (id),
   feed_entry_id bigint REFERENCES feed_entries (id),
-  title         text NOT NULL,
+  title         text NOT NULL, -- TODO: Make this nullable
   description   text,
   archived      boolean NOT NULL DEFAULT false,
   saved_at      timestamptz NOT NULL DEFAULT now(),

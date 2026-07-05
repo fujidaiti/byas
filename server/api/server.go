@@ -523,6 +523,10 @@ type saveToReadingListReqBody struct {
 	Title *string `json:"title"`
 
 	FeedEntryID *int `json:"feed_entry_id"`
+
+	// WebArticleID re-saves an already-existing web article (e.g. one just
+	// unsaved from the reader), re-attaching its row without re-fetching.
+	WebArticleID *int `json:"web_article_id"`
 }
 
 func (h *handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
@@ -539,6 +543,9 @@ func (h *handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 		argn++
 	}
 	if b.FeedEntryID != nil {
+		argn++
+	}
+	if b.WebArticleID != nil {
 		argn++
 	}
 	if argn != 1 {
@@ -578,6 +585,20 @@ func (h *handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			fmt.Println(err)
 			serverError(w, http.StatusInternalServerError, "Failed to save feed entry")
+			return
+		}
+		// TODO: DRY JSON response creation
+		jres, _ := json.Marshal(map[string]string{})
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		w.Write(jres)
+
+	case b.WebArticleID != nil:
+		// TODO: Return 404 instead of 500 when the given ID doesn't exist
+		err := readinglist.SaveWebArticleByID(ctx, h.db, *b.WebArticleID)
+		if err != nil {
+			fmt.Println(err)
+			serverError(w, http.StatusInternalServerError, "Failed to save web article")
 			return
 		}
 		// TODO: DRY JSON response creation
@@ -674,6 +695,10 @@ type getWebArticleResBody struct {
 	Title       *string `json:"title,omitempty"`
 	Description *string `json:"description,omitempty"`
 	Content     *string `json:"content,omitempty"`
+
+	// ReadingListItemID is the id of the reading list item backing this article,
+	// if it is currently saved (unarchived). Nil when the article is not saved.
+	ReadingListItemID *int `json:"reading_list_item_id,omitempty"`
 }
 
 func (h *handler) getWebArticle(w http.ResponseWriter, r *http.Request) {
@@ -687,10 +712,13 @@ func (h *handler) getWebArticle(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var res getWebArticleResBody
 	err = h.db.QueryRowContext(ctx, `
-		SELECT id, url, title, description, content
+		SELECT id, url, title, description, content,
+			(SELECT id FROM reading_list_items
+				WHERE web_article_id = web_articles.id AND archived = false
+				LIMIT 1)
 		FROM web_articles
 		WHERE id = $1;
-	`, id).Scan(&res.ID, &res.URL, &res.Title, &res.Description, &res.Content)
+	`, id).Scan(&res.ID, &res.URL, &res.Title, &res.Description, &res.Content, &res.ReadingListItemID)
 	if errors.Is(err, sql.ErrNoRows) {
 		serverError(w, http.StatusNotFound, "Web article not found.")
 		return

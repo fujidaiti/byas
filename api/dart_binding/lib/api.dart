@@ -32,6 +32,7 @@ part 'model/reading_list_item.dart';
 part 'model/save_to_reading_list_request.dart';
 part 'model/save_to_reading_list_request_one_of.dart';
 part 'model/save_to_reading_list_request_one_of1.dart';
+part 'model/save_to_reading_list_request_one_of2.dart';
 part 'model/search_feeds200_response.dart';
 part 'model/set_reading_list_item_archived_status_request.dart';
 part 'model/story.dart';

@@ -31,6 +31,18 @@ class ReadingListRepositoryImpl implements ReadingListRepository {
   }
 
   @override
+  Future<void> saveWebArticle(int webArticleId) {
+    return runRequest(() async {
+      await _dio.post<void>(
+        '/reading-list',
+        data: api.SaveToReadingListRequestOneOf2(
+          webArticleId: webArticleId,
+        ).toJson(),
+      );
+    });
+  }
+
+  @override
   Future<void> removeItem(int id) {
     return runRequest(() async {
       await _dio.delete<void>('/reading-list/$id');

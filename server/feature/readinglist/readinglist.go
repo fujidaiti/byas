@@ -15,6 +15,11 @@ import (
 
 // DeleteItem removes an item from the list.
 // Reports false with no error if the id does not exist, true otherwise.
+//
+// TODO: Garbage-collect orphaned web articles in the background. Deleting the
+// join row here leaves the backing web_articles row unreachable (it can only be
+// reached via a reading_list_items row), so a background job should periodically
+// delete web_articles that have no referencing reading_list_items.
 func DeleteItem(ctx context.Context, db *sql.DB, id int) (bool, error) {
 	res, err := db.ExecContext(ctx, `
 		DELETE FROM reading_list_items
@@ -60,6 +65,24 @@ func SaveFeedEntry(ctx context.Context, db *sql.DB, id int) error {
 		INSERT INTO reading_list_items (kind, feed_entry_id, title, description)
 		SELECT 'feed_entry', id, title, description
 		FROM feed_entries
+		WHERE id = $1
+		RETURNING id;
+	`, id).Scan(new(int))
+	// TODO: Return a dedicated error for the case where the id doesn't exist
+	return err
+}
+
+// SaveWebArticleByID re-saves an existing web article to the reading list by its
+// id, re-attaching its row without re-fetching. Used when re-saving an article
+// that was just unsaved from the reader (the web_articles row survives an
+// unsave, since DeleteItem removes only the join row).
+func SaveWebArticleByID(ctx context.Context, db *sql.DB, id int) error {
+	// reading_list_items.title is NOT NULL but web_articles.title is nullable,
+	// so coalesce to keep the placeholder well-formed.
+	err := db.QueryRowContext(ctx, `
+		INSERT INTO reading_list_items (kind, web_article_id, title, description)
+		SELECT 'web_article', id, COALESCE(title, ''), description
+		FROM web_articles
 		WHERE id = $1
 		RETURNING id;
 	`, id).Scan(new(int))

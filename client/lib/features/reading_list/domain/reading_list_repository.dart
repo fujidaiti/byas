@@ -11,6 +11,10 @@ abstract interface class ReadingListRepository {
   /// `POST /reading-list` with `{"feed_entry_id": id}` → saves the feed entry.
   Future<void> saveFeedEntry(int feedEntryId);
 
+  /// `POST /reading-list` with `{"web_article_id": id}` → re-saves an existing
+  /// web article (e.g. one just unsaved from the reader).
+  Future<void> saveWebArticle(int webArticleId);
+
   /// `DELETE /reading-list/{id}` → removes the item from the reading list.
   Future<void> removeItem(int id);
 
