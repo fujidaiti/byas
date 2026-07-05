@@ -47,8 +47,8 @@ class ReadingListRow extends StatelessWidget {
       case ReadingListItemKind.webArticle:
         unawaited(
           context.pushNamed(
-            routeReadingListWebArticleReaderName,
-            pathParameters: {'id': '${item.id}'},
+            routeWebArticleReaderName,
+            pathParameters: {'id': '${item.resourceId}'},
             extra: item.title,
           ),
         );

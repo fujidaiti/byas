@@ -9,7 +9,7 @@ import 'package:paperdoll/features/feed_entry/presentation/feed_entry_reader_scr
 import 'package:paperdoll/features/newspaper/presentation/story_reader_screen.dart';
 import 'package:paperdoll/features/newspaper/presentation/today_screen.dart';
 import 'package:paperdoll/features/reading_list/presentation/reading_list_screen.dart';
-import 'package:paperdoll/features/reading_list/presentation/reading_list_web_article_reader_screen.dart';
+import 'package:paperdoll/features/web_article/presentation/web_article_reader_screen.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'app_router.g.dart';
@@ -55,14 +55,13 @@ GoRouter goRouter(Ref ref) {
                 builder: (context, state) => const ReadingListScreen(),
                 routes: [
                   GoRoute(
-                    path: routeReadingListWebArticleReaderPath,
-                    name: routeReadingListWebArticleReaderName,
+                    path: routeWebArticleReaderPath,
+                    name: routeWebArticleReaderName,
                     parentNavigatorKey: _rootNavigatorKey,
-                    builder: (context, state) =>
-                        ReadingListWebArticleReaderScreen(
-                          id: _idParam(state, 'id'),
-                          initialTitle: state.extra! as String,
-                        ),
+                    builder: (context, state) => WebArticleReaderScreen(
+                      id: _idParam(state, 'id'),
+                      initialTitle: state.extra! as String,
+                    ),
                   ),
                   GoRoute(
                     path: routeReadingListFeedEntryReaderPath,

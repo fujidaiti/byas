@@ -23,7 +23,7 @@ class ReadingListItem {
 
   int id;
 
-  /// The ID of the resource backing this item — its own `id` for `web_article`, or the feed entry ID for `feed_entry`. Use this to navigate directly to the appropriate reader.
+  /// The ID of the resource backing this item — the web article ID for `web_article`, or the feed entry ID for `feed_entry`. Use this to navigate directly to the appropriate reader.
   int resourceId;
 
   /// The kind of the reading list item.

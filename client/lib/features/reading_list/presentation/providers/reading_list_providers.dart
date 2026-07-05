@@ -2,7 +2,6 @@ import 'package:paperdoll/core/network/dio_provider.dart';
 import 'package:paperdoll/features/reading_list/data/reading_list_repository_impl.dart';
 import 'package:paperdoll/features/reading_list/domain/reading_list_item.dart';
 import 'package:paperdoll/features/reading_list/domain/reading_list_repository.dart';
-import 'package:paperdoll/features/reading_list/domain/web_article.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'reading_list_providers.g.dart';
@@ -53,7 +52,3 @@ class ReadingList extends _$ReadingList {
     state = AsyncData(current);
   }
 }
-
-@riverpod
-Future<WebArticle> webArticle(Ref ref, {required int id}) =>
-    ref.watch(readingListRepositoryProvider).getWebArticle(id);

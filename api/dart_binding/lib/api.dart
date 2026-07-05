@@ -25,9 +25,9 @@ part 'model/feed_entry.dart';
 part 'model/get_feed_timeline200_response.dart';
 part 'model/get_feeds200_response.dart';
 part 'model/get_reading_list200_response.dart';
-part 'model/get_reading_list_item200_response.dart';
 part 'model/get_story200_response.dart';
 part 'model/get_todays_newspaper200_response.dart';
+part 'model/get_web_article200_response.dart';
 part 'model/reading_list_item.dart';
 part 'model/save_to_reading_list_request.dart';
 part 'model/save_to_reading_list_request_one_of.dart';
@@ -36,7 +36,6 @@ part 'model/search_feeds200_response.dart';
 part 'model/set_reading_list_item_archived_status_request.dart';
 part 'model/story.dart';
 part 'model/subscribe_to_feed_request.dart';
-part 'model/web_article.dart';
 
 const _delimiters = {'csv': ',', 'ssv': ' ', 'tsv': '\t', 'pipes': '|'};
 const _dateEpochMarker = 'epoch';

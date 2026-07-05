@@ -10,7 +10,7 @@ part 'web_article.freezed.dart';
 abstract class WebArticle with _$WebArticle {
   const factory WebArticle({
     required String url,
-    required String title,
+    String? title,
     String? description,
     String? content,
   }) = _WebArticle;

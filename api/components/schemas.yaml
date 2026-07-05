@@ -70,7 +70,7 @@ ReadingListItem:
       type: integer
     resource_id:
       description:
-        The ID of the resource backing this item — its own `id` for
+        The ID of the resource backing this item — the web article ID for
         `web_article`, or the feed entry ID for `feed_entry`. Use this to
         navigate directly to the appropriate reader.
       type: integer
@@ -85,20 +85,6 @@ ReadingListItem:
     saved_at:
       type: string
       format: date-time
-
-WebArticle:
-  type: object
-  required: [url, title]
-  properties:
-    url:
-      type: string
-      format: uri
-    title:
-      type: string
-    description:
-      type: string
-    content:
-      type: string
 
 Story:
   type: object
