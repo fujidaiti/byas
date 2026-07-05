@@ -216,6 +216,10 @@ type feedEntry struct {
 
 type getFeedEntryResponse struct {
 	feedEntry
+
+	// ReadingListItemID is the id of the reading list item backing this entry,
+	// if it is currently saved (unarchived). Nil when the entry is not saved.
+	ReadingListItemID *int `json:"reading_list_item_id,omitempty"`
 }
 
 func (h *handler) getFeedEntry(w http.ResponseWriter, r *http.Request) {
@@ -229,10 +233,13 @@ func (h *handler) getFeedEntry(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	res := getFeedEntryResponse{}
 	err = h.db.QueryRowContext(ctx, `
-		SELECT id, feed_id, url, title, description, content, snapshot_at, published_at
+		SELECT id, feed_id, url, title, description, content, snapshot_at, published_at,
+			(SELECT id FROM reading_list_items
+				WHERE feed_entry_id = feed_entries.id AND archived = false
+				LIMIT 1)
 		FROM feed_entries
 		WHERE id = $1;
-	`, id).Scan(&res.ID, &res.FeedID, &res.URL, &res.Title, &res.Description, &res.Content, &res.SnapshotAt, &res.PublishedAt)
+	`, id).Scan(&res.ID, &res.FeedID, &res.URL, &res.Title, &res.Description, &res.Content, &res.SnapshotAt, &res.PublishedAt, &res.ReadingListItemID)
 	if errors.Is(err, sql.ErrNoRows) {
 		serverError(w, http.StatusNotFound, "Entry not found.")
 		return

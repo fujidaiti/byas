@@ -6,6 +6,9 @@ abstract final class AppDebugKey {
   static const addFeedButton = Key('addFeedButton');
   static const archiveSuccessSnackBar = Key('archiveSuccessSnackBar');
   static const feedDetailScreen = Key('feedDetailScreen');
+  static const feedEntryReaderBookmarkButton = Key(
+    'feedEntryReaderBookmarkButton',
+  );
   static const feedEntryReaderOpenOriginalButton = Key(
     'feedEntryReaderOpenOriginalButton',
   );
@@ -22,6 +25,12 @@ abstract final class AppDebugKey {
   );
   static const readingListWebArticleReaderOpenOriginalButton = Key(
     'readingListWebArticleReaderOpenOriginalButton',
+  );
+  static const removeFromReadingListSuccessSnackBar = Key(
+    'removeFromReadingListSuccessSnackBar',
+  );
+  static const saveToReadingListSuccessSnackBar = Key(
+    'saveToReadingListSuccessSnackBar',
   );
   static const storyReaderOpenOriginalButton = Key(
     'storyReaderOpenOriginalButton',
