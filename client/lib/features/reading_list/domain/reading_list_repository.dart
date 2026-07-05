@@ -1,5 +1,4 @@
 import 'package:paperdoll/features/reading_list/domain/reading_list_item.dart';
-import 'package:paperdoll/features/reading_list/domain/web_article.dart';
 
 /// Reads the saved reading list.
 ///
@@ -8,9 +7,6 @@ import 'package:paperdoll/features/reading_list/domain/web_article.dart';
 abstract interface class ReadingListRepository {
   /// `GET /reading-list` → the saved, unarchived items, newest first.
   Future<List<ReadingListItem>> list({String? cursor});
-
-  /// `GET /reading-list/{id}` → a single web_article item's details.
-  Future<WebArticle> getWebArticle(int id);
 
   /// `POST /reading-list` with `{"feed_entry_id": id}` → saves the feed entry.
   Future<void> saveFeedEntry(int feedEntryId);

@@ -20,6 +20,8 @@ paths:
     $ref: "./paths/feeds.yaml#/timeline"
   /feed-entries/{id}:
     $ref: "./paths/feed-entries.yaml"
+  /web-articles/{id}:
+    $ref: "./paths/web-articles.yaml"
   /reading-list:
     $ref: "./paths/reading-list.yaml"
   /reading-list/{id}:
@@ -35,8 +37,6 @@ components:
       $ref: "./components/schemas.yaml#/FeedEntry"
     ReadingListItem:
       $ref: "./components/schemas.yaml#/ReadingListItem"
-    WebArticle:
-      $ref: "./components/schemas.yaml#/WebArticle"
     Story:
       $ref: "./components/schemas.yaml#/Story"
     Error:

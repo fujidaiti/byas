@@ -14,8 +14,6 @@ import (
 )
 
 // DeleteItem removes an item from the list.
-// If the item kind is web_article, the associated web article data is also deleted.
-//
 // Reports false with no error if the id does not exist, true otherwise.
 func DeleteItem(ctx context.Context, db *sql.DB, id int) (bool, error) {
 	res, err := db.ExecContext(ctx, `
@@ -82,19 +80,21 @@ func SaveWebArticle(ctx context.Context, db *sql.DB, u url.URL, title string) er
 		return err
 	}
 	defer tx.Rollback()
-	var id int
+	var aID int
 	err = tx.QueryRowContext(ctx, `
-		INSERT INTO reading_list_items (kind, title)
-		VALUES ('web_article', $1)
+		INSERT INTO web_articles (url)
+		VALUES ($1)
 		RETURNING id;
-	`, title).Scan(&id)
+	`, u.String()).Scan(&aID)
 	if err != nil {
 		return err
 	}
-	_, err = tx.ExecContext(ctx, `
-		INSERT INTO reading_list_item_web_article_details (reading_list_item_id, url)
-		VALUES ($1, $2);
-	`, id, u.String())
+	var rID int
+	err = tx.QueryRowContext(ctx, `
+		INSERT INTO reading_list_items (kind, web_article_id, title)
+		VALUES ('web_article', $1, $2)
+		RETURNING id;
+	`, aID, title).Scan(&rID)
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func SaveWebArticle(ctx context.Context, db *sql.DB, u url.URL, title string) er
 
 	go func() {
 		// TODO: Recover from panic
-		err := tryFetchWebArticle(db, id, u)
+		err := tryFetchWebArticle(db, rID, aID, u)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -112,20 +112,20 @@ func SaveWebArticle(ctx context.Context, db *sql.DB, u url.URL, title string) er
 	return nil
 }
 
-func tryFetchWebArticle(db *sql.DB, id int, u url.URL) error {
+func tryFetchWebArticle(db *sql.DB, rID, aID int, u url.URL) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	err := fetchWebArticle(ctx, db, id, u)
+	err := fetchWebArticle(ctx, db, rID, aID, u)
 	if err == nil {
 		return nil
 	}
 	ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	_, dbErr := db.ExecContext(ctx, `
-		UPDATE reading_list_item_web_article_details
+		UPDATE web_articles
 		SET fetch_status = 'failed'
-		WHERE reading_list_item_id = $1;
-	`, id)
+		WHERE id = $1;
+	`, aID)
 	if dbErr != nil {
 		return errors.Join(err, dbErr)
 	}
@@ -133,7 +133,7 @@ func tryFetchWebArticle(db *sql.DB, id int, u url.URL) error {
 }
 
 // TODO: DRY scraping logic
-func fetchWebArticle(ctx context.Context, db *sql.DB, id int, u url.URL) error {
+func fetchWebArticle(ctx context.Context, db *sql.DB, rID, aID int, u url.URL) error {
 	fmt.Printf("Fetching reading list article from %s\n", u.String())
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
@@ -184,23 +184,32 @@ func fetchWebArticle(ctx context.Context, db *sql.DB, id int, u url.URL) error {
 	defer tx.Rollback()
 	// Only overwrite the title when the fetch actually extracted one; otherwise
 	// keep the existing (placeholder) title rather than clobbering it with ''.
-	if extractedTitle := article.Title(); extractedTitle != "" {
+	if t := article.Title(); t != "" {
 		_, err = tx.ExecContext(ctx, `
 			UPDATE reading_list_items
 			SET title = $1
 			WHERE id = $2;
-		`, extractedTitle, id)
+		`, t, rID)
 		if err != nil {
 			return err
 		}
-	}
-	_, err = tx.ExecContext(ctx, `
-		UPDATE reading_list_item_web_article_details
-		SET content = $1, fetch_status = 'done'
-		WHERE reading_list_item_id = $2;
-	`, content, id)
-	if err != nil {
-		return err
+		_, err = tx.ExecContext(ctx, `
+			UPDATE web_articles
+			SET title = $1, content = $2, fetch_status = 'done'
+			WHERE id = $3;
+		`, t, content, aID)
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err = tx.ExecContext(ctx, `
+			UPDATE web_articles
+			SET content = $1, fetch_status = 'done'
+			WHERE id = $2;
+		`, content, aID)
+		if err != nil {
+			return err
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		return err
