@@ -47,6 +47,7 @@ class _NewspaperView extends StatelessWidget {
   Widget build(BuildContext context) {
     final stories = newspaper.stories;
     return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
         SliverAppBar(
           pinned: true,
