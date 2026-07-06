@@ -8,6 +8,7 @@ import 'package:paperdoll/core/ui/tokens/app_text_styles.dart';
 import 'package:paperdoll/core/ui/widgets/app_divider.dart';
 import 'package:paperdoll/core/ui/widgets/async_value_view.dart';
 import 'package:paperdoll/core/ui/widgets/empty_placeholder.dart';
+import 'package:paperdoll/core/ui/widgets/scrollable_fill.dart';
 import 'package:paperdoll/debug_keys.dart';
 import 'package:paperdoll/features/reading_list/domain/reading_list_item.dart';
 import 'package:paperdoll/features/reading_list/presentation/providers/reading_list_providers.dart';
@@ -48,9 +49,12 @@ class _ReadingListState extends ConsumerState<_ReadingList> {
   @override
   Widget build(BuildContext context) {
     if (widget.items.isEmpty) {
-      return const EmptyPlaceholder(message: 'Your reading list is empty.');
+      return const ScrollableFill(
+        child: EmptyPlaceholder(message: 'Your reading list is empty.'),
+      );
     }
     return ListView.separated(
+      physics: const AlwaysScrollableScrollPhysics(),
       itemCount: widget.items.length,
       separatorBuilder: (context, index) => const AppDivider(),
       itemBuilder: (context, index) {
