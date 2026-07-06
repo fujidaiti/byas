@@ -79,8 +79,7 @@ post:
       content:
         application/json:
           schema:
-            type: object
-          example: {}
+            $ref: "../components/schemas.yaml#/ReadingListItem"
     "400":
       $ref: "../components/responses.yaml#/BadRequest"
     "500":

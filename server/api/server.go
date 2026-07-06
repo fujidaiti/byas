@@ -516,6 +516,7 @@ func (h *handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
+	var saved readinglist.SavedItem
 	switch {
 	case b.URL != nil:
 		// TODO: Validate URL (schema and host)
@@ -529,46 +530,50 @@ func (h *handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 		if b.Title != nil {
 			title = *b.Title
 		}
-		err = readinglist.SaveWebArticle(ctx, h.db, *u, title)
+		saved, err = readinglist.SaveWebArticle(ctx, h.db, *u, title)
 		if err != nil {
 			fmt.Println(err)
 			serverError(w, http.StatusInternalServerError, "Failed to save article")
 			return
 		}
-		// TODO: DRY JSON response creation
-		jres, _ := json.Marshal(map[string]string{})
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		w.Write(jres)
 
 	case b.FeedEntryID != nil:
 		// TODO: Return 404 instead of 500 when the given ID doesn't exist
-		err := readinglist.SaveFeedEntry(ctx, h.db, *b.FeedEntryID)
+		var err error
+		saved, err = readinglist.SaveFeedEntry(ctx, h.db, *b.FeedEntryID)
 		if err != nil {
 			fmt.Println(err)
 			serverError(w, http.StatusInternalServerError, "Failed to save feed entry")
 			return
 		}
-		// TODO: DRY JSON response creation
-		jres, _ := json.Marshal(map[string]string{})
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		w.Write(jres)
 
 	case b.WebArticleID != nil:
 		// TODO: Return 404 instead of 500 when the given ID doesn't exist
-		err := readinglist.SaveWebArticleByID(ctx, h.db, *b.WebArticleID)
+		var err error
+		saved, err = readinglist.SaveWebArticleByID(ctx, h.db, *b.WebArticleID)
 		if err != nil {
 			fmt.Println(err)
 			serverError(w, http.StatusInternalServerError, "Failed to save web article")
 			return
 		}
-		// TODO: DRY JSON response creation
-		jres, _ := json.Marshal(map[string]string{})
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		w.Write(jres)
 	}
+
+	jres, err := json.Marshal(readingListItem{
+		ID:          saved.ID,
+		ResourceID:  saved.ResourceID,
+		Kind:        saved.Kind,
+		Title:       saved.Title,
+		Description: saved.Description,
+		SavedAt:     saved.SavedAt,
+	})
+	if err != nil {
+		fmt.Println(err)
+		serverError(w, http.StatusInternalServerError, "Failed to construct JSON response")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	w.Write(jres)
 }
 
 type getReadingListResBody struct {
@@ -579,7 +584,7 @@ type readingListItem struct {
 	ID          int       `json:"id"`
 	ResourceID  int       `json:"resource_id"`
 	Kind        string    `json:"kind"`
-	Title       string    `json:"title"`
+	Title       string    `json:"title"` // Make this optional
 	Description *string   `json:"description,omitempty"`
 	SavedAt     time.Time `json:"saved_at"`
 }

@@ -60,34 +60,48 @@ func setItemArchivedStatus(ctx context.Context, db *sql.DB, id int, s bool) erro
 	return nil
 }
 
-func SaveFeedEntry(ctx context.Context, db *sql.DB, id int) error {
+// SavedItem is the reading list item created by a save operation, carrying the
+// same fields the reading list exposes elsewhere so callers can echo it back
+// without a follow-up read.
+type SavedItem struct {
+	ID          int
+	ResourceID  int
+	Kind        string
+	Title       string
+	Description *string
+	SavedAt     time.Time
+}
+
+func SaveFeedEntry(ctx context.Context, db *sql.DB, id int) (SavedItem, error) {
+	var it SavedItem
 	err := db.QueryRowContext(ctx, `
 		INSERT INTO reading_list_items (kind, feed_entry_id, title, description)
 		SELECT 'feed_entry', id, title, description
 		FROM feed_entries
 		WHERE id = $1
-		RETURNING id;
-	`, id).Scan(new(int))
+		RETURNING id, feed_entry_id, kind, title, description, saved_at;
+	`, id).Scan(&it.ID, &it.ResourceID, &it.Kind, &it.Title, &it.Description, &it.SavedAt)
 	// TODO: Return a dedicated error for the case where the id doesn't exist
-	return err
+	return it, err
 }
 
 // SaveWebArticleByID re-saves an existing web article to the reading list by its
 // id, re-attaching its row without re-fetching. Used when re-saving an article
 // that was just unsaved from the reader (the web_articles row survives an
 // unsave, since DeleteItem removes only the join row).
-func SaveWebArticleByID(ctx context.Context, db *sql.DB, id int) error {
+func SaveWebArticleByID(ctx context.Context, db *sql.DB, id int) (SavedItem, error) {
 	// reading_list_items.title is NOT NULL but web_articles.title is nullable,
 	// so coalesce to keep the placeholder well-formed.
+	var it SavedItem
 	err := db.QueryRowContext(ctx, `
 		INSERT INTO reading_list_items (kind, web_article_id, title, description)
 		SELECT 'web_article', id, COALESCE(title, ''), description
 		FROM web_articles
 		WHERE id = $1
-		RETURNING id;
-	`, id).Scan(new(int))
+		RETURNING id, web_article_id, kind, title, description, saved_at;
+	`, id).Scan(&it.ID, &it.ResourceID, &it.Kind, &it.Title, &it.Description, &it.SavedAt)
 	// TODO: Return a dedicated error for the case where the id doesn't exist
-	return err
+	return it, err
 }
 
 // SaveWebArticle appends the web article specified by the URL to the reading list.
@@ -95,12 +109,13 @@ func SaveWebArticleByID(ctx context.Context, db *sql.DB, id int) error {
 //
 // Note that this function immediately returns after creating a placeholder reading list item.
 // It then tries fetching the article itself asynchronously, and fills the placeholders with actual metadata.
-func SaveWebArticle(ctx context.Context, db *sql.DB, u url.URL, title string) error {
+func SaveWebArticle(ctx context.Context, db *sql.DB, u url.URL, title string) (SavedItem, error) {
 	// TODO: Cleanup URL
 	// TODO: Validate URL (schema, host)
+	var it SavedItem
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return it, err
 	}
 	defer tx.Rollback()
 	var aID int
@@ -110,21 +125,21 @@ func SaveWebArticle(ctx context.Context, db *sql.DB, u url.URL, title string) er
 		RETURNING id;
 	`, u.String()).Scan(&aID)
 	if err != nil {
-		return err
+		return it, err
 	}
-	var rID int
 	err = tx.QueryRowContext(ctx, `
 		INSERT INTO reading_list_items (kind, web_article_id, title)
 		VALUES ('web_article', $1, $2)
-		RETURNING id;
-	`, aID, title).Scan(&rID)
+		RETURNING id, web_article_id, kind, title, description, saved_at;
+	`, aID, title).Scan(&it.ID, &it.ResourceID, &it.Kind, &it.Title, &it.Description, &it.SavedAt)
 	if err != nil {
-		return err
+		return it, err
 	}
 	if err = tx.Commit(); err != nil {
-		return err
+		return it, err
 	}
 
+	rID := it.ID
 	go func() {
 		// TODO: Recover from panic
 		err := tryFetchWebArticle(db, rID, aID, u)
@@ -132,7 +147,7 @@ func SaveWebArticle(ctx context.Context, db *sql.DB, u url.URL, title string) er
 			fmt.Println(err)
 		}
 	}()
-	return nil
+	return it, nil
 }
 
 func tryFetchWebArticle(db *sql.DB, rID, aID int, u url.URL) error {

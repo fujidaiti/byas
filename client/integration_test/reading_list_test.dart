@@ -168,7 +168,16 @@ void main() {
     adapter.onGet('/feed-entries/11', (s) => s.reply(200, entry.toJson()));
     adapter.onPost(
       '/reading-list',
-      (s) => s.reply(201, <String, dynamic>{}),
+      (s) => s.reply(
+        201,
+        api.ReadingListItem(
+          id: 42,
+          resourceId: 11,
+          kind: api.ReadingListItemKindEnum.feedEntry,
+          title: entryTitle,
+          savedAt: DateTime.utc(2026, 7, 1),
+        ).toJson(),
+      ),
       data: {'feed_entry_id': 11},
     );
 

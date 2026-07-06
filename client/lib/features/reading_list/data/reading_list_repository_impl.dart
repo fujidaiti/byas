@@ -19,26 +19,28 @@ class ReadingListRepositoryImpl implements ReadingListRepository {
   }
 
   @override
-  Future<void> saveFeedEntry(int feedEntryId) {
+  Future<ReadingListItem> saveFeedEntry(int feedEntryId) {
     return runRequest(() async {
-      await _dio.post<void>(
+      final res = await _dio.post<Map<String, dynamic>>(
         '/reading-list',
         data: api.SaveToReadingListRequestOneOf1(
           feedEntryId: feedEntryId,
         ).toJson(),
       );
+      return _toItem(api.ReadingListItem.fromJson(res.data)!);
     });
   }
 
   @override
-  Future<void> saveWebArticle(int webArticleId) {
+  Future<ReadingListItem> saveWebArticle(int webArticleId) {
     return runRequest(() async {
-      await _dio.post<void>(
+      final res = await _dio.post<Map<String, dynamic>>(
         '/reading-list',
         data: api.SaveToReadingListRequestOneOf2(
           webArticleId: webArticleId,
         ).toJson(),
       );
+      return _toItem(api.ReadingListItem.fromJson(res.data)!);
     });
   }
 

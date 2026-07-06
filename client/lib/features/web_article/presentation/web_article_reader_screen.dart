@@ -111,14 +111,13 @@ class _BookmarkButtonState extends ConsumerState<_BookmarkButton> {
       ),
     );
     try {
-      await ref.read(readingListRepositoryProvider).saveWebArticle(widget.id);
-      // Fetch the freshly created item's id so the toggle can later remove it.
-      // Read the repository directly to avoid reloading the watched reader.
-      final refreshed = await ref
-          .read(webArticleRepositoryProvider)
-          .getWebArticle(widget.id);
+      // The save response carries the created item, so the toggle can remember
+      // its id for a later remove without a follow-up fetch.
+      final item = await ref
+          .read(readingListRepositoryProvider)
+          .saveWebArticle(widget.id);
       if (mounted) {
-        setState(() => _itemId = refreshed.readingListItemId);
+        setState(() => _itemId = item.id);
       }
     } on Exception {
       if (mounted) {
