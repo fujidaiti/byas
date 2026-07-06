@@ -15,5 +15,6 @@ abstract class FeedEntry with _$FeedEntry {
     String? content,
     DateTime? publishedAt,
     DateTime? snapshotAt,
+    int? readingListItemId,
   }) = _FeedEntry;
 }

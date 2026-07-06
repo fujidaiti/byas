@@ -16,6 +16,7 @@ class SaveToReadingListRequest {
     required this.url,
     this.title,
     required this.feedEntryId,
+    required this.webArticleId,
   });
 
   /// The URL of the web article to save.
@@ -33,24 +34,29 @@ class SaveToReadingListRequest {
   /// The ID of the feed entry to save.
   int feedEntryId;
 
+  /// The ID of an already-existing web article to re-save.
+  int webArticleId;
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is SaveToReadingListRequest &&
           other.url == url &&
           other.title == title &&
-          other.feedEntryId == feedEntryId;
+          other.feedEntryId == feedEntryId &&
+          other.webArticleId == webArticleId;
 
   @override
   int get hashCode =>
       // ignore: unnecessary_parenthesis
       (url.hashCode) +
       (title == null ? 0 : title!.hashCode) +
-      (feedEntryId.hashCode);
+      (feedEntryId.hashCode) +
+      (webArticleId.hashCode);
 
   @override
   String toString() =>
-      'SaveToReadingListRequest[url=$url, title=$title, feedEntryId=$feedEntryId]';
+      'SaveToReadingListRequest[url=$url, title=$title, feedEntryId=$feedEntryId, webArticleId=$webArticleId]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -61,6 +67,7 @@ class SaveToReadingListRequest {
       json[r'title'] = null;
     }
     json[r'feed_entry_id'] = this.feedEntryId;
+    json[r'web_article_id'] = this.webArticleId;
     return json;
   }
 
@@ -83,6 +90,10 @@ class SaveToReadingListRequest {
             'Required key "SaveToReadingListRequest[feed_entry_id]" is missing from JSON.');
         assert(json[r'feed_entry_id'] != null,
             'Required key "SaveToReadingListRequest[feed_entry_id]" has a null value in JSON.');
+        assert(json.containsKey(r'web_article_id'),
+            'Required key "SaveToReadingListRequest[web_article_id]" is missing from JSON.');
+        assert(json[r'web_article_id'] != null,
+            'Required key "SaveToReadingListRequest[web_article_id]" has a null value in JSON.');
         return true;
       }());
 
@@ -90,6 +101,7 @@ class SaveToReadingListRequest {
         url: mapValueOfType<String>(json, r'url')!,
         title: mapValueOfType<String>(json, r'title'),
         feedEntryId: mapValueOfType<int>(json, r'feed_entry_id')!,
+        webArticleId: mapValueOfType<int>(json, r'web_article_id')!,
       );
     }
     return null;
@@ -148,5 +160,6 @@ class SaveToReadingListRequest {
   static const requiredKeys = <String>{
     'url',
     'feed_entry_id',
+    'web_article_id',
   };
 }

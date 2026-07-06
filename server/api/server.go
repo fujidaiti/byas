@@ -178,6 +178,7 @@ type feedEntry struct {
 
 type getFeedEntryResponse struct {
 	feedEntry
+	ReadingListItemID *int `json:"reading_list_item_id,omitempty"`
 }
 
 func (h *handler) getFeedEntry(w http.ResponseWriter, r *http.Request) {
@@ -191,10 +192,13 @@ func (h *handler) getFeedEntry(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	res := getFeedEntryResponse{}
 	err = h.db.QueryRowContext(ctx, `
-		SELECT id, feed_id, url, title, description, content, snapshot_at, published_at
+		SELECT id, feed_id, url, title, description, content, snapshot_at, published_at,
+			(SELECT id FROM reading_list_items
+				WHERE feed_entry_id = feed_entries.id
+				LIMIT 1)
 		FROM feed_entries
 		WHERE id = $1;
-	`, id).Scan(&res.ID, &res.FeedID, &res.URL, &res.Title, &res.Description, &res.Content, &res.SnapshotAt, &res.PublishedAt)
+	`, id).Scan(&res.ID, &res.FeedID, &res.URL, &res.Title, &res.Description, &res.Content, &res.SnapshotAt, &res.PublishedAt, &res.ReadingListItemID)
 	if errors.Is(err, sql.ErrNoRows) {
 		serverError(w, http.StatusNotFound, "Entry not found.")
 		return
@@ -477,7 +481,8 @@ type saveToReadingListReqBody struct {
 	// This is only honored on the URL path; it is ignored for feed entries.
 	Title *string `json:"title"`
 
-	FeedEntryID *int `json:"feed_entry_id"`
+	FeedEntryID  *int `json:"feed_entry_id"`
+	WebArticleID *int `json:"web_article_id"`
 }
 
 func (h *handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
@@ -496,12 +501,16 @@ func (h *handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 	if b.FeedEntryID != nil {
 		argn++
 	}
+	if b.WebArticleID != nil {
+		argn++
+	}
 	if argn != 1 {
 		serverError(w, http.StatusBadRequest, "Specify exactly one item to save")
 		return
 	}
 
 	ctx := r.Context()
+	var saved readinglist.SavedItem
 	switch {
 	case b.URL != nil:
 		// TODO: Validate URL (schema and host)
@@ -515,32 +524,50 @@ func (h *handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 		if b.Title != nil {
 			title = *b.Title
 		}
-		err = readinglist.SaveWebArticle(ctx, h.db, *u, title)
+		saved, err = readinglist.SaveWebArticle(ctx, h.db, *u, title)
 		if err != nil {
 			fmt.Println(err)
 			serverError(w, http.StatusInternalServerError, "Failed to save article")
 			return
 		}
-		// TODO: DRY JSON response creation
-		jres, _ := json.Marshal(map[string]string{})
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		w.Write(jres)
 
 	case b.FeedEntryID != nil:
 		// TODO: Return 404 instead of 500 when the given ID doesn't exist
-		err := readinglist.SaveFeedEntry(ctx, h.db, *b.FeedEntryID)
+		var err error
+		saved, err = readinglist.SaveFeedEntry(ctx, h.db, *b.FeedEntryID)
 		if err != nil {
 			fmt.Println(err)
 			serverError(w, http.StatusInternalServerError, "Failed to save feed entry")
 			return
 		}
-		// TODO: DRY JSON response creation
-		jres, _ := json.Marshal(map[string]string{})
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		w.Write(jres)
+
+	case b.WebArticleID != nil:
+		// TODO: Return 404 instead of 500 when the given ID doesn't exist
+		var err error
+		saved, err = readinglist.SaveWebArticleByID(ctx, h.db, *b.WebArticleID)
+		if err != nil {
+			fmt.Println(err)
+			serverError(w, http.StatusInternalServerError, "Failed to save web article")
+			return
+		}
 	}
+
+	jres, err := json.Marshal(readingListItem{
+		ID:          saved.ID,
+		ResourceID:  saved.ResourceID,
+		Kind:        saved.Kind,
+		Title:       saved.Title,
+		Description: saved.Description,
+		SavedAt:     saved.SavedAt,
+	})
+	if err != nil {
+		fmt.Println(err)
+		serverError(w, http.StatusInternalServerError, "Failed to construct JSON response")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	w.Write(jres)
 }
 
 type getReadingListResBody struct {
@@ -551,7 +578,7 @@ type readingListItem struct {
 	ID          int       `json:"id"`
 	ResourceID  int       `json:"resource_id"`
 	Kind        string    `json:"kind"`
-	Title       string    `json:"title"`
+	Title       string    `json:"title"` // Make this optional
 	Description *string   `json:"description,omitempty"`
 	SavedAt     time.Time `json:"saved_at"`
 }
@@ -629,6 +656,11 @@ type getWebArticleResBody struct {
 	Title       *string `json:"title,omitempty"`
 	Description *string `json:"description,omitempty"`
 	Content     *string `json:"content,omitempty"`
+
+	// ReadingListItemID is the id of the reading list item backing this article,
+	// if it is saved in the reading list (regardless of archive status). Nil
+	// when the article is not saved.
+	ReadingListItemID *int `json:"reading_list_item_id,omitempty"`
 }
 
 func (h *handler) getWebArticle(w http.ResponseWriter, r *http.Request) {
@@ -642,10 +674,13 @@ func (h *handler) getWebArticle(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var res getWebArticleResBody
 	err = h.db.QueryRowContext(ctx, `
-		SELECT id, url, title, description, content
+		SELECT id, url, title, description, content,
+			(SELECT id FROM reading_list_items
+				WHERE web_article_id = web_articles.id
+				LIMIT 1)
 		FROM web_articles
 		WHERE id = $1;
-	`, id).Scan(&res.ID, &res.URL, &res.Title, &res.Description, &res.Content)
+	`, id).Scan(&res.ID, &res.URL, &res.Title, &res.Description, &res.Content, &res.ReadingListItemID)
 	if errors.Is(err, sql.ErrNoRows) {
 		serverError(w, http.StatusNotFound, "Web article not found.")
 		return

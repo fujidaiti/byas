@@ -18,6 +18,7 @@ class GetWebArticle200Response {
     this.title,
     this.description,
     this.content,
+    this.readingListItemId,
   });
 
   int id;
@@ -48,6 +49,15 @@ class GetWebArticle200Response {
   ///
   String? content;
 
+  /// The id of the reading list item backing this article, if it is currently saved (unarchived). Absent when not saved.
+  ///
+  /// Please note: This property should have been non-nullable! Since the specification file
+  /// does not include a default value (using the "default:" property), however, the generated
+  /// source code must fall back to having a nullable type.
+  /// Consider adding a "default:" property in the specification file to hide this note.
+  ///
+  int? readingListItemId;
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -56,7 +66,8 @@ class GetWebArticle200Response {
           other.url == url &&
           other.title == title &&
           other.description == description &&
-          other.content == content;
+          other.content == content &&
+          other.readingListItemId == readingListItemId;
 
   @override
   int get hashCode =>
@@ -65,11 +76,12 @@ class GetWebArticle200Response {
       (url.hashCode) +
       (title == null ? 0 : title!.hashCode) +
       (description == null ? 0 : description!.hashCode) +
-      (content == null ? 0 : content!.hashCode);
+      (content == null ? 0 : content!.hashCode) +
+      (readingListItemId == null ? 0 : readingListItemId!.hashCode);
 
   @override
   String toString() =>
-      'GetWebArticle200Response[id=$id, url=$url, title=$title, description=$description, content=$content]';
+      'GetWebArticle200Response[id=$id, url=$url, title=$title, description=$description, content=$content, readingListItemId=$readingListItemId]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -89,6 +101,11 @@ class GetWebArticle200Response {
       json[r'content'] = this.content;
     } else {
       json[r'content'] = null;
+    }
+    if (this.readingListItemId != null) {
+      json[r'reading_list_item_id'] = this.readingListItemId;
+    } else {
+      json[r'reading_list_item_id'] = null;
     }
     return json;
   }
@@ -121,6 +138,7 @@ class GetWebArticle200Response {
         title: mapValueOfType<String>(json, r'title'),
         description: mapValueOfType<String>(json, r'description'),
         content: mapValueOfType<String>(json, r'content'),
+        readingListItemId: mapValueOfType<int>(json, r'reading_list_item_id'),
       );
     }
     return null;

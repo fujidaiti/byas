@@ -6,6 +6,7 @@ import 'package:paperdoll/core/ui/widgets/async_value_view.dart';
 import 'package:paperdoll/core/ui/widgets/heading_text.dart';
 import 'package:paperdoll/core/util/link_launcher.dart';
 import 'package:paperdoll/debug_keys.dart';
+import 'package:paperdoll/features/reading_list/presentation/providers/reading_list_providers.dart';
 import 'package:paperdoll/features/web_article/domain/web_article.dart';
 import 'package:paperdoll/features/web_article/presentation/providers/web_article_providers.dart';
 import 'package:paperdoll/features/web_article/presentation/widgets/web_article_reader_view.dart';
@@ -44,6 +45,7 @@ class WebArticleReaderScreen extends ConsumerWidget {
               : null,
         ),
         actions: [
+          if (article != null) _BookmarkButton(id: id, article: article),
           if (article != null)
             IconButton(
               key: AppDebugKey.webArticleReaderOpenOriginalButton,
@@ -60,5 +62,98 @@ class WebArticleReaderScreen extends ConsumerWidget {
         data: (article) => WebArticleReaderView(article: article),
       ),
     );
+  }
+}
+
+/// Bookmark toggle in the reader appbar. Removes the article from the reading
+/// list (`DELETE /reading-list/{id}`) or re-saves it
+/// (`POST /reading-list {web_article_id}`), updating the icon optimistically
+/// and rolling back with an error snackbar on failure. A web article opened
+/// from the reading list starts saved, so the common action here is removal.
+class _BookmarkButton extends ConsumerStatefulWidget {
+  const _BookmarkButton({required this.id, required this.article});
+
+  final int id;
+  final WebArticle article;
+
+  @override
+  ConsumerState<_BookmarkButton> createState() => _BookmarkButtonState();
+}
+
+class _BookmarkButtonState extends ConsumerState<_BookmarkButton> {
+  int? _itemId;
+  var _saved = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _itemId = widget.article.readingListItemId;
+    _saved = _itemId != null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      key: AppDebugKey.webArticleReaderBookmarkButton,
+      tooltip: _saved ? 'Remove from reading list' : 'Save to reading list',
+      icon: Icon(_saved ? Icons.bookmark : Icons.bookmark_border),
+      onPressed: () => unawaited(_saved ? _unsave() : _save()),
+    );
+  }
+
+  Future<void> _save() async {
+    // Optimistically fill the icon and confirm before the request completes.
+    setState(() => _saved = true);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        key: AppDebugKey.saveToReadingListSuccessSnackBar,
+        content: Text('Saved to reading list'),
+      ),
+    );
+    try {
+      // The save response carries the created item, so the toggle can remember
+      // its id for a later remove without a follow-up fetch.
+      final item = await ref
+          .read(readingListRepositoryProvider)
+          .saveWebArticle(widget.id);
+      if (mounted) {
+        setState(() => _itemId = item.id);
+      }
+    } on Exception {
+      if (mounted) {
+        setState(() => _saved = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Something went wrong', maxLines: 1)),
+        );
+      }
+    }
+  }
+
+  Future<void> _unsave() async {
+    final id = _itemId;
+    if (id == null) {
+      return;
+    }
+    // Optimistically outline the icon and confirm before the request completes.
+    setState(() => _saved = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        key: AppDebugKey.removeFromReadingListSuccessSnackBar,
+        content: Text('Removed from reading list'),
+      ),
+    );
+    try {
+      await ref.read(readingListRepositoryProvider).removeItem(id);
+      if (mounted) {
+        setState(() => _itemId = null);
+      }
+    } on Exception {
+      if (mounted) {
+        setState(() => _saved = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Something went wrong', maxLines: 1)),
+        );
+      }
+    }
   }
 }
