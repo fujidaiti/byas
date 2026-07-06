@@ -7,7 +7,7 @@ import 'package:patrol/patrol.dart';
 import 'helpers.dart';
 
 void main() {
-  patrolTest('Read a saved web article in reading list', ($) async {
+  patrolTest('Read a saved web clip in reading list', ($) async {
     await pumpApp($);
     final adapter = httpMockAdapter($);
 
@@ -21,7 +21,7 @@ void main() {
             api.ReadingListItem(
               id: 1,
               resourceId: 7,
-              kind: api.ReadingListItemKindEnum.webArticle,
+              kind: api.ReadingListItemKindEnum.webClip,
               title: articleTitle,
               savedAt: DateTime.utc(2026, 7, 1),
             ),
@@ -30,10 +30,10 @@ void main() {
       ),
     );
     adapter.onGet(
-      '/web-articles/7',
+      '/web-clips/7',
       (s) => s.reply(
         200,
-        api.GetWebArticle200Response(
+        api.GetWebClip200Response(
           id: 7,
           url: 'https://www.anthropic.com/engineering/demystifying-evals',
           title: articleTitle,
@@ -46,7 +46,7 @@ void main() {
     await $(AppDebugKey.readingListNavDestination).tap();
     expect($(AppDebugKey.readingListScreen), findsOneWidget);
     await $(AppDebugKey.readingListRow(articleTitle)).tap();
-    expect($(AppDebugKey.webArticleReaderScreen), findsOneWidget);
+    expect($(AppDebugKey.webClipReaderScreen), findsOneWidget);
     expect($(AppDebugKey.readerTitle(articleTitle)), findsOneWidget);
   });
 
@@ -108,7 +108,7 @@ void main() {
             api.ReadingListItem(
               id: 1,
               resourceId: 1,
-              kind: api.ReadingListItemKindEnum.webArticle,
+              kind: api.ReadingListItemKindEnum.webClip,
               title: articleTitle,
               savedAt: DateTime.utc(2026, 7, 1),
             ),

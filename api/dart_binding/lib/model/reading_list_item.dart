@@ -23,7 +23,7 @@ class ReadingListItem {
 
   int id;
 
-  /// The ID of the resource backing this item — the web article ID for `web_article`, or the feed entry ID for `feed_entry`. Use this to navigate directly to the appropriate reader.
+  /// The ID of the resource backing this item — the web clip ID for `web_clip`, or the feed entry ID for `feed_entry`. Use this to navigate directly to the appropriate reader.
   int resourceId;
 
   /// The kind of the reading list item.
@@ -199,12 +199,12 @@ class ReadingListItemKindEnum {
 
   String toJson() => value;
 
-  static const webArticle = ReadingListItemKindEnum._(r'web_article');
+  static const webClip = ReadingListItemKindEnum._(r'web_clip');
   static const feedEntry = ReadingListItemKindEnum._(r'feed_entry');
 
   /// List of all possible values in this [enum][ReadingListItemKindEnum].
   static const values = <ReadingListItemKindEnum>[
-    webArticle,
+    webClip,
     feedEntry,
   ];
 
@@ -249,8 +249,8 @@ class ReadingListItemKindEnumTypeTransformer {
   ReadingListItemKindEnum? decode(dynamic data, {bool allowNull = true}) {
     if (data != null) {
       switch (data) {
-        case r'web_article':
-          return ReadingListItemKindEnum.webArticle;
+        case r'web_clip':
+          return ReadingListItemKindEnum.webClip;
         case r'feed_entry':
           return ReadingListItemKindEnum.feedEntry;
         default:

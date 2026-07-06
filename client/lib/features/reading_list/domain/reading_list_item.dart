@@ -3,7 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'reading_list_item.freezed.dart';
 
 /// The kind of a reading list item, which decides the reader it opens in.
-enum ReadingListItemKind { webArticle, feedEntry }
+enum ReadingListItemKind { webClip, feedEntry }
 
 /// A saved article in the reading list.
 @freezed

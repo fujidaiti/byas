@@ -42,7 +42,7 @@ CREATE TABLE newspaper_schedules (
     minute_of_date integer NOT NULL CHECK (minute_of_date BETWEEN 0 AND 1439)
 );
 
-CREATE TABLE web_articles (
+CREATE TABLE web_clips (
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   url text NOT NULL,
   title text,
@@ -60,8 +60,8 @@ CREATE TABLE web_articles (
 
 CREATE TABLE reading_list_items (
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  kind          text NOT NULL CHECK (kind IN ('feed_entry', 'web_article')),
-  web_article_id bigint REFERENCES web_articles (id), -- TODO: Make this unique
+  kind          text NOT NULL CHECK (kind IN ('feed_entry', 'web_clip')),
+  web_clip_id bigint REFERENCES web_clips (id), -- TODO: Make this unique
   feed_entry_id bigint REFERENCES feed_entries (id), -- TODO: Make this unique
   title         text NOT NULL, -- TODO: Make this nullable
   description   text,
@@ -69,8 +69,8 @@ CREATE TABLE reading_list_items (
   saved_at      timestamptz NOT NULL DEFAULT now(),
 
   CONSTRAINT chk_kind_and_id CHECK (
-    (kind = 'feed_entry' AND feed_entry_id IS NOT NULL AND web_article_id IS NULL) OR
-    (kind = 'web_article' AND feed_entry_id IS NULL AND web_article_id is NOT NULL)
+    (kind = 'feed_entry' AND feed_entry_id IS NOT NULL AND web_clip_id IS NULL) OR
+    (kind = 'web_clip' AND feed_entry_id IS NULL AND web_clip_id is NOT NULL)
   )
 );
 
@@ -82,8 +82,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_web_articles_updated_at
-BEFORE UPDATE ON web_articles
+CREATE TRIGGER trg_web_clips_updated_at
+BEFORE UPDATE ON web_clips
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 INSERT INTO newspaper_schedules (label, minute_of_date)

@@ -75,14 +75,14 @@ ReadingListItem:
       type: integer
     resource_id:
       description:
-        The ID of the resource backing this item — the web article ID for
-        `web_article`, or the feed entry ID for `feed_entry`. Use this to
-        navigate directly to the appropriate reader.
+        The ID of the resource backing this item — the web clip ID for
+        `web_clip`, or the feed entry ID for `feed_entry`. Use this to navigate
+        directly to the appropriate reader.
       type: integer
     kind:
       description: The kind of the reading list item.
       type: string
-      enum: [web_article, feed_entry]
+      enum: [web_clip, feed_entry]
     title:
       type: string
     description:
@@ -105,7 +105,7 @@ Story:
     kind:
       description: The kind of the resource backing this story.
       type: string
-      enum: [web_article, feed_entry]
+      enum: [web_clip, feed_entry]
     title:
       type: string
     description:

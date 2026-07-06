@@ -13,30 +13,28 @@ part of openapi.api;
 class SaveToReadingListRequestOneOf2 {
   /// Returns a new [SaveToReadingListRequestOneOf2] instance.
   SaveToReadingListRequestOneOf2({
-    required this.webArticleId,
+    required this.webClipId,
   });
 
-  /// The ID of an already-existing web article to re-save.
-  int webArticleId;
+  /// The ID of a web clip to save.
+  int webClipId;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is SaveToReadingListRequestOneOf2 &&
-          other.webArticleId == webArticleId;
+      other is SaveToReadingListRequestOneOf2 && other.webClipId == webClipId;
 
   @override
   int get hashCode =>
       // ignore: unnecessary_parenthesis
-      (webArticleId.hashCode);
+      (webClipId.hashCode);
 
   @override
-  String toString() =>
-      'SaveToReadingListRequestOneOf2[webArticleId=$webArticleId]';
+  String toString() => 'SaveToReadingListRequestOneOf2[webClipId=$webClipId]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
-    json[r'web_article_id'] = this.webArticleId;
+    json[r'web_clip_id'] = this.webClipId;
     return json;
   }
 
@@ -51,15 +49,15 @@ class SaveToReadingListRequestOneOf2 {
       // Note 1: the values aren't checked for validity beyond being non-null.
       // Note 2: this code is stripped in release mode!
       assert(() {
-        assert(json.containsKey(r'web_article_id'),
-            'Required key "SaveToReadingListRequestOneOf2[web_article_id]" is missing from JSON.');
-        assert(json[r'web_article_id'] != null,
-            'Required key "SaveToReadingListRequestOneOf2[web_article_id]" has a null value in JSON.');
+        assert(json.containsKey(r'web_clip_id'),
+            'Required key "SaveToReadingListRequestOneOf2[web_clip_id]" is missing from JSON.');
+        assert(json[r'web_clip_id'] != null,
+            'Required key "SaveToReadingListRequestOneOf2[web_clip_id]" has a null value in JSON.');
         return true;
       }());
 
       return SaveToReadingListRequestOneOf2(
-        webArticleId: mapValueOfType<int>(json, r'web_article_id')!,
+        webClipId: mapValueOfType<int>(json, r'web_clip_id')!,
       );
     }
     return null;
@@ -116,6 +114,6 @@ class SaveToReadingListRequestOneOf2 {
 
   /// The list of required keys that must be present in a JSON.
   static const requiredKeys = <String>{
-    'web_article_id',
+    'web_clip_id',
   };
 }

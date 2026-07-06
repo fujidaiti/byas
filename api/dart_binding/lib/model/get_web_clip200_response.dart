@@ -10,9 +10,9 @@
 
 part of openapi.api;
 
-class GetWebArticle200Response {
-  /// Returns a new [GetWebArticle200Response] instance.
-  GetWebArticle200Response({
+class GetWebClip200Response {
+  /// Returns a new [GetWebClip200Response] instance.
+  GetWebClip200Response({
     required this.id,
     required this.url,
     this.title,
@@ -49,7 +49,7 @@ class GetWebArticle200Response {
   ///
   String? content;
 
-  /// The id of the reading list item backing this article, if it is currently saved (unarchived). Absent when not saved.
+  /// The id of the reading list item backing this clip, if it is saved in the reading list. Absent when not saved.
   ///
   /// Please note: This property should have been non-nullable! Since the specification file
   /// does not include a default value (using the "default:" property), however, the generated
@@ -61,7 +61,7 @@ class GetWebArticle200Response {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is GetWebArticle200Response &&
+      other is GetWebClip200Response &&
           other.id == id &&
           other.url == url &&
           other.title == title &&
@@ -81,7 +81,7 @@ class GetWebArticle200Response {
 
   @override
   String toString() =>
-      'GetWebArticle200Response[id=$id, url=$url, title=$title, description=$description, content=$content, readingListItemId=$readingListItemId]';
+      'GetWebClip200Response[id=$id, url=$url, title=$title, description=$description, content=$content, readingListItemId=$readingListItemId]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -110,10 +110,10 @@ class GetWebArticle200Response {
     return json;
   }
 
-  /// Returns a new [GetWebArticle200Response] instance and imports its values from
+  /// Returns a new [GetWebClip200Response] instance and imports its values from
   /// [value] if it's a [Map], null otherwise.
   // ignore: prefer_constructors_over_static_methods
-  static GetWebArticle200Response? fromJson(dynamic value) {
+  static GetWebClip200Response? fromJson(dynamic value) {
     if (value is Map) {
       final json = value.cast<String, dynamic>();
 
@@ -122,17 +122,17 @@ class GetWebArticle200Response {
       // Note 2: this code is stripped in release mode!
       assert(() {
         assert(json.containsKey(r'id'),
-            'Required key "GetWebArticle200Response[id]" is missing from JSON.');
+            'Required key "GetWebClip200Response[id]" is missing from JSON.');
         assert(json[r'id'] != null,
-            'Required key "GetWebArticle200Response[id]" has a null value in JSON.');
+            'Required key "GetWebClip200Response[id]" has a null value in JSON.');
         assert(json.containsKey(r'url'),
-            'Required key "GetWebArticle200Response[url]" is missing from JSON.');
+            'Required key "GetWebClip200Response[url]" is missing from JSON.');
         assert(json[r'url'] != null,
-            'Required key "GetWebArticle200Response[url]" has a null value in JSON.');
+            'Required key "GetWebClip200Response[url]" has a null value in JSON.');
         return true;
       }());
 
-      return GetWebArticle200Response(
+      return GetWebClip200Response(
         id: mapValueOfType<int>(json, r'id')!,
         url: mapValueOfType<String>(json, r'url')!,
         title: mapValueOfType<String>(json, r'title'),
@@ -144,14 +144,14 @@ class GetWebArticle200Response {
     return null;
   }
 
-  static List<GetWebArticle200Response> listFromJson(
+  static List<GetWebClip200Response> listFromJson(
     dynamic json, {
     bool growable = false,
   }) {
-    final result = <GetWebArticle200Response>[];
+    final result = <GetWebClip200Response>[];
     if (json is List && json.isNotEmpty) {
       for (final row in json) {
-        final value = GetWebArticle200Response.fromJson(row);
+        final value = GetWebClip200Response.fromJson(row);
         if (value != null) {
           result.add(value);
         }
@@ -160,12 +160,12 @@ class GetWebArticle200Response {
     return result.toList(growable: growable);
   }
 
-  static Map<String, GetWebArticle200Response> mapFromJson(dynamic json) {
-    final map = <String, GetWebArticle200Response>{};
+  static Map<String, GetWebClip200Response> mapFromJson(dynamic json) {
+    final map = <String, GetWebClip200Response>{};
     if (json is Map && json.isNotEmpty) {
       json = json.cast<String, dynamic>(); // ignore: parameter_assignments
       for (final entry in json.entries) {
-        final value = GetWebArticle200Response.fromJson(entry.value);
+        final value = GetWebClip200Response.fromJson(entry.value);
         if (value != null) {
           map[entry.key] = value;
         }
@@ -174,17 +174,17 @@ class GetWebArticle200Response {
     return map;
   }
 
-  // maps a json object with a list of GetWebArticle200Response-objects as value to a dart map
-  static Map<String, List<GetWebArticle200Response>> mapListFromJson(
+  // maps a json object with a list of GetWebClip200Response-objects as value to a dart map
+  static Map<String, List<GetWebClip200Response>> mapListFromJson(
     dynamic json, {
     bool growable = false,
   }) {
-    final map = <String, List<GetWebArticle200Response>>{};
+    final map = <String, List<GetWebClip200Response>>{};
     if (json is Map && json.isNotEmpty) {
       // ignore: parameter_assignments
       json = json.cast<String, dynamic>();
       for (final entry in json.entries) {
-        map[entry.key] = GetWebArticle200Response.listFromJson(
+        map[entry.key] = GetWebClip200Response.listFromJson(
           entry.value,
           growable: growable,
         );

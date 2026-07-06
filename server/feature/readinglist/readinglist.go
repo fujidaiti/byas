@@ -16,10 +16,10 @@ import (
 // DeleteItem removes an item from the list.
 // Reports false with no error if the id does not exist, true otherwise.
 //
-// TODO: Garbage-collect orphaned web articles in the background. Deleting the
-// join row here leaves the backing web_articles row unreachable (it can only be
+// TODO: Garbage-collect orphaned web clips in the background. Deleting the
+// join row here leaves the backing web_clips row unreachable (it can only be
 // reached via a reading_list_items row), so a background job should periodically
-// delete web_articles that have no referencing reading_list_items.
+// delete web_clips that have no referencing reading_list_items.
 func DeleteItem(ctx context.Context, db *sql.DB, id int) (bool, error) {
 	res, err := db.ExecContext(ctx, `
 		DELETE FROM reading_list_items
@@ -83,27 +83,27 @@ func SaveFeedEntry(ctx context.Context, db *sql.DB, id int) (SavedItem, error) {
 	return it, err
 }
 
-func SaveWebArticleByID(ctx context.Context, db *sql.DB, id int) (SavedItem, error) {
-	// reading_list_items.title is NOT NULL but web_articles.title is nullable,
+func SaveWebClipByID(ctx context.Context, db *sql.DB, id int) (SavedItem, error) {
+	// reading_list_items.title is NOT NULL but web_clips.title is nullable,
 	// so coalesce to keep the placeholder well-formed.
 	var it SavedItem
 	err := db.QueryRowContext(ctx, `
-		INSERT INTO reading_list_items (kind, web_article_id, title, description)
-		SELECT 'web_article', id, COALESCE(title, ''), description
-		FROM web_articles
+		INSERT INTO reading_list_items (kind, web_clip_id, title, description)
+		SELECT 'web_clip', id, COALESCE(title, ''), description
+		FROM web_clips
 		WHERE id = $1
-		RETURNING id, web_article_id, kind, title, description, saved_at;
+		RETURNING id, web_clip_id, kind, title, description, saved_at;
 	`, id).Scan(&it.ID, &it.ResourceID, &it.Kind, &it.Title, &it.Description, &it.SavedAt)
 	// TODO: Return a dedicated error for the case where the id doesn't exist
 	return it, err
 }
 
-// SaveWebArticle adds an web article specified by the URL to the reading list.
+// SaveWebClip adds a web clip specified by the URL to the reading list.
 // Reports nil if succeeds.
 //
 // Note that this function immediately returns after creating a placeholder reading list item.
-// It then tries fetching the article itself asynchronously, and fills the placeholders with actual metadata.
-func SaveWebArticle(ctx context.Context, db *sql.DB, u url.URL, title string) (SavedItem, error) {
+// It then tries fetching the clip itself asynchronously, and fills the placeholders with actual metadata.
+func SaveWebClip(ctx context.Context, db *sql.DB, u url.URL, title string) (SavedItem, error) {
 	// TODO: Cleanup URL
 	// TODO: Validate URL (schema, host)
 	var it SavedItem
@@ -112,20 +112,20 @@ func SaveWebArticle(ctx context.Context, db *sql.DB, u url.URL, title string) (S
 		return it, err
 	}
 	defer tx.Rollback()
-	var waID int
+	var clipID int
 	err = tx.QueryRowContext(ctx, `
-		INSERT INTO web_articles (url)
+		INSERT INTO web_clips (url)
 		VALUES ($1)
 		RETURNING id;
-	`, u.String()).Scan(&waID)
+	`, u.String()).Scan(&clipID)
 	if err != nil {
 		return it, err
 	}
 	err = tx.QueryRowContext(ctx, `
-		INSERT INTO reading_list_items (kind, web_article_id, title)
-		VALUES ('web_article', $1, $2)
-		RETURNING id, web_article_id, kind, title, description, saved_at;
-	`, waID, title).Scan(&it.ID, &it.ResourceID, &it.Kind, &it.Title, &it.Description, &it.SavedAt)
+		INSERT INTO reading_list_items (kind, web_clip_id, title)
+		VALUES ('web_clip', $1, $2)
+		RETURNING id, web_clip_id, kind, title, description, saved_at;
+	`, clipID, title).Scan(&it.ID, &it.ResourceID, &it.Kind, &it.Title, &it.Description, &it.SavedAt)
 	if err != nil {
 		return it, err
 	}
@@ -134,7 +134,7 @@ func SaveWebArticle(ctx context.Context, db *sql.DB, u url.URL, title string) (S
 	}
 	go func() {
 		// TODO: Recover from panic
-		err := tryFetchWebArticle(db, it.ID, waID, u)
+		err := tryFetchWebClip(db, it.ID, clipID, u)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -142,20 +142,20 @@ func SaveWebArticle(ctx context.Context, db *sql.DB, u url.URL, title string) (S
 	return it, nil
 }
 
-func tryFetchWebArticle(db *sql.DB, rID, aID int, u url.URL) error {
+func tryFetchWebClip(db *sql.DB, rID, clipID int, u url.URL) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	err := fetchWebArticle(ctx, db, rID, aID, u)
+	err := fetchWebClip(ctx, db, rID, clipID, u)
 	if err == nil {
 		return nil
 	}
 	ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	_, dbErr := db.ExecContext(ctx, `
-		UPDATE web_articles
+		UPDATE web_clips
 		SET fetch_status = 'failed'
 		WHERE id = $1;
-	`, aID)
+	`, clipID)
 	if dbErr != nil {
 		return errors.Join(err, dbErr)
 	}
@@ -163,8 +163,8 @@ func tryFetchWebArticle(db *sql.DB, rID, aID int, u url.URL) error {
 }
 
 // TODO: DRY scraping logic
-func fetchWebArticle(ctx context.Context, db *sql.DB, rID, aID int, u url.URL) error {
-	fmt.Printf("Fetching reading list article from %s\n", u.String())
+func fetchWebClip(ctx context.Context, db *sql.DB, rID, clipID int, u url.URL) error {
+	fmt.Printf("Fetching reading list clip from %s\n", u.String())
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return err
@@ -224,19 +224,19 @@ func fetchWebArticle(ctx context.Context, db *sql.DB, rID, aID int, u url.URL) e
 			return err
 		}
 		_, err = tx.ExecContext(ctx, `
-			UPDATE web_articles
+			UPDATE web_clips
 			SET title = $1, content = $2, fetch_status = 'done'
 			WHERE id = $3;
-		`, t, content, aID)
+		`, t, content, clipID)
 		if err != nil {
 			return err
 		}
 	} else {
 		_, err = tx.ExecContext(ctx, `
-			UPDATE web_articles
+			UPDATE web_clips
 			SET content = $1, fetch_status = 'done'
 			WHERE id = $2;
-		`, content, aID)
+		`, content, clipID)
 		if err != nil {
 			return err
 		}

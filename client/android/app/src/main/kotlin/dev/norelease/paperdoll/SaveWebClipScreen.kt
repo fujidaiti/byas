@@ -74,7 +74,7 @@ private fun SaveState.statusHeadline(): String =
 private val DIALOG_HEIGHT = 280.dp
 
 @Composable
-fun SaveWebArticleScreen(url: String, title: String?, onClose: () -> Unit) {
+fun SaveWebClipScreen(url: String, title: String?, onClose: () -> Unit) {
     var state by remember { mutableStateOf<SaveState>(SaveState.Loading) }
     // Only observes the request; the request itself runs in SaveScope so it outlives this
     // composition. When the dialog closes, only this observer is cancelled, not the POST.

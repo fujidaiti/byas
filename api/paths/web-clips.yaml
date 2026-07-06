@@ -1,6 +1,6 @@
 get:
-  summary: Get a web article by ID
-  operationId: getWebArticle
+  summary: Get a web clip by ID
+  operationId: getWebClip
   parameters:
     - name: id
       in: path
@@ -29,7 +29,7 @@ get:
                 type: string
               reading_list_item_id:
                 description:
-                  The id of the reading list item backing this article, if it is
+                  The id of the reading list item backing this clip, if it is
                   saved in the reading list. Absent when not saved.
                 type: integer
           example:
