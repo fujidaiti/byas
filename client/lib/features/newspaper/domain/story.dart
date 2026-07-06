@@ -18,5 +18,6 @@ abstract class Story with _$Story {
     String? description,
     String? source,
     DateTime? publishedAt,
+    int? readingListItemId,
   }) = _Story;
 }

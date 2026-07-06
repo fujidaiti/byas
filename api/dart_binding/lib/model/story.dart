@@ -20,6 +20,7 @@ class Story {
     this.description,
     this.source_,
     this.publishedAt,
+    this.readingListItemId,
   });
 
   int id;
@@ -56,6 +57,15 @@ class Story {
   ///
   DateTime? publishedAt;
 
+  /// The id of the reading list item backing this story, if it is saved in the reading list. Absent when the story is not saved.
+  ///
+  /// Please note: This property should have been non-nullable! Since the specification file
+  /// does not include a default value (using the "default:" property), however, the generated
+  /// source code must fall back to having a nullable type.
+  /// Consider adding a "default:" property in the specification file to hide this note.
+  ///
+  int? readingListItemId;
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -66,7 +76,8 @@ class Story {
           other.title == title &&
           other.description == description &&
           other.source_ == source_ &&
-          other.publishedAt == publishedAt;
+          other.publishedAt == publishedAt &&
+          other.readingListItemId == readingListItemId;
 
   @override
   int get hashCode =>
@@ -77,11 +88,12 @@ class Story {
       (title.hashCode) +
       (description == null ? 0 : description!.hashCode) +
       (source_ == null ? 0 : source_!.hashCode) +
-      (publishedAt == null ? 0 : publishedAt!.hashCode);
+      (publishedAt == null ? 0 : publishedAt!.hashCode) +
+      (readingListItemId == null ? 0 : readingListItemId!.hashCode);
 
   @override
   String toString() =>
-      'Story[id=$id, resourceId=$resourceId, kind=$kind, title=$title, description=$description, source_=$source_, publishedAt=$publishedAt]';
+      'Story[id=$id, resourceId=$resourceId, kind=$kind, title=$title, description=$description, source_=$source_, publishedAt=$publishedAt, readingListItemId=$readingListItemId]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -103,6 +115,11 @@ class Story {
       json[r'published_at'] = this.publishedAt!.toUtc().toIso8601String();
     } else {
       json[r'published_at'] = null;
+    }
+    if (this.readingListItemId != null) {
+      json[r'reading_list_item_id'] = this.readingListItemId;
+    } else {
+      json[r'reading_list_item_id'] = null;
     }
     return json;
   }
@@ -145,6 +162,7 @@ class Story {
         description: mapValueOfType<String>(json, r'description'),
         source_: mapValueOfType<String>(json, r'source'),
         publishedAt: mapDateTime(json, r'published_at', r''),
+        readingListItemId: mapValueOfType<int>(json, r'reading_list_item_id'),
       );
     }
     return null;

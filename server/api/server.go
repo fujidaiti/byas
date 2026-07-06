@@ -101,13 +101,14 @@ type getTodaysNewspaperResponse struct {
 }
 
 type stories struct {
-	ID          int        `json:"id"`
-	ResourceID  int        `json:"resource_id"`
-	Kind        string     `json:"kind"`
-	Title       string     `json:"title"`
-	Description *string    `json:"description,omitempty"`
-	Source      *string    `json:"source,omitempty"`
-	PublishedAt *time.Time `json:"published_at,omitempty"`
+	ID                int        `json:"id"`
+	ResourceID        int        `json:"resource_id"`
+	Kind              string     `json:"kind"`
+	Title             string     `json:"title"`
+	Description       *string    `json:"description,omitempty"`
+	Source            *string    `json:"source,omitempty"`
+	PublishedAt       *time.Time `json:"published_at,omitempty"`
+	ReadingListItemID *int       `json:"reading_list_item_id,omitempty"`
 }
 
 func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
@@ -127,8 +128,14 @@ func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO: Replace the correlated subquery with a LEFT JOIN on
+	// reading_list_items once reading_list_items.feed_entry_id is unique. The
+	// subquery + LIMIT 1 is a workaround for the currently non-unique column.
 	rows, err := h.db.QueryContext(ctx, `
-		SELECT id, feed_entry_id, title, description, source, published_at
+		SELECT id, feed_entry_id, title, description, source, published_at,
+			(SELECT id FROM reading_list_items
+				WHERE feed_entry_id = stories.feed_entry_id
+				LIMIT 1)
 		FROM stories
 		WHERE newspaper_id = $1
 		ORDER BY published_at DESC;
@@ -142,7 +149,7 @@ func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 	}
 	for rows.Next() {
 		a := stories{Kind: "feed_entry"}
-		err := rows.Scan(&a.ID, &a.ResourceID, &a.Title, &a.Description, &a.Source, &a.PublishedAt)
+		err := rows.Scan(&a.ID, &a.ResourceID, &a.Title, &a.Description, &a.Source, &a.PublishedAt, &a.ReadingListItemID)
 		if err != nil {
 			serverError(w, http.StatusInternalServerError, "Failed to parse a story.")
 			return

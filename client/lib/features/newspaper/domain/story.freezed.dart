@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Story {
 
- int get id; int get resourceId; StoryKind get kind; String get title; String? get description; String? get source; DateTime? get publishedAt;
+ int get id; int get resourceId; StoryKind get kind; String get title; String? get description; String? get source; DateTime? get publishedAt; int? get readingListItemId;
 /// Create a copy of Story
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $StoryCopyWith<Story> get copyWith => _$StoryCopyWithImpl<Story>(this as Story, 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Story&&(identical(other.id, id) || other.id == id)&&(identical(other.resourceId, resourceId) || other.resourceId == resourceId)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.source, source) || other.source == source)&&(identical(other.publishedAt, publishedAt) || other.publishedAt == publishedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Story&&(identical(other.id, id) || other.id == id)&&(identical(other.resourceId, resourceId) || other.resourceId == resourceId)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.source, source) || other.source == source)&&(identical(other.publishedAt, publishedAt) || other.publishedAt == publishedAt)&&(identical(other.readingListItemId, readingListItemId) || other.readingListItemId == readingListItemId));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,resourceId,kind,title,description,source,publishedAt);
+int get hashCode => Object.hash(runtimeType,id,resourceId,kind,title,description,source,publishedAt,readingListItemId);
 
 @override
 String toString() {
-  return 'Story(id: $id, resourceId: $resourceId, kind: $kind, title: $title, description: $description, source: $source, publishedAt: $publishedAt)';
+  return 'Story(id: $id, resourceId: $resourceId, kind: $kind, title: $title, description: $description, source: $source, publishedAt: $publishedAt, readingListItemId: $readingListItemId)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $StoryCopyWith<$Res>  {
   factory $StoryCopyWith(Story value, $Res Function(Story) _then) = _$StoryCopyWithImpl;
 @useResult
 $Res call({
- int id, int resourceId, StoryKind kind, String title, String? description, String? source, DateTime? publishedAt
+ int id, int resourceId, StoryKind kind, String title, String? description, String? source, DateTime? publishedAt, int? readingListItemId
 });
 
 
@@ -62,7 +62,7 @@ class _$StoryCopyWithImpl<$Res>
 
 /// Create a copy of Story
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? resourceId = null,Object? kind = null,Object? title = null,Object? description = freezed,Object? source = freezed,Object? publishedAt = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? resourceId = null,Object? kind = null,Object? title = null,Object? description = freezed,Object? source = freezed,Object? publishedAt = freezed,Object? readingListItemId = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,resourceId: null == resourceId ? _self.resourceId : resourceId // ignore: cast_nullable_to_non_nullable
@@ -71,7 +71,8 @@ as StoryKind,title: null == title ? _self.title : title // ignore: cast_nullable
 as String,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String?,source: freezed == source ? _self.source : source // ignore: cast_nullable_to_non_nullable
 as String?,publishedAt: freezed == publishedAt ? _self.publishedAt : publishedAt // ignore: cast_nullable_to_non_nullable
-as DateTime?,
+as DateTime?,readingListItemId: freezed == readingListItemId ? _self.readingListItemId : readingListItemId // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 
@@ -156,10 +157,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  int resourceId,  StoryKind kind,  String title,  String? description,  String? source,  DateTime? publishedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  int resourceId,  StoryKind kind,  String title,  String? description,  String? source,  DateTime? publishedAt,  int? readingListItemId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Story() when $default != null:
-return $default(_that.id,_that.resourceId,_that.kind,_that.title,_that.description,_that.source,_that.publishedAt);case _:
+return $default(_that.id,_that.resourceId,_that.kind,_that.title,_that.description,_that.source,_that.publishedAt,_that.readingListItemId);case _:
   return orElse();
 
 }
@@ -177,10 +178,10 @@ return $default(_that.id,_that.resourceId,_that.kind,_that.title,_that.descripti
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  int resourceId,  StoryKind kind,  String title,  String? description,  String? source,  DateTime? publishedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  int resourceId,  StoryKind kind,  String title,  String? description,  String? source,  DateTime? publishedAt,  int? readingListItemId)  $default,) {final _that = this;
 switch (_that) {
 case _Story():
-return $default(_that.id,_that.resourceId,_that.kind,_that.title,_that.description,_that.source,_that.publishedAt);case _:
+return $default(_that.id,_that.resourceId,_that.kind,_that.title,_that.description,_that.source,_that.publishedAt,_that.readingListItemId);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -197,10 +198,10 @@ return $default(_that.id,_that.resourceId,_that.kind,_that.title,_that.descripti
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  int resourceId,  StoryKind kind,  String title,  String? description,  String? source,  DateTime? publishedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  int resourceId,  StoryKind kind,  String title,  String? description,  String? source,  DateTime? publishedAt,  int? readingListItemId)?  $default,) {final _that = this;
 switch (_that) {
 case _Story() when $default != null:
-return $default(_that.id,_that.resourceId,_that.kind,_that.title,_that.description,_that.source,_that.publishedAt);case _:
+return $default(_that.id,_that.resourceId,_that.kind,_that.title,_that.description,_that.source,_that.publishedAt,_that.readingListItemId);case _:
   return null;
 
 }
@@ -212,7 +213,7 @@ return $default(_that.id,_that.resourceId,_that.kind,_that.title,_that.descripti
 
 
 class _Story implements Story {
-  const _Story({required this.id, required this.resourceId, required this.kind, required this.title, this.description, this.source, this.publishedAt});
+  const _Story({required this.id, required this.resourceId, required this.kind, required this.title, this.description, this.source, this.publishedAt, this.readingListItemId});
   
 
 @override final  int id;
@@ -222,6 +223,7 @@ class _Story implements Story {
 @override final  String? description;
 @override final  String? source;
 @override final  DateTime? publishedAt;
+@override final  int? readingListItemId;
 
 /// Create a copy of Story
 /// with the given fields replaced by the non-null parameter values.
@@ -233,16 +235,16 @@ _$StoryCopyWith<_Story> get copyWith => __$StoryCopyWithImpl<_Story>(this, _$ide
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Story&&(identical(other.id, id) || other.id == id)&&(identical(other.resourceId, resourceId) || other.resourceId == resourceId)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.source, source) || other.source == source)&&(identical(other.publishedAt, publishedAt) || other.publishedAt == publishedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Story&&(identical(other.id, id) || other.id == id)&&(identical(other.resourceId, resourceId) || other.resourceId == resourceId)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.source, source) || other.source == source)&&(identical(other.publishedAt, publishedAt) || other.publishedAt == publishedAt)&&(identical(other.readingListItemId, readingListItemId) || other.readingListItemId == readingListItemId));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,resourceId,kind,title,description,source,publishedAt);
+int get hashCode => Object.hash(runtimeType,id,resourceId,kind,title,description,source,publishedAt,readingListItemId);
 
 @override
 String toString() {
-  return 'Story(id: $id, resourceId: $resourceId, kind: $kind, title: $title, description: $description, source: $source, publishedAt: $publishedAt)';
+  return 'Story(id: $id, resourceId: $resourceId, kind: $kind, title: $title, description: $description, source: $source, publishedAt: $publishedAt, readingListItemId: $readingListItemId)';
 }
 
 
@@ -253,7 +255,7 @@ abstract mixin class _$StoryCopyWith<$Res> implements $StoryCopyWith<$Res> {
   factory _$StoryCopyWith(_Story value, $Res Function(_Story) _then) = __$StoryCopyWithImpl;
 @override @useResult
 $Res call({
- int id, int resourceId, StoryKind kind, String title, String? description, String? source, DateTime? publishedAt
+ int id, int resourceId, StoryKind kind, String title, String? description, String? source, DateTime? publishedAt, int? readingListItemId
 });
 
 
@@ -270,7 +272,7 @@ class __$StoryCopyWithImpl<$Res>
 
 /// Create a copy of Story
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? resourceId = null,Object? kind = null,Object? title = null,Object? description = freezed,Object? source = freezed,Object? publishedAt = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? resourceId = null,Object? kind = null,Object? title = null,Object? description = freezed,Object? source = freezed,Object? publishedAt = freezed,Object? readingListItemId = freezed,}) {
   return _then(_Story(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,resourceId: null == resourceId ? _self.resourceId : resourceId // ignore: cast_nullable_to_non_nullable
@@ -279,7 +281,8 @@ as StoryKind,title: null == title ? _self.title : title // ignore: cast_nullable
 as String,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String?,source: freezed == source ? _self.source : source // ignore: cast_nullable_to_non_nullable
 as String?,publishedAt: freezed == publishedAt ? _self.publishedAt : publishedAt // ignore: cast_nullable_to_non_nullable
-as DateTime?,
+as DateTime?,readingListItemId: freezed == readingListItemId ? _self.readingListItemId : readingListItemId // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 

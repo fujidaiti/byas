@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:paperdoll/core/ui/tokens/app_colors.dart';
+import 'package:paperdoll/core/ui/tokens/app_radii.dart';
 import 'package:paperdoll/core/ui/tokens/app_spacing.dart';
 import 'package:paperdoll/core/ui/widgets/body_text.dart';
 import 'package:paperdoll/core/ui/widgets/caption_text.dart';
@@ -34,7 +36,50 @@ class StoryCard extends StatelessWidget {
             BodyText(description, maxLines: 2, overflow: TextOverflow.ellipsis),
           ],
           if (source != null) ...[const Gap(spacingSm), CaptionText(source)],
+          if (story.readingListItemId != null) ...[
+            const Gap(spacingSm),
+            const Align(
+              alignment: Alignment.centerRight,
+              child: _ReadLaterBadge(),
+            ),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+/// A pill shown on a story row when it is already saved in the reading list.
+class _ReadLaterBadge extends StatelessWidget {
+  const _ReadLaterBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return const DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorAccent,
+        borderRadius: borderRadiusCard,
+      ),
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: spacingSm,
+          vertical: spacingXs,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.bookmark, size: 14, color: colorBackground),
+            Gap(spacingXs),
+            Text(
+              'Read later',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: colorBackground,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
