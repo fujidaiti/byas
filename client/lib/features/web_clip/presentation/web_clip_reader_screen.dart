@@ -39,9 +39,7 @@ class WebClipReaderScreen extends ConsumerWidget {
           key: clip != null ? AppDebugKey.readerTitle(clip.title ?? '') : null,
         ),
         actions: [
-          if (clip != null) _BookmarkButton(id: id, clip: clip),
-          if (clip != null && clip.readingListItemId != null)
-            _ArchiveButton(clip: clip),
+          if (clip != null) _ReadingListActions(id: id, clip: clip),
           if (clip != null)
             IconButton(
               key: AppDebugKey.webClipReaderOpenOriginalButton,
@@ -60,122 +58,71 @@ class WebClipReaderScreen extends ConsumerWidget {
   }
 }
 
-/// Archive toggle in the reader appbar. Archives the saved clip
-/// (`PATCH /reading-list/{id}` with `{"archived": true}`) or unarchives it
-/// (`{"archived": false}`), updating the icon optimistically and rolling back
-/// with an error snackbar on failure. Only shown when the clip is saved.
-class _ArchiveButton extends ConsumerStatefulWidget {
-  const _ArchiveButton({required this.clip});
-
-  final WebClip clip;
-
-  @override
-  ConsumerState<_ArchiveButton> createState() => _ArchiveButtonState();
-}
-
-class _ArchiveButtonState extends ConsumerState<_ArchiveButton> {
-  late final int _itemId;
-  var _archived = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _itemId = widget.clip.readingListItemId!;
-    _archived = widget.clip.archived ?? false;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      key: AppDebugKey.webClipReaderArchiveButton,
-      tooltip: _archived ? 'Unarchive' : 'Archive',
-      icon: Icon(_archived ? Icons.unarchive_outlined : Icons.archive_outlined),
-      onPressed: () => unawaited(_archived ? _unarchive() : _archive()),
-    );
-  }
-
-  Future<void> _archive() async {
-    // Optimistically flip the icon and confirm before the request completes.
-    setState(() => _archived = true);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        key: AppDebugKey.archiveSuccessSnackBar,
-        content: Text('Archived'),
-      ),
-    );
-    try {
-      await ref.read(readingListRepositoryProvider).archive(_itemId);
-    } on Exception {
-      if (mounted) {
-        setState(() => _archived = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Something went wrong', maxLines: 1)),
-        );
-      }
-    }
-  }
-
-  Future<void> _unarchive() async {
-    // Optimistically flip the icon and confirm before the request completes.
-    setState(() => _archived = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        key: AppDebugKey.unarchiveSuccessSnackBar,
-        content: Text('Unarchived'),
-      ),
-    );
-    try {
-      await ref.read(readingListRepositoryProvider).unarchive(_itemId);
-    } on Exception {
-      if (mounted) {
-        setState(() => _archived = true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Something went wrong', maxLines: 1)),
-        );
-      }
-    }
-  }
-}
-
-/// Bookmark toggle in the reader appbar. Removes the clip from the reading
-/// list (`DELETE /reading-list/{id}`) or re-saves it
-/// (`POST /reading-list {web_clip_id}`), updating the icon optimistically
-/// and rolling back with an error snackbar on failure. A web clip opened
-/// from the reading list starts saved, so the common action here is removal.
-class _BookmarkButton extends ConsumerStatefulWidget {
-  const _BookmarkButton({required this.id, required this.clip});
+/// Reading-list controls in the reader appbar: a bookmark toggle that removes
+/// the clip from the reading list (`DELETE /reading-list/{id}`) or re-saves it
+/// (`POST /reading-list {web_clip_id}`), and — once saved — an archive toggle
+/// that hides the item from the list (`PATCH /reading-list/{id}`) or unarchives
+/// it. Both update optimistically and roll back with an error snackbar on
+/// failure. A web clip opened from the reading list starts saved, so the common
+/// action here is removal. Sharing one widget lets saving or removing show or
+/// hide the archive toggle immediately.
+class _ReadingListActions extends ConsumerStatefulWidget {
+  const _ReadingListActions({required this.id, required this.clip});
 
   final int id;
   final WebClip clip;
 
   @override
-  ConsumerState<_BookmarkButton> createState() => _BookmarkButtonState();
+  ConsumerState<_ReadingListActions> createState() =>
+      _ReadingListActionsState();
 }
 
-class _BookmarkButtonState extends ConsumerState<_BookmarkButton> {
+class _ReadingListActionsState extends ConsumerState<_ReadingListActions> {
   int? _itemId;
   var _saved = false;
+  var _archived = false;
 
   @override
   void initState() {
     super.initState();
     _itemId = widget.clip.readingListItemId;
     _saved = _itemId != null;
+    _archived = widget.clip.archived ?? false;
   }
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      key: AppDebugKey.webClipReaderBookmarkButton,
-      tooltip: _saved ? 'Remove from reading list' : 'Save to reading list',
-      icon: Icon(_saved ? Icons.bookmark : Icons.bookmark_border),
-      onPressed: () => unawaited(_saved ? _unsave() : _save()),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          key: AppDebugKey.webClipReaderBookmarkButton,
+          tooltip: _saved ? 'Remove from reading list' : 'Save to reading list',
+          icon: Icon(_saved ? Icons.bookmark : Icons.bookmark_border),
+          onPressed: () => unawaited(_saved ? _unsave() : _save()),
+        ),
+        // The archive toggle only applies to an item that is in the list, so it
+        // appears and disappears together with the bookmark state.
+        if (_saved && _itemId != null)
+          IconButton(
+            key: AppDebugKey.webClipReaderArchiveButton,
+            tooltip: _archived ? 'Unarchive' : 'Archive',
+            icon: Icon(
+              _archived ? Icons.unarchive_outlined : Icons.archive_outlined,
+            ),
+            onPressed: () => unawaited(_archived ? _unarchive() : _archive()),
+          ),
+      ],
     );
   }
 
   Future<void> _save() async {
-    // Optimistically fill the icon and confirm before the request completes.
-    setState(() => _saved = true);
+    // Optimistically fill the icon and confirm before the request completes. A
+    // freshly saved item is never archived.
+    setState(() {
+      _saved = true;
+      _archived = false;
+    });
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         key: AppDebugKey.saveToReadingListSuccessSnackBar,
@@ -184,7 +131,7 @@ class _BookmarkButtonState extends ConsumerState<_BookmarkButton> {
     );
     try {
       // The save response carries the created item, so the toggle can remember
-      // its id for a later remove without a follow-up fetch.
+      // its id for a later remove/archive without a follow-up fetch.
       final item = await ref
           .read(readingListRepositoryProvider)
           .saveWebClip(widget.id);
@@ -222,6 +169,56 @@ class _BookmarkButtonState extends ConsumerState<_BookmarkButton> {
     } on Exception {
       if (mounted) {
         setState(() => _saved = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Something went wrong', maxLines: 1)),
+        );
+      }
+    }
+  }
+
+  Future<void> _archive() async {
+    final id = _itemId;
+    if (id == null) {
+      return;
+    }
+    // Optimistically flip the icon and confirm before the request completes.
+    setState(() => _archived = true);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        key: AppDebugKey.archiveSuccessSnackBar,
+        content: Text('Archived'),
+      ),
+    );
+    try {
+      await ref.read(readingListRepositoryProvider).archive(id);
+    } on Exception {
+      if (mounted) {
+        setState(() => _archived = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Something went wrong', maxLines: 1)),
+        );
+      }
+    }
+  }
+
+  Future<void> _unarchive() async {
+    final id = _itemId;
+    if (id == null) {
+      return;
+    }
+    // Optimistically flip the icon and confirm before the request completes.
+    setState(() => _archived = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        key: AppDebugKey.unarchiveSuccessSnackBar,
+        content: Text('Unarchived'),
+      ),
+    );
+    try {
+      await ref.read(readingListRepositoryProvider).unarchive(id);
+    } on Exception {
+      if (mounted) {
+        setState(() => _archived = true);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Something went wrong', maxLines: 1)),
         );

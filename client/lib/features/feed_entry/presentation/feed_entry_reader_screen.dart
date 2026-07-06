@@ -28,9 +28,7 @@ class FeedEntryReaderScreen extends ConsumerWidget {
           key: entry != null ? AppDebugKey.readerTitle(entry.title) : null,
         ),
         actions: [
-          if (entry != null) _BookmarkButton(entry: entry),
-          if (entry != null && entry.readingListItemId != null)
-            _ArchiveButton(entry: entry),
+          if (entry != null) _ReadingListActions(entry: entry),
           if (entry != null)
             IconButton(
               key: AppDebugKey.feedEntryReaderOpenOriginalButton,
@@ -49,119 +47,69 @@ class FeedEntryReaderScreen extends ConsumerWidget {
   }
 }
 
-/// Archive toggle in the reader appbar. Archives the saved entry
-/// (`PATCH /reading-list/{id}` with `{"archived": true}`) or unarchives it
-/// (`{"archived": false}`), updating the icon optimistically and rolling back
-/// with an error snackbar on failure. Only shown when the entry is saved.
-class _ArchiveButton extends ConsumerStatefulWidget {
-  const _ArchiveButton({required this.entry});
+/// Reading-list controls in the reader appbar: a bookmark toggle that saves the
+/// entry to the reading list (`POST /reading-list`) or removes it
+/// (`DELETE /reading-list/{id}`), and — once saved — an archive toggle that
+/// hides the item from the list (`PATCH /reading-list/{id}`) or unarchives it.
+/// Both update optimistically and roll back with an error snackbar on failure.
+/// Sharing one widget lets saving or removing show or hide the archive toggle
+/// immediately.
+class _ReadingListActions extends ConsumerStatefulWidget {
+  const _ReadingListActions({required this.entry});
 
   final FeedEntry entry;
 
   @override
-  ConsumerState<_ArchiveButton> createState() => _ArchiveButtonState();
+  ConsumerState<_ReadingListActions> createState() =>
+      _ReadingListActionsState();
 }
 
-class _ArchiveButtonState extends ConsumerState<_ArchiveButton> {
-  late final int _itemId;
-  var _archived = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _itemId = widget.entry.readingListItemId!;
-    _archived = widget.entry.archived ?? false;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      key: AppDebugKey.feedEntryReaderArchiveButton,
-      tooltip: _archived ? 'Unarchive' : 'Archive',
-      icon: Icon(_archived ? Icons.unarchive_outlined : Icons.archive_outlined),
-      onPressed: () => unawaited(_archived ? _unarchive() : _archive()),
-    );
-  }
-
-  Future<void> _archive() async {
-    // Optimistically flip the icon and confirm before the request completes.
-    setState(() => _archived = true);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        key: AppDebugKey.archiveSuccessSnackBar,
-        content: Text('Archived'),
-      ),
-    );
-    try {
-      await ref.read(readingListRepositoryProvider).archive(_itemId);
-    } on Exception {
-      if (mounted) {
-        setState(() => _archived = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Something went wrong', maxLines: 1)),
-        );
-      }
-    }
-  }
-
-  Future<void> _unarchive() async {
-    // Optimistically flip the icon and confirm before the request completes.
-    setState(() => _archived = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        key: AppDebugKey.unarchiveSuccessSnackBar,
-        content: Text('Unarchived'),
-      ),
-    );
-    try {
-      await ref.read(readingListRepositoryProvider).unarchive(_itemId);
-    } on Exception {
-      if (mounted) {
-        setState(() => _archived = true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Something went wrong', maxLines: 1)),
-        );
-      }
-    }
-  }
-}
-
-/// Bookmark toggle in the reader appbar. Saves the entry to the reading list
-/// (`POST /reading-list`) or removes it (`DELETE /reading-list/{id}`), updating
-/// the icon optimistically and rolling back with an error snackbar on failure.
-class _BookmarkButton extends ConsumerStatefulWidget {
-  const _BookmarkButton({required this.entry});
-
-  final FeedEntry entry;
-
-  @override
-  ConsumerState<_BookmarkButton> createState() => _BookmarkButtonState();
-}
-
-class _BookmarkButtonState extends ConsumerState<_BookmarkButton> {
+class _ReadingListActionsState extends ConsumerState<_ReadingListActions> {
   int? _itemId;
   var _saved = false;
+  var _archived = false;
 
   @override
   void initState() {
     super.initState();
     _itemId = widget.entry.readingListItemId;
     _saved = _itemId != null;
+    _archived = widget.entry.archived ?? false;
   }
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      key: AppDebugKey.feedEntryReaderBookmarkButton,
-      tooltip: _saved ? 'Remove from reading list' : 'Save to reading list',
-      icon: Icon(_saved ? Icons.bookmark : Icons.bookmark_border),
-      onPressed: () => unawaited(_saved ? _unsave() : _save()),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          key: AppDebugKey.feedEntryReaderBookmarkButton,
+          tooltip: _saved ? 'Remove from reading list' : 'Save to reading list',
+          icon: Icon(_saved ? Icons.bookmark : Icons.bookmark_border),
+          onPressed: () => unawaited(_saved ? _unsave() : _save()),
+        ),
+        // The archive toggle only applies to an item that is in the list, so it
+        // appears and disappears together with the bookmark state.
+        if (_saved && _itemId != null)
+          IconButton(
+            key: AppDebugKey.feedEntryReaderArchiveButton,
+            tooltip: _archived ? 'Unarchive' : 'Archive',
+            icon: Icon(
+              _archived ? Icons.unarchive_outlined : Icons.archive_outlined,
+            ),
+            onPressed: () => unawaited(_archived ? _unarchive() : _archive()),
+          ),
+      ],
     );
   }
 
   Future<void> _save() async {
-    // Optimistically fill the icon and confirm before the request completes.
-    setState(() => _saved = true);
+    // Optimistically fill the icon and confirm before the request completes. A
+    // freshly saved item is never archived.
+    setState(() {
+      _saved = true;
+      _archived = false;
+    });
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         key: AppDebugKey.saveToReadingListSuccessSnackBar,
@@ -169,10 +117,11 @@ class _BookmarkButtonState extends ConsumerState<_BookmarkButton> {
       ),
     );
     try {
-      final repository = ref.read(readingListRepositoryProvider);
       // The save response carries the created item, so the toggle can remember
-      // its id for a later remove without a follow-up fetch.
-      final item = await repository.saveFeedEntry(widget.entry.id);
+      // its id for a later remove/archive without a follow-up fetch.
+      final item = await ref
+          .read(readingListRepositoryProvider)
+          .saveFeedEntry(widget.entry.id);
       if (mounted) {
         setState(() => _itemId = item.id);
       }
@@ -207,6 +156,56 @@ class _BookmarkButtonState extends ConsumerState<_BookmarkButton> {
     } on Exception {
       if (mounted) {
         setState(() => _saved = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Something went wrong', maxLines: 1)),
+        );
+      }
+    }
+  }
+
+  Future<void> _archive() async {
+    final id = _itemId;
+    if (id == null) {
+      return;
+    }
+    // Optimistically flip the icon and confirm before the request completes.
+    setState(() => _archived = true);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        key: AppDebugKey.archiveSuccessSnackBar,
+        content: Text('Archived'),
+      ),
+    );
+    try {
+      await ref.read(readingListRepositoryProvider).archive(id);
+    } on Exception {
+      if (mounted) {
+        setState(() => _archived = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Something went wrong', maxLines: 1)),
+        );
+      }
+    }
+  }
+
+  Future<void> _unarchive() async {
+    final id = _itemId;
+    if (id == null) {
+      return;
+    }
+    // Optimistically flip the icon and confirm before the request completes.
+    setState(() => _archived = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        key: AppDebugKey.unarchiveSuccessSnackBar,
+        content: Text('Unarchived'),
+      ),
+    );
+    try {
+      await ref.read(readingListRepositoryProvider).unarchive(id);
+    } on Exception {
+      if (mounted) {
+        setState(() => _archived = true);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Something went wrong', maxLines: 1)),
         );
