@@ -41,7 +41,6 @@ func StartServer(ctx context.Context) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", h.getHealth)
 	mux.HandleFunc("GET /newspapers/today", h.getTodaysNewspaper)
-	mux.HandleFunc("GET /newspapers/stories/{id}", h.getStory)
 	mux.HandleFunc("GET /feeds", h.getFeeds)
 	mux.HandleFunc("PUT /feeds", h.subscribeToFeed)
 	mux.HandleFunc("GET /feeds/search", h.searchFeeds)
@@ -103,6 +102,8 @@ type getTodaysNewspaperResponse struct {
 
 type stories struct {
 	ID          int        `json:"id"`
+	ResourceID  int        `json:"resource_id"`
+	Kind        string     `json:"kind"`
 	Title       string     `json:"title"`
 	Description *string    `json:"description,omitempty"`
 	Source      *string    `json:"source,omitempty"`
@@ -127,7 +128,7 @@ func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, err := h.db.QueryContext(ctx, `
-		SELECT id, title, description, source, published_at
+		SELECT id, feed_entry_id, title, description, source, published_at
 		FROM stories
 		WHERE newspaper_id = $1
 		ORDER BY published_at DESC;
@@ -140,8 +141,8 @@ func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for rows.Next() {
-		a := stories{}
-		err := rows.Scan(&a.ID, &a.Title, &a.Description, &a.Source, &a.PublishedAt)
+		a := stories{Kind: "feed_entry"}
+		err := rows.Scan(&a.ID, &a.ResourceID, &a.Title, &a.Description, &a.Source, &a.PublishedAt)
 		if err != nil {
 			serverError(w, http.StatusInternalServerError, "Failed to parse a story.")
 			return
@@ -159,45 +160,6 @@ func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(jres)
-}
-
-type getStoryResponse struct {
-	Type string    `json:"type"`
-	Data feedEntry `json:"data"`
-}
-
-func (h *handler) getStory(w http.ResponseWriter, r *http.Request) {
-	rawId := r.PathValue("id")
-	id, err := strconv.Atoi(rawId)
-	if err != nil {
-		serverError(w, http.StatusBadRequest, fmt.Sprintf("Invalid story ID: %s", rawId))
-		return
-	}
-
-	ctx := r.Context()
-	res := getStoryResponse{Type: "feed_entry"}
-	d := &res.Data
-	err = h.db.QueryRowContext(ctx, `
-		SELECT e.id, e.feed_id, e.url, e.title, e.description, e.content, e.snapshot_at, e.published_at
-		FROM feed_entries e JOIN stories s ON e.id = s.feed_entry_id
-		WHERE s.id = $1;
-	`, id).Scan(&d.ID, &d.FeedID, &d.URL, &d.Title, &d.Description, &d.Content, &d.SnapshotAt, &d.PublishedAt)
-	if errors.Is(err, sql.ErrNoRows) {
-		serverError(w, http.StatusNotFound, "Story not found.")
-		return
-	} else if err != nil {
-		serverError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to fetch story by ID: %s", rawId))
-		return
-	}
-
-	jres, err := json.Marshal(res)
-	if err != nil {
-		serverError(w, http.StatusInternalServerError, "Failed to construct the response.")
-		return
-	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(jres)

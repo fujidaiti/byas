@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +13,7 @@ import 'package:paperdoll/core/ui/widgets/heading_text.dart';
 import 'package:paperdoll/core/util/date_format.dart';
 import 'package:paperdoll/debug_keys.dart';
 import 'package:paperdoll/features/newspaper/domain/newspaper.dart';
+import 'package:paperdoll/features/newspaper/domain/story.dart';
 import 'package:paperdoll/features/newspaper/presentation/providers/newspaper_providers.dart';
 import 'package:paperdoll/features/newspaper/presentation/widgets/story_card.dart';
 
@@ -78,14 +81,27 @@ class _NewspaperView extends StatelessWidget {
               return StoryCard(
                 key: AppDebugKey.storyCard(story.title),
                 story: story,
-                onTap: () => context.pushNamed(
-                  routeStoryName,
-                  pathParameters: {'id': story.id.toString()},
-                ),
+                onTap: () => _openStory(context, story),
               );
             },
           ),
       ],
     );
+  }
+
+  void _openStory(BuildContext context, Story story) {
+    switch (story.kind) {
+      case StoryKind.feedEntry:
+        unawaited(
+          context.pushNamed(
+            routeTodayFeedEntryReaderName,
+            pathParameters: {'feedEntryId': '${story.resourceId}'},
+          ),
+        );
+      case StoryKind.webArticle:
+        throw UnimplementedError(
+          'Web-article-backed stories are not supported yet.',
+        );
+    }
   }
 }

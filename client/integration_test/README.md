@@ -64,20 +64,14 @@ Prefer using generated models over raw Map objects for each response as well:
 
 ```dart
 // Good
-adapter.onGet('/newspapers/stories/1',
-  (server) => server.reply(
-    200,
-    api.GetStory200Response(
-      type: api.GetStory200ResponseTypeEnum.feedEntry,
-      data: storyEntry,
-    ).toJson(),
-  ),
+adapter.onGet('/feed-entries/1',
+  (server) => server.reply(200, feedEntry.toJson()),
 );
 
 // Equivalent to above, but do not abuse this pattern
 adapter.onGet(
-  '/newspapers/stories/1',
-  (server) => server.reply(200, { 'type': 'feed_entry', 'data': storyEntry.toJson() }),
+  '/feed-entries/1',
+  (server) => server.reply(200, {'id': 1, 'feed_id': 1, 'url': '...', 'title': '...'}),
 );
 ```
 

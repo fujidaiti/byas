@@ -14,6 +14,8 @@ class Story {
   /// Returns a new [Story] instance.
   Story({
     required this.id,
+    required this.resourceId,
+    required this.kind,
     required this.title,
     this.description,
     this.source_,
@@ -21,6 +23,12 @@ class Story {
   });
 
   int id;
+
+  /// The ID of the resource backing this story — currently always the feed entry ID for `feed_entry`. Use this to navigate directly to the appropriate reader.
+  int resourceId;
+
+  /// The kind of the resource backing this story.
+  StoryKindEnum kind;
 
   String title;
 
@@ -53,6 +61,8 @@ class Story {
       identical(this, other) ||
       other is Story &&
           other.id == id &&
+          other.resourceId == resourceId &&
+          other.kind == kind &&
           other.title == title &&
           other.description == description &&
           other.source_ == source_ &&
@@ -62,6 +72,8 @@ class Story {
   int get hashCode =>
       // ignore: unnecessary_parenthesis
       (id.hashCode) +
+      (resourceId.hashCode) +
+      (kind.hashCode) +
       (title.hashCode) +
       (description == null ? 0 : description!.hashCode) +
       (source_ == null ? 0 : source_!.hashCode) +
@@ -69,11 +81,13 @@ class Story {
 
   @override
   String toString() =>
-      'Story[id=$id, title=$title, description=$description, source_=$source_, publishedAt=$publishedAt]';
+      'Story[id=$id, resourceId=$resourceId, kind=$kind, title=$title, description=$description, source_=$source_, publishedAt=$publishedAt]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
     json[r'id'] = this.id;
+    json[r'resource_id'] = this.resourceId;
+    json[r'kind'] = this.kind;
     json[r'title'] = this.title;
     if (this.description != null) {
       json[r'description'] = this.description;
@@ -108,6 +122,14 @@ class Story {
             'Required key "Story[id]" is missing from JSON.');
         assert(json[r'id'] != null,
             'Required key "Story[id]" has a null value in JSON.');
+        assert(json.containsKey(r'resource_id'),
+            'Required key "Story[resource_id]" is missing from JSON.');
+        assert(json[r'resource_id'] != null,
+            'Required key "Story[resource_id]" has a null value in JSON.');
+        assert(json.containsKey(r'kind'),
+            'Required key "Story[kind]" is missing from JSON.');
+        assert(json[r'kind'] != null,
+            'Required key "Story[kind]" has a null value in JSON.');
         assert(json.containsKey(r'title'),
             'Required key "Story[title]" is missing from JSON.');
         assert(json[r'title'] != null,
@@ -117,6 +139,8 @@ class Story {
 
       return Story(
         id: mapValueOfType<int>(json, r'id')!,
+        resourceId: mapValueOfType<int>(json, r'resource_id')!,
+        kind: StoryKindEnum.fromJson(json[r'kind'])!,
         title: mapValueOfType<String>(json, r'title')!,
         description: mapValueOfType<String>(json, r'description'),
         source_: mapValueOfType<String>(json, r'source'),
@@ -178,6 +202,88 @@ class Story {
   /// The list of required keys that must be present in a JSON.
   static const requiredKeys = <String>{
     'id',
+    'resource_id',
+    'kind',
     'title',
   };
+}
+
+/// The kind of the resource backing this story.
+class StoryKindEnum {
+  /// Instantiate a new enum with the provided [value].
+  const StoryKindEnum._(this.value);
+
+  /// The underlying value of this enum member.
+  final String value;
+
+  @override
+  String toString() => value;
+
+  String toJson() => value;
+
+  static const webArticle = StoryKindEnum._(r'web_article');
+  static const feedEntry = StoryKindEnum._(r'feed_entry');
+
+  /// List of all possible values in this [enum][StoryKindEnum].
+  static const values = <StoryKindEnum>[
+    webArticle,
+    feedEntry,
+  ];
+
+  static StoryKindEnum? fromJson(dynamic value) =>
+      StoryKindEnumTypeTransformer().decode(value);
+
+  static List<StoryKindEnum> listFromJson(
+    dynamic json, {
+    bool growable = false,
+  }) {
+    final result = <StoryKindEnum>[];
+    if (json is List && json.isNotEmpty) {
+      for (final row in json) {
+        final value = StoryKindEnum.fromJson(row);
+        if (value != null) {
+          result.add(value);
+        }
+      }
+    }
+    return result.toList(growable: growable);
+  }
+}
+
+/// Transformation class that can [encode] an instance of [StoryKindEnum] to String,
+/// and [decode] dynamic data back to [StoryKindEnum].
+class StoryKindEnumTypeTransformer {
+  factory StoryKindEnumTypeTransformer() =>
+      _instance ??= const StoryKindEnumTypeTransformer._();
+
+  const StoryKindEnumTypeTransformer._();
+
+  String encode(StoryKindEnum data) => data.value;
+
+  /// Decodes a [dynamic value][data] to a StoryKindEnum.
+  ///
+  /// If [allowNull] is true and the [dynamic value][data] cannot be decoded successfully,
+  /// then null is returned. However, if [allowNull] is false and the [dynamic value][data]
+  /// cannot be decoded successfully, then an [UnimplementedError] is thrown.
+  ///
+  /// The [allowNull] is very handy when an API changes and a new enum value is added or removed,
+  /// and users are still using an old app with the old code.
+  StoryKindEnum? decode(dynamic data, {bool allowNull = true}) {
+    if (data != null) {
+      switch (data) {
+        case r'web_article':
+          return StoryKindEnum.webArticle;
+        case r'feed_entry':
+          return StoryKindEnum.feedEntry;
+        default:
+          if (!allowNull) {
+            throw ArgumentError('Unknown enum value to decode: $data');
+          }
+      }
+    }
+    return null;
+  }
+
+  /// Singleton [StoryKindEnumTypeTransformer] instance.
+  static StoryKindEnumTypeTransformer? _instance;
 }
