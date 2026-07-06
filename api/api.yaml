@@ -8,8 +8,6 @@ paths:
     $ref: "./paths/health.yaml"
   /newspapers/today:
     $ref: "./paths/newspapers.yaml#/today"
-  /newspapers/stories/{id}:
-    $ref: "./paths/newspapers.yaml#/stories"
   /feeds:
     $ref: "./paths/feeds.yaml#/collection"
   /feeds/search:
