@@ -178,10 +178,6 @@ type feedEntry struct {
 
 type getFeedEntryResponse struct {
 	feedEntry
-
-	// ReadingListItemID is the id of the reading list item backing this entry,
-	// if it is saved in the reading list (regardless of archive status). Nil
-	// when the entry is not saved.
 	ReadingListItemID *int `json:"reading_list_item_id,omitempty"`
 }
 
@@ -485,10 +481,7 @@ type saveToReadingListReqBody struct {
 	// This is only honored on the URL path; it is ignored for feed entries.
 	Title *string `json:"title"`
 
-	FeedEntryID *int `json:"feed_entry_id"`
-
-	// WebArticleID re-saves an already-existing web article (e.g. one just
-	// unsaved from the reader), re-attaching its row without re-fetching.
+	FeedEntryID  *int `json:"feed_entry_id"`
 	WebArticleID *int `json:"web_article_id"`
 }
 
