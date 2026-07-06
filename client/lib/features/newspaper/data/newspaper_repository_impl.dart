@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:openapi/api.dart' as api;
 
 import 'package:paperdoll/core/network/request_runner.dart';
-import 'package:paperdoll/features/feed_entry/domain/feed_entry.dart';
 import 'package:paperdoll/features/newspaper/domain/newspaper.dart';
 import 'package:paperdoll/features/newspaper/domain/newspaper_repository.dart';
 import 'package:paperdoll/features/newspaper/domain/story.dart';
@@ -24,6 +23,8 @@ class NewspaperRepositoryImpl implements NewspaperRepository {
             .map(
               (s) => Story(
                 id: s.id,
+                resourceId: s.resourceId,
+                kind: _toKind(s.kind),
                 title: s.title,
                 description: s.description,
                 source: s.source_,
@@ -35,23 +36,9 @@ class NewspaperRepositoryImpl implements NewspaperRepository {
     });
   }
 
-  @override
-  Future<FeedEntry> getStory(int id) {
-    return runRequest(() async {
-      final res = await _dio.get<Map<String, dynamic>>(
-        '/newspapers/stories/$id',
-      );
-      final e = api.GetStory200Response.fromJson(res.data)!.data;
-      return FeedEntry(
-        id: e.id,
-        feedId: e.feedId,
-        url: e.url,
-        title: e.title,
-        description: e.description,
-        content: e.content,
-        publishedAt: e.publishedAt,
-        snapshotAt: e.snapshotAt,
-      );
-    });
-  }
+  StoryKind _toKind(api.StoryKindEnum kind) => switch (kind) {
+    api.StoryKindEnum.webArticle => StoryKind.webArticle,
+    api.StoryKindEnum.feedEntry => StoryKind.feedEntry,
+    _ => StoryKind.feedEntry,
+  };
 }

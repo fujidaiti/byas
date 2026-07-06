@@ -25,6 +25,8 @@ today:
               published_at: "2026-06-28T09:00:00+09:00"
               stories:
                 - id: 1
+                  resource_id: 10
+                  kind: feed_entry
                   title: "Demystifying evals for AI agents"
                   description:
                     "The capabilities that make agents useful also make them
@@ -32,55 +34,14 @@ today:
                   source: "Cursor Blog"
                   published_at: "2026-01-09T09:00:00+09:00"
                 - id: 2
+                  resource_id: 11
+                  kind: feed_entry
                   title: "Effective harnesses for long-running agents"
                   description:
                     "Agents still face challenges working across many context
                     windows."
                   source: "Anthropic Engineering Blog"
                   published_at: "2025-11-26T09:00:00+09:00"
-      "404":
-        $ref: "../components/responses.yaml#/NotFound"
-      "500":
-        $ref: "../components/responses.yaml#/InternalServerError"
-
-stories:
-  get:
-    summary: Get a story by ID
-    operationId: getStory
-    parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-    responses:
-      "200":
-        description: OK
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [type, data]
-              properties:
-                type:
-                  type: string
-                  enum: [feed_entry]
-                data:
-                  $ref: "../components/schemas.yaml#/FeedEntry"
-            example:
-              type: feed_entry
-              data:
-                id: 10
-                feed_id: 1
-                url: "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents"
-                title: "Demystifying evals for AI agents"
-                description:
-                  "The capabilities that make agents useful also make them
-                  difficult to evaluate."
-                published_at: "2026-01-09T09:00:00+09:00"
-                snapshot_at: "2026-05-26T02:29:39.785457+09:00"
-      "400":
-        $ref: "../components/responses.yaml#/BadRequest"
       "404":
         $ref: "../components/responses.yaml#/NotFound"
       "500":

@@ -6,7 +6,6 @@ import 'package:paperdoll/features/feed/presentation/feed_detail_screen.dart';
 import 'package:paperdoll/features/feed/presentation/feed_search_screen.dart';
 import 'package:paperdoll/features/feed/presentation/feeds_screen.dart';
 import 'package:paperdoll/features/feed_entry/presentation/feed_entry_reader_screen.dart';
-import 'package:paperdoll/features/newspaper/presentation/story_reader_screen.dart';
 import 'package:paperdoll/features/newspaper/presentation/today_screen.dart';
 import 'package:paperdoll/features/reading_list/presentation/reading_list_screen.dart';
 import 'package:paperdoll/features/web_article/presentation/web_article_reader_screen.dart';
@@ -17,8 +16,9 @@ part 'app_router.g.dart';
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 /// The app's navigation graph: a bottom-nav shell over Today and Feeds, with
-/// detail/discovery screens nested under each branch. The story and feed entry
-/// readers push onto the root navigator so they cover the bottom nav bar.
+/// detail/discovery screens nested under each branch. The feed entry and web
+/// article readers push onto the root navigator so they cover the bottom nav
+/// bar.
 @riverpod
 GoRouter goRouter(Ref ref) {
   return GoRouter(
@@ -37,11 +37,12 @@ GoRouter goRouter(Ref ref) {
                 builder: (context, state) => const TodayScreen(),
                 routes: [
                   GoRoute(
-                    path: routeStoryPath,
-                    name: routeStoryName,
+                    path: routeTodayFeedEntryReaderPath,
+                    name: routeTodayFeedEntryReaderName,
                     parentNavigatorKey: _rootNavigatorKey,
-                    builder: (context, state) =>
-                        StoryReaderScreen(id: _idParam(state, 'id')),
+                    builder: (context, state) => FeedEntryReaderScreen(
+                      id: _idParam(state, 'feedEntryId'),
+                    ),
                   ),
                 ],
               ),

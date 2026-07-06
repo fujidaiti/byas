@@ -88,10 +88,19 @@ ReadingListItem:
 
 Story:
   type: object
-  required: [id, title]
+  required: [id, resource_id, kind, title]
   properties:
     id:
       type: integer
+    resource_id:
+      description:
+        The ID of the resource backing this story. Use this to navigate directly
+        to the appropriate reader.
+      type: integer
+    kind:
+      description: The kind of the resource backing this story.
+      type: string
+      enum: [web_article, feed_entry]
     title:
       type: string
     description:
