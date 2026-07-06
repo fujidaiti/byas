@@ -5,6 +5,7 @@ import 'package:paperdoll/core/router/routes.dart';
 import 'package:paperdoll/core/ui/widgets/app_divider.dart';
 import 'package:paperdoll/core/ui/widgets/async_value_view.dart';
 import 'package:paperdoll/core/ui/widgets/empty_placeholder.dart';
+import 'package:paperdoll/core/ui/widgets/scrollable_fill.dart';
 import 'package:paperdoll/debug_keys.dart';
 import 'package:paperdoll/features/feed/domain/feed.dart';
 import 'package:paperdoll/features/feed/presentation/providers/feed_providers.dart';
@@ -49,13 +50,16 @@ class _FeedsList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (feeds.isEmpty) {
-      return EmptyPlaceholder(
-        message: 'No feeds yet. Add one to get started.',
-        actionLabel: 'Add feed',
-        onAction: () => context.pushNamed(routeFeedSearchName),
+      return ScrollableFill(
+        child: EmptyPlaceholder(
+          message: 'No feeds yet. Add one to get started.',
+          actionLabel: 'Add feed',
+          onAction: () => context.pushNamed(routeFeedSearchName),
+        ),
       );
     }
     return ListView.separated(
+      physics: const AlwaysScrollableScrollPhysics(),
       itemCount: feeds.length,
       separatorBuilder: (context, index) => const AppDivider(),
       itemBuilder: (context, index) {
