@@ -332,7 +332,7 @@ func (h *handler) getFeed(w http.ResponseWriter, r *http.Request) {
 }
 
 type getFeedTimelineResBody struct {
-	Entries []feedEntry `json:"entries"`
+	Entries []getFeedEntryResponse `json:"entries"`
 }
 
 func (h *handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
@@ -346,7 +346,12 @@ func (h *handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	// TODO: Support pagination
 	rows, err := h.db.QueryContext(ctx, `
-		SELECT id, feed_id, url, title, description, published_at, snapshot_at
+		SELECT id, feed_id, url, title, description, published_at, snapshot_at,
+			-- TODO: Replace this correlated subquery with a LEFT JOIN once a
+			-- UNIQUE (feed_entry_id) constraint exists on reading_list_items.
+			(SELECT id FROM reading_list_items
+				WHERE feed_entry_id = feed_entries.id
+				LIMIT 1)
 		FROM feed_entries
 		WHERE feed_id = $1;
 	`, id)
@@ -355,10 +360,10 @@ func (h *handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
 		serverError(w, http.StatusInternalServerError, "Failed to fetch entries")
 		return
 	}
-	res := getFeedTimelineResBody{Entries: []feedEntry{}}
+	res := getFeedTimelineResBody{Entries: []getFeedEntryResponse{}}
 	for rows.Next() {
-		var e feedEntry
-		err := rows.Scan(&e.ID, &e.FeedID, &e.URL, &e.Title, &e.Description, &e.PublishedAt, &e.SnapshotAt)
+		var e getFeedEntryResponse
+		err := rows.Scan(&e.ID, &e.FeedID, &e.URL, &e.Title, &e.Description, &e.PublishedAt, &e.SnapshotAt, &e.ReadingListItemID)
 		if err != nil {
 			fmt.Print(err)
 			serverError(w, http.StatusInternalServerError, "Failed to fetch entry")
