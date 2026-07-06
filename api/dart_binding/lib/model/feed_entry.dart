@@ -64,7 +64,7 @@ class FeedEntry {
   ///
   DateTime? snapshotAt;
 
-  /// The id of the reading list item backing this entry, if it is currently saved (unarchived). Absent when the entry is not saved.
+  /// The id of the reading list item backing this entry, if it is saved in the reading list. Absent when the entry is not saved.
   ///
   /// Please note: This property should have been non-nullable! Since the specification file
   /// does not include a default value (using the "default:" property), however, the generated
