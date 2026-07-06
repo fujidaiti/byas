@@ -37,7 +37,7 @@ class NewspaperRepositoryImpl implements NewspaperRepository {
   }
 
   StoryKind _toKind(api.StoryKindEnum kind) => switch (kind) {
-    api.StoryKindEnum.webArticle => StoryKind.webArticle,
+    api.StoryKindEnum.webClip => StoryKind.webClip,
     api.StoryKindEnum.feedEntry => StoryKind.feedEntry,
     _ => StoryKind.feedEntry,
   };

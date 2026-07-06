@@ -5,7 +5,7 @@ part 'story.freezed.dart';
 /// The kind of resource backing a [Story]. Mirrors the reading list so a story
 /// row can navigate straight to the matching reader. Stories are always backed
 /// by a feed entry today; other kinds are reserved for future use.
-enum StoryKind { webArticle, feedEntry }
+enum StoryKind { webClip, feedEntry }
 
 /// A curated entry chosen to appear in a newspaper issue.
 @freezed

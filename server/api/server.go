@@ -47,7 +47,7 @@ func StartServer(ctx context.Context) {
 	mux.HandleFunc("GET /feeds/{id}", h.getFeed)
 	mux.HandleFunc("GET /feeds/{id}/timeline", h.getFeedTimeline)
 	mux.HandleFunc("GET /feed-entries/{id}", h.getFeedEntry)
-	mux.HandleFunc("GET /web-articles/{id}", h.getWebArticle)
+	mux.HandleFunc("GET /web-clips/{id}", h.getWebClip)
 	mux.HandleFunc("POST /reading-list", h.saveToReadingList)
 	mux.HandleFunc("GET /reading-list", h.getReadingList)
 	mux.HandleFunc("DELETE /reading-list/{id}", h.deleteReadingListItem)
@@ -481,8 +481,8 @@ type saveToReadingListReqBody struct {
 	// This is only honored on the URL path; it is ignored for feed entries.
 	Title *string `json:"title"`
 
-	FeedEntryID  *int `json:"feed_entry_id"`
-	WebArticleID *int `json:"web_article_id"`
+	FeedEntryID *int `json:"feed_entry_id"`
+	WebClipID   *int `json:"web_clip_id"`
 }
 
 func (h *handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
@@ -501,7 +501,7 @@ func (h *handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 	if b.FeedEntryID != nil {
 		argn++
 	}
-	if b.WebArticleID != nil {
+	if b.WebClipID != nil {
 		argn++
 	}
 	if argn != 1 {
@@ -524,10 +524,10 @@ func (h *handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 		if b.Title != nil {
 			title = *b.Title
 		}
-		saved, err = readinglist.SaveWebArticle(ctx, h.db, *u, title)
+		saved, err = readinglist.SaveWebClip(ctx, h.db, *u, title)
 		if err != nil {
 			fmt.Println(err)
-			serverError(w, http.StatusInternalServerError, "Failed to save article")
+			serverError(w, http.StatusInternalServerError, "Failed to save clip")
 			return
 		}
 
@@ -541,13 +541,13 @@ func (h *handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-	case b.WebArticleID != nil:
+	case b.WebClipID != nil:
 		// TODO: Return 404 instead of 500 when the given ID doesn't exist
 		var err error
-		saved, err = readinglist.SaveWebArticleByID(ctx, h.db, *b.WebArticleID)
+		saved, err = readinglist.SaveWebClipByID(ctx, h.db, *b.WebClipID)
 		if err != nil {
 			fmt.Println(err)
-			serverError(w, http.StatusInternalServerError, "Failed to save web article")
+			serverError(w, http.StatusInternalServerError, "Failed to save web clip")
 			return
 		}
 	}
@@ -584,11 +584,11 @@ type readingListItem struct {
 }
 
 // TODO: Support pagination; add a tiebreaker to ORDER BY in case saved_at timestamps are the same
-// TODO: Report pending/failed articles separately from the Items, if any
+// TODO: Report pending/failed clips separately from the Items, if any
 func (h *handler) getReadingList(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	rows, err := h.db.QueryContext(ctx, `
-		SELECT id, kind, title, description, saved_at, web_article_id, feed_entry_id
+		SELECT id, kind, title, description, saved_at, web_clip_id, feed_entry_id
 		FROM reading_list_items
 		WHERE archived = false
 		ORDER BY saved_at DESC;
@@ -602,21 +602,21 @@ func (h *handler) getReadingList(w http.ResponseWriter, r *http.Request) {
 	res := getReadingListResBody{Items: []readingListItem{}}
 	for rows.Next() {
 		var li readingListItem
-		var waID, feID *int
-		err := rows.Scan(&li.ID, &li.Kind, &li.Title, &li.Description, &li.SavedAt, &waID, &feID)
+		var wcID, feID *int
+		err := rows.Scan(&li.ID, &li.Kind, &li.Title, &li.Description, &li.SavedAt, &wcID, &feID)
 		if err != nil {
 			fmt.Println(err)
 			serverError(w, http.StatusInternalServerError, "Failed to fetch reading list item")
 			return
 		}
 		switch li.Kind {
-		case "web_article":
-			if waID == nil {
-				fmt.Println("Malformed data: a reading list item of kind 'web_article' is expected to have a web article ID, but it doesn't.")
+		case "web_clip":
+			if wcID == nil {
+				fmt.Println("Malformed data: a reading list item of kind 'web_clip' is expected to have a web clip ID, but it doesn't.")
 				serverError(w, http.StatusInternalServerError, "Failed to fetch reading list item")
 				return
 			}
-			li.ResourceID = *waID
+			li.ResourceID = *wcID
 
 		case "feed_entry":
 			if feID == nil {
@@ -650,43 +650,43 @@ func (h *handler) getReadingList(w http.ResponseWriter, r *http.Request) {
 	w.Write(jres)
 }
 
-type getWebArticleResBody struct {
+type getWebClipResBody struct {
 	ID          int     `json:"id"`
 	URL         string  `json:"url"`
 	Title       *string `json:"title,omitempty"`
 	Description *string `json:"description,omitempty"`
 	Content     *string `json:"content,omitempty"`
 
-	// ReadingListItemID is the id of the reading list item backing this article,
+	// ReadingListItemID is the id of the reading list item backing this clip,
 	// if it is saved in the reading list (regardless of archive status). Nil
-	// when the article is not saved.
+	// when the clip is not saved.
 	ReadingListItemID *int `json:"reading_list_item_id,omitempty"`
 }
 
-func (h *handler) getWebArticle(w http.ResponseWriter, r *http.Request) {
+func (h *handler) getWebClip(w http.ResponseWriter, r *http.Request) {
 	rawId := r.PathValue("id")
 	id, err := strconv.Atoi(rawId)
 	if err != nil {
-		serverError(w, http.StatusBadRequest, fmt.Sprintf("Invalid web article ID: %s", rawId))
+		serverError(w, http.StatusBadRequest, fmt.Sprintf("Invalid web clip ID: %s", rawId))
 		return
 	}
 
 	ctx := r.Context()
-	var res getWebArticleResBody
+	var res getWebClipResBody
 	err = h.db.QueryRowContext(ctx, `
 		SELECT id, url, title, description, content,
 			(SELECT id FROM reading_list_items
-				WHERE web_article_id = web_articles.id
+				WHERE web_clip_id = web_clips.id
 				LIMIT 1)
-		FROM web_articles
+		FROM web_clips
 		WHERE id = $1;
 	`, id).Scan(&res.ID, &res.URL, &res.Title, &res.Description, &res.Content, &res.ReadingListItemID)
 	if errors.Is(err, sql.ErrNoRows) {
-		serverError(w, http.StatusNotFound, "Web article not found.")
+		serverError(w, http.StatusNotFound, "Web clip not found.")
 		return
 	} else if err != nil {
 		fmt.Println(err)
-		serverError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to fetch web article by ID=%d", id))
+		serverError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to fetch web clip by ID=%d", id))
 		return
 	}
 

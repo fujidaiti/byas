@@ -2,7 +2,7 @@ get:
   summary: Get the reading list
   description:
     Returns all unarchived reading list items, most recently saved first. Web
-    articles whose content hasn't been fetched yet (or whose fetch failed) are
+    clips whose content hasn't been fetched yet (or whose fetch failed) are
     still included, with an empty `title`.
   operationId: getReadingList
   responses:
@@ -24,20 +24,20 @@ get:
 post:
   summary: Save an item to the reading list
   description:
-    Saves an item to the reading list, either a web article (via `url`), a feed
-    entry (via `feed_entry_id`), or a web article (via `web_article_id`).
-    Exactly one of the three must be specified. When saving a web article, a
-    placeholder item is appended immediately, and its content is fetched and
-    filled in asynchronously afterwards; in this case a 201 response only means
-    the placeholder was appended successfully — the article fetch may still fail
-    behind the scenes. An optional `title` may be supplied alongside `url` (e.g.
-    the page title shared by the browser) to give the placeholder a meaningful
-    label until the fetch fills in the real one.
+    Saves an item to the reading list, either a web clip (via `url`), a feed
+    entry (via `feed_entry_id`), or a web clip (via `web_clip_id`). Exactly one
+    of the three must be specified. When saving a web clip, a placeholder item
+    is appended immediately, and its content is fetched and filled in
+    asynchronously afterwards; in this case a 201 response only means the
+    placeholder was appended successfully — the clip fetch may still fail behind
+    the scenes. An optional `title` may be supplied alongside `url` (e.g. the
+    page title shared by the browser) to give the placeholder a meaningful label
+    until the fetch fills in the real one.
   operationId: saveToReadingList
   requestBody:
     description:
       The item to save. Specify exactly one of `url`, `feed_entry_id`, or
-      `web_article_id`.
+      `web_clip_id`.
     content:
       application/json:
         schema:
@@ -47,14 +47,14 @@ post:
               required: [url]
               properties:
                 url:
-                  description: The URL of the web article to save.
+                  description: The URL of the web clip to save.
                   type: string
                   format: uri
                 title:
                   description:
                     Optional placeholder title (e.g. the page title shared by
-                    the browser). Shown until the article is fetched; a
-                    successful fetch replaces it with the extracted title.
+                    the browser). Shown until the clip is fetched; a successful
+                    fetch replaces it with the extracted title.
                   type: string
             - type: object
               additionalProperties: false
@@ -65,10 +65,10 @@ post:
                   type: integer
             - type: object
               additionalProperties: false
-              required: [web_article_id]
+              required: [web_clip_id]
               properties:
-                web_article_id:
-                  description: The ID of a web article to save.
+                web_clip_id:
+                  description: The ID of a web clip to save.
                   type: integer
           example:
             url: "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents"

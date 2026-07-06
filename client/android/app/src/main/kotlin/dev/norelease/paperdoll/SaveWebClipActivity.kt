@@ -19,7 +19,7 @@ import androidx.compose.ui.platform.LocalContext
  * Dialog-style activity launched from the browser's share sheet. It extracts the shared
  * URL, POSTs it to the reading list, and shows the result.
  */
-class SaveWebArticleActivity : ComponentActivity() {
+class SaveWebClipActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,7 +50,7 @@ class SaveWebArticleActivity : ComponentActivity() {
                 }
             MaterialTheme(colorScheme = colorScheme) {
                 Surface {
-                    SaveWebArticleScreen(url = url, title = title, onClose = { finish() })
+                    SaveWebClipScreen(url = url, title = title, onClose = { finish() })
                 }
             }
         }

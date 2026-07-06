@@ -24,7 +24,7 @@ class Story {
 
   int id;
 
-  /// The ID of the resource backing this story — currently always the feed entry ID for `feed_entry`. Use this to navigate directly to the appropriate reader.
+  /// The ID of the resource backing this story. Use this to navigate directly to the appropriate reader.
   int resourceId;
 
   /// The kind of the resource backing this story.
@@ -221,12 +221,12 @@ class StoryKindEnum {
 
   String toJson() => value;
 
-  static const webArticle = StoryKindEnum._(r'web_article');
+  static const webClip = StoryKindEnum._(r'web_clip');
   static const feedEntry = StoryKindEnum._(r'feed_entry');
 
   /// List of all possible values in this [enum][StoryKindEnum].
   static const values = <StoryKindEnum>[
-    webArticle,
+    webClip,
     feedEntry,
   ];
 
@@ -271,8 +271,8 @@ class StoryKindEnumTypeTransformer {
   StoryKindEnum? decode(dynamic data, {bool allowNull = true}) {
     if (data != null) {
       switch (data) {
-        case r'web_article':
-          return StoryKindEnum.webArticle;
+        case r'web_clip':
+          return StoryKindEnum.webClip;
         case r'feed_entry':
           return StoryKindEnum.feedEntry;
         default:

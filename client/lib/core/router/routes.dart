@@ -2,7 +2,7 @@
 const routeTodayName = 'today';
 const routeTodayFeedEntryReaderName = 'todayFeedEntryReader';
 const routeReadingListName = 'readingList';
-const routeWebArticleReaderName = 'webArticleReader';
+const routeWebClipReaderName = 'webClipReader';
 const routeReadingListFeedEntryReaderName = 'readingListFeedEntryReader';
 const routeFeedsName = 'feeds';
 const routeFeedSearchName = 'feedSearch';
@@ -13,7 +13,7 @@ const routeFeedEntryReaderName = 'feedEntryReader';
 const routeTodayPath = '/today';
 const routeTodayFeedEntryReaderPath = 'feed-entries/:feedEntryId';
 const routeReadingListPath = '/reading-list';
-const routeWebArticleReaderPath = 'web-articles/:id';
+const routeWebClipReaderPath = 'web-clips/:id';
 const routeReadingListFeedEntryReaderPath = 'feed-entries/:feedEntryId';
 const routeFeedsPath = '/feeds';
 const routeFeedSearchPath = 'search';

@@ -3,7 +3,7 @@
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
-part of 'web_article.dart';
+part of 'web_clip.dart';
 
 // **************************************************************************
 // FreezedGenerator
@@ -12,20 +12,20 @@ part of 'web_article.dart';
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
-mixin _$WebArticle {
+mixin _$WebClip {
 
  String get url; String? get title; String? get description; String? get content; int? get readingListItemId;
-/// Create a copy of WebArticle
+/// Create a copy of WebClip
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-$WebArticleCopyWith<WebArticle> get copyWith => _$WebArticleCopyWithImpl<WebArticle>(this as WebArticle, _$identity);
+$WebClipCopyWith<WebClip> get copyWith => _$WebClipCopyWithImpl<WebClip>(this as WebClip, _$identity);
 
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WebArticle&&(identical(other.url, url) || other.url == url)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.content, content) || other.content == content)&&(identical(other.readingListItemId, readingListItemId) || other.readingListItemId == readingListItemId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WebClip&&(identical(other.url, url) || other.url == url)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.content, content) || other.content == content)&&(identical(other.readingListItemId, readingListItemId) || other.readingListItemId == readingListItemId));
 }
 
 
@@ -34,15 +34,15 @@ int get hashCode => Object.hash(runtimeType,url,title,description,content,readin
 
 @override
 String toString() {
-  return 'WebArticle(url: $url, title: $title, description: $description, content: $content, readingListItemId: $readingListItemId)';
+  return 'WebClip(url: $url, title: $title, description: $description, content: $content, readingListItemId: $readingListItemId)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class $WebArticleCopyWith<$Res>  {
-  factory $WebArticleCopyWith(WebArticle value, $Res Function(WebArticle) _then) = _$WebArticleCopyWithImpl;
+abstract mixin class $WebClipCopyWith<$Res>  {
+  factory $WebClipCopyWith(WebClip value, $Res Function(WebClip) _then) = _$WebClipCopyWithImpl;
 @useResult
 $Res call({
  String url, String? title, String? description, String? content, int? readingListItemId
@@ -53,14 +53,14 @@ $Res call({
 
 }
 /// @nodoc
-class _$WebArticleCopyWithImpl<$Res>
-    implements $WebArticleCopyWith<$Res> {
-  _$WebArticleCopyWithImpl(this._self, this._then);
+class _$WebClipCopyWithImpl<$Res>
+    implements $WebClipCopyWith<$Res> {
+  _$WebClipCopyWithImpl(this._self, this._then);
 
-  final WebArticle _self;
-  final $Res Function(WebArticle) _then;
+  final WebClip _self;
+  final $Res Function(WebClip) _then;
 
-/// Create a copy of WebArticle
+/// Create a copy of WebClip
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? url = null,Object? title = freezed,Object? description = freezed,Object? content = freezed,Object? readingListItemId = freezed,}) {
   return _then(_self.copyWith(
@@ -76,8 +76,8 @@ as int?,
 }
 
 
-/// Adds pattern-matching-related methods to [WebArticle].
-extension WebArticlePatterns on WebArticle {
+/// Adds pattern-matching-related methods to [WebClip].
+extension WebClipPatterns on WebClip {
 /// A variant of `map` that fallback to returning `orElse`.
 ///
 /// It is equivalent to doing:
@@ -90,10 +90,10 @@ extension WebArticlePatterns on WebArticle {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _WebArticle value)?  $default,{required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _WebClip value)?  $default,{required TResult orElse(),}){
 final _that = this;
 switch (_that) {
-case _WebArticle() when $default != null:
+case _WebClip() when $default != null:
 return $default(_that);case _:
   return orElse();
 
@@ -112,10 +112,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _WebArticle value)  $default,){
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _WebClip value)  $default,){
 final _that = this;
 switch (_that) {
-case _WebArticle():
+case _WebClip():
 return $default(_that);case _:
   throw StateError('Unexpected subclass');
 
@@ -133,10 +133,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _WebArticle value)?  $default,){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _WebClip value)?  $default,){
 final _that = this;
 switch (_that) {
-case _WebArticle() when $default != null:
+case _WebClip() when $default != null:
 return $default(_that);case _:
   return null;
 
@@ -156,7 +156,7 @@ return $default(_that);case _:
 
 @optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String url,  String? title,  String? description,  String? content,  int? readingListItemId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
-case _WebArticle() when $default != null:
+case _WebClip() when $default != null:
 return $default(_that.url,_that.title,_that.description,_that.content,_that.readingListItemId);case _:
   return orElse();
 
@@ -177,7 +177,7 @@ return $default(_that.url,_that.title,_that.description,_that.content,_that.read
 
 @optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String url,  String? title,  String? description,  String? content,  int? readingListItemId)  $default,) {final _that = this;
 switch (_that) {
-case _WebArticle():
+case _WebClip():
 return $default(_that.url,_that.title,_that.description,_that.content,_that.readingListItemId);case _:
   throw StateError('Unexpected subclass');
 
@@ -197,7 +197,7 @@ return $default(_that.url,_that.title,_that.description,_that.content,_that.read
 
 @optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String url,  String? title,  String? description,  String? content,  int? readingListItemId)?  $default,) {final _that = this;
 switch (_that) {
-case _WebArticle() when $default != null:
+case _WebClip() when $default != null:
 return $default(_that.url,_that.title,_that.description,_that.content,_that.readingListItemId);case _:
   return null;
 
@@ -209,8 +209,8 @@ return $default(_that.url,_that.title,_that.description,_that.content,_that.read
 /// @nodoc
 
 
-class _WebArticle implements WebArticle {
-  const _WebArticle({required this.url, this.title, this.description, this.content, this.readingListItemId});
+class _WebClip implements WebClip {
+  const _WebClip({required this.url, this.title, this.description, this.content, this.readingListItemId});
   
 
 @override final  String url;
@@ -219,17 +219,17 @@ class _WebArticle implements WebArticle {
 @override final  String? content;
 @override final  int? readingListItemId;
 
-/// Create a copy of WebArticle
+/// Create a copy of WebClip
 /// with the given fields replaced by the non-null parameter values.
 @override @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-_$WebArticleCopyWith<_WebArticle> get copyWith => __$WebArticleCopyWithImpl<_WebArticle>(this, _$identity);
+_$WebClipCopyWith<_WebClip> get copyWith => __$WebClipCopyWithImpl<_WebClip>(this, _$identity);
 
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WebArticle&&(identical(other.url, url) || other.url == url)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.content, content) || other.content == content)&&(identical(other.readingListItemId, readingListItemId) || other.readingListItemId == readingListItemId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WebClip&&(identical(other.url, url) || other.url == url)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.content, content) || other.content == content)&&(identical(other.readingListItemId, readingListItemId) || other.readingListItemId == readingListItemId));
 }
 
 
@@ -238,15 +238,15 @@ int get hashCode => Object.hash(runtimeType,url,title,description,content,readin
 
 @override
 String toString() {
-  return 'WebArticle(url: $url, title: $title, description: $description, content: $content, readingListItemId: $readingListItemId)';
+  return 'WebClip(url: $url, title: $title, description: $description, content: $content, readingListItemId: $readingListItemId)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class _$WebArticleCopyWith<$Res> implements $WebArticleCopyWith<$Res> {
-  factory _$WebArticleCopyWith(_WebArticle value, $Res Function(_WebArticle) _then) = __$WebArticleCopyWithImpl;
+abstract mixin class _$WebClipCopyWith<$Res> implements $WebClipCopyWith<$Res> {
+  factory _$WebClipCopyWith(_WebClip value, $Res Function(_WebClip) _then) = __$WebClipCopyWithImpl;
 @override @useResult
 $Res call({
  String url, String? title, String? description, String? content, int? readingListItemId
@@ -257,17 +257,17 @@ $Res call({
 
 }
 /// @nodoc
-class __$WebArticleCopyWithImpl<$Res>
-    implements _$WebArticleCopyWith<$Res> {
-  __$WebArticleCopyWithImpl(this._self, this._then);
+class __$WebClipCopyWithImpl<$Res>
+    implements _$WebClipCopyWith<$Res> {
+  __$WebClipCopyWithImpl(this._self, this._then);
 
-  final _WebArticle _self;
-  final $Res Function(_WebArticle) _then;
+  final _WebClip _self;
+  final $Res Function(_WebClip) _then;
 
-/// Create a copy of WebArticle
+/// Create a copy of WebClip
 /// with the given fields replaced by the non-null parameter values.
 @override @pragma('vm:prefer-inline') $Res call({Object? url = null,Object? title = freezed,Object? description = freezed,Object? content = freezed,Object? readingListItemId = freezed,}) {
-  return _then(_WebArticle(
+  return _then(_WebClip(
 url: null == url ? _self.url : url // ignore: cast_nullable_to_non_nullable
 as String,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
