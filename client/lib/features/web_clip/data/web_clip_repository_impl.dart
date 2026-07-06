@@ -19,7 +19,8 @@ class WebClipRepositoryImpl implements WebClipRepository {
         title: a.title,
         description: a.description,
         content: a.content,
-        readingListItemId: a.readingListItemId,
+        readingListItemId: a.readLater?.id,
+        archived: a.readLater?.archived,
       );
     });
   }

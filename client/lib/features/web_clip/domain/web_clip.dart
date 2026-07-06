@@ -14,5 +14,6 @@ abstract class WebClip with _$WebClip {
     String? description,
     String? content,
     int? readingListItemId,
+    bool? archived,
   }) = _WebClip;
 }

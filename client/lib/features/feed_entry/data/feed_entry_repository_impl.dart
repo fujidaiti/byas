@@ -23,7 +23,8 @@ class FeedEntryRepositoryImpl implements FeedEntryRepository {
         content: e.content,
         publishedAt: e.publishedAt,
         snapshotAt: e.snapshotAt,
-        readingListItemId: e.readingListItemId,
+        readingListItemId: e.readLater?.id,
+        archived: e.readLater?.archived,
       );
     });
   }

@@ -16,5 +16,6 @@ abstract class FeedEntry with _$FeedEntry {
     DateTime? publishedAt,
     DateTime? snapshotAt,
     int? readingListItemId,
+    bool? archived,
   }) = _FeedEntry;
 }

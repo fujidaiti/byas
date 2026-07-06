@@ -29,6 +29,8 @@ class FeedEntryReaderScreen extends ConsumerWidget {
         ),
         actions: [
           if (entry != null) _BookmarkButton(entry: entry),
+          if (entry != null && entry.readingListItemId != null)
+            _ArchiveButton(entry: entry),
           if (entry != null)
             IconButton(
               key: AppDebugKey.feedEntryReaderOpenOriginalButton,
@@ -44,6 +46,83 @@ class FeedEntryReaderScreen extends ConsumerWidget {
         data: (entry) => FeedEntryReaderView(entry: entry),
       ),
     );
+  }
+}
+
+/// Archive toggle in the reader appbar. Archives the saved entry
+/// (`PATCH /reading-list/{id}` with `{"archived": true}`) or unarchives it
+/// (`{"archived": false}`), updating the icon optimistically and rolling back
+/// with an error snackbar on failure. Only shown when the entry is saved.
+class _ArchiveButton extends ConsumerStatefulWidget {
+  const _ArchiveButton({required this.entry});
+
+  final FeedEntry entry;
+
+  @override
+  ConsumerState<_ArchiveButton> createState() => _ArchiveButtonState();
+}
+
+class _ArchiveButtonState extends ConsumerState<_ArchiveButton> {
+  late final int _itemId;
+  var _archived = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _itemId = widget.entry.readingListItemId!;
+    _archived = widget.entry.archived ?? false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      key: AppDebugKey.feedEntryReaderArchiveButton,
+      tooltip: _archived ? 'Move back to reading list' : 'Archive',
+      icon: Icon(_archived ? Icons.unarchive_outlined : Icons.archive_outlined),
+      onPressed: () => unawaited(_archived ? _unarchive() : _archive()),
+    );
+  }
+
+  Future<void> _archive() async {
+    // Optimistically flip the icon and confirm before the request completes.
+    setState(() => _archived = true);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        key: AppDebugKey.archiveSuccessSnackBar,
+        content: Text('Archived'),
+      ),
+    );
+    try {
+      await ref.read(readingListRepositoryProvider).archive(_itemId);
+    } on Exception {
+      if (mounted) {
+        setState(() => _archived = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Something went wrong', maxLines: 1)),
+        );
+      }
+    }
+  }
+
+  Future<void> _unarchive() async {
+    // Optimistically flip the icon and confirm before the request completes.
+    setState(() => _archived = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        key: AppDebugKey.unarchiveSuccessSnackBar,
+        content: Text('Moved back to reading list'),
+      ),
+    );
+    try {
+      await ref.read(readingListRepositoryProvider).unarchive(_itemId);
+    } on Exception {
+      if (mounted) {
+        setState(() => _archived = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Something went wrong', maxLines: 1)),
+        );
+      }
+    }
   }
 }
 

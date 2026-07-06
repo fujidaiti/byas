@@ -19,5 +19,6 @@ abstract class Story with _$Story {
     String? source,
     DateTime? publishedAt,
     int? readingListItemId,
+    bool? archived,
   }) = _Story;
 }
