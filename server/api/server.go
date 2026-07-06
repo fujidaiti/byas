@@ -345,10 +345,10 @@ func (h *handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	// TODO: Support pagination
+	// TODO: Replace this correlated subquery with a LEFT JOIN once
+	//       a UNIQUE (feed_entry_id) constraint exists on reading_list_items.
 	rows, err := h.db.QueryContext(ctx, `
 		SELECT id, feed_id, url, title, description, published_at, snapshot_at,
-			-- TODO: Replace this correlated subquery with a LEFT JOIN once a
-			-- UNIQUE (feed_entry_id) constraint exists on reading_list_items.
 			(SELECT id FROM reading_list_items
 				WHERE feed_entry_id = feed_entries.id
 				LIMIT 1)
