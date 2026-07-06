@@ -10,6 +10,9 @@ abstract final class AppDebugKey {
   static const feedEntryReaderArchiveButton = Key(
     'feedEntryReaderArchiveButton',
   );
+  static const feedEntryReaderArchivedBanner = Key(
+    'feedEntryReaderArchivedBanner',
+  );
   static const feedEntryReaderBookmarkButton = Key(
     'feedEntryReaderBookmarkButton',
   );
@@ -26,6 +29,7 @@ abstract final class AppDebugKey {
   static const readingListScreen = Key('readingListScreen');
   static const webClipReaderScreen = Key('webClipReaderScreen');
   static const webClipReaderArchiveButton = Key('webClipReaderArchiveButton');
+  static const webClipReaderArchivedBanner = Key('webClipReaderArchivedBanner');
   static const webClipReaderBookmarkButton = Key('webClipReaderBookmarkButton');
   static const webClipReaderOpenOriginalButton = Key(
     'webClipReaderOpenOriginalButton',

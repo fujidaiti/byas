@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:paperdoll/core/ui/widgets/archived_banner.dart';
 import 'package:paperdoll/core/ui/widgets/async_value_view.dart';
 import 'package:paperdoll/core/ui/widgets/heading_text.dart';
 import 'package:paperdoll/core/util/link_launcher.dart';
@@ -11,15 +12,35 @@ import 'package:paperdoll/features/feed_entry/presentation/providers/feed_entry_
 import 'package:paperdoll/features/feed_entry/presentation/widgets/feed_entry_reader_view.dart';
 import 'package:paperdoll/features/reading_list/presentation/providers/reading_list_providers.dart';
 
-class FeedEntryReaderScreen extends ConsumerWidget {
+class FeedEntryReaderScreen extends ConsumerStatefulWidget {
   const FeedEntryReaderScreen({required this.id, super.key});
 
   final int id;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final entryAsync = ref.watch(feedEntryProvider(id: id));
+  ConsumerState<FeedEntryReaderScreen> createState() =>
+      _FeedEntryReaderScreenState();
+}
+
+class _FeedEntryReaderScreenState extends ConsumerState<FeedEntryReaderScreen> {
+  // Shared archived state so the app-bar toggle and the body banner stay in
+  // sync. Created once the entry loads, seeded from its archived flag.
+  ValueNotifier<bool>? _archived;
+
+  @override
+  void dispose() {
+    _archived?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final entryAsync = ref.watch(feedEntryProvider(id: widget.id));
     final entry = entryAsync.asData?.value;
+    if (entry != null) {
+      _archived ??= ValueNotifier(entry.archived ?? false);
+    }
+    final archived = _archived;
     return Scaffold(
       key: AppDebugKey.feedEntryReaderScreen,
       appBar: AppBar(
@@ -28,7 +49,8 @@ class FeedEntryReaderScreen extends ConsumerWidget {
           key: entry != null ? AppDebugKey.readerTitle(entry.title) : null,
         ),
         actions: [
-          if (entry != null) _ReadingListActions(entry: entry),
+          if (entry != null && archived != null)
+            _ReadingListActions(entry: entry, archived: archived),
           if (entry != null)
             IconButton(
               key: AppDebugKey.feedEntryReaderOpenOriginalButton,
@@ -38,10 +60,25 @@ class FeedEntryReaderScreen extends ConsumerWidget {
             ),
         ],
       ),
-      body: AsyncValueView<FeedEntry>(
-        value: entryAsync,
-        onRetry: () => ref.invalidate(feedEntryProvider(id: id)),
-        data: (entry) => FeedEntryReaderView(entry: entry),
+      body: Column(
+        children: [
+          if (archived != null)
+            ValueListenableBuilder<bool>(
+              valueListenable: archived,
+              builder: (context, isArchived, _) => isArchived
+                  ? const ArchivedBanner(
+                      key: AppDebugKey.feedEntryReaderArchivedBanner,
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          Expanded(
+            child: AsyncValueView<FeedEntry>(
+              value: entryAsync,
+              onRetry: () => ref.invalidate(feedEntryProvider(id: widget.id)),
+              data: (entry) => FeedEntryReaderView(entry: entry),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -53,11 +90,13 @@ class FeedEntryReaderScreen extends ConsumerWidget {
 /// hides the item from the list (`PATCH /reading-list/{id}`) or unarchives it.
 /// Both update optimistically and roll back with an error snackbar on failure.
 /// Sharing one widget lets saving or removing show or hide the archive toggle
-/// immediately.
+/// immediately. The archived state is owned by the screen (via [archived]) so
+/// the "Archived" banner below the app bar tracks the same toggle.
 class _ReadingListActions extends ConsumerStatefulWidget {
-  const _ReadingListActions({required this.entry});
+  const _ReadingListActions({required this.entry, required this.archived});
 
   final FeedEntry entry;
+  final ValueNotifier<bool> archived;
 
   @override
   ConsumerState<_ReadingListActions> createState() =>
@@ -67,14 +106,12 @@ class _ReadingListActions extends ConsumerStatefulWidget {
 class _ReadingListActionsState extends ConsumerState<_ReadingListActions> {
   int? _itemId;
   var _saved = false;
-  var _archived = false;
 
   @override
   void initState() {
     super.initState();
     _itemId = widget.entry.readingListItemId;
     _saved = _itemId != null;
-    _archived = widget.entry.archived ?? false;
   }
 
   @override
@@ -91,13 +128,16 @@ class _ReadingListActionsState extends ConsumerState<_ReadingListActions> {
         // The archive toggle only applies to an item that is in the list, so it
         // appears and disappears together with the bookmark state.
         if (_saved && _itemId != null)
-          IconButton(
-            key: AppDebugKey.feedEntryReaderArchiveButton,
-            tooltip: _archived ? 'Unarchive' : 'Archive',
-            icon: Icon(
-              _archived ? Icons.unarchive_outlined : Icons.archive_outlined,
+          ValueListenableBuilder<bool>(
+            valueListenable: widget.archived,
+            builder: (context, archived, _) => IconButton(
+              key: AppDebugKey.feedEntryReaderArchiveButton,
+              tooltip: archived ? 'Unarchive' : 'Archive',
+              icon: Icon(
+                archived ? Icons.unarchive_outlined : Icons.archive_outlined,
+              ),
+              onPressed: () => unawaited(archived ? _unarchive() : _archive()),
             ),
-            onPressed: () => unawaited(_archived ? _unarchive() : _archive()),
           ),
       ],
     );
@@ -106,10 +146,8 @@ class _ReadingListActionsState extends ConsumerState<_ReadingListActions> {
   Future<void> _save() async {
     // Optimistically fill the icon and confirm before the request completes. A
     // freshly saved item is never archived.
-    setState(() {
-      _saved = true;
-      _archived = false;
-    });
+    setState(() => _saved = true);
+    widget.archived.value = false;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         key: AppDebugKey.saveToReadingListSuccessSnackBar,
@@ -141,7 +179,9 @@ class _ReadingListActionsState extends ConsumerState<_ReadingListActions> {
       return;
     }
     // Optimistically outline the icon and confirm before the request completes.
+    // A removed item is no longer archived, so hide the banner too.
     setState(() => _saved = false);
+    widget.archived.value = false;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         key: AppDebugKey.removeFromReadingListSuccessSnackBar,
@@ -169,7 +209,7 @@ class _ReadingListActionsState extends ConsumerState<_ReadingListActions> {
       return;
     }
     // Optimistically flip the icon and confirm before the request completes.
-    setState(() => _archived = true);
+    widget.archived.value = true;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         key: AppDebugKey.archiveSuccessSnackBar,
@@ -180,7 +220,7 @@ class _ReadingListActionsState extends ConsumerState<_ReadingListActions> {
       await ref.read(readingListRepositoryProvider).archive(id);
     } on Exception {
       if (mounted) {
-        setState(() => _archived = false);
+        widget.archived.value = false;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Something went wrong', maxLines: 1)),
         );
@@ -194,7 +234,7 @@ class _ReadingListActionsState extends ConsumerState<_ReadingListActions> {
       return;
     }
     // Optimistically flip the icon and confirm before the request completes.
-    setState(() => _archived = false);
+    widget.archived.value = false;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         key: AppDebugKey.unarchiveSuccessSnackBar,
@@ -205,7 +245,7 @@ class _ReadingListActionsState extends ConsumerState<_ReadingListActions> {
       await ref.read(readingListRepositoryProvider).unarchive(id);
     } on Exception {
       if (mounted) {
-        setState(() => _archived = true);
+        widget.archived.value = true;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Something went wrong', maxLines: 1)),
         );
