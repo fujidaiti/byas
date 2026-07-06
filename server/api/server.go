@@ -331,8 +331,13 @@ func (h *handler) getFeed(w http.ResponseWriter, r *http.Request) {
 	w.Write(jres)
 }
 
+type feedTimelineEntry struct {
+	feedEntry
+	ReadingListItemID *int `json:"reading_list_item_id,omitempty"`
+}
+
 type getFeedTimelineResBody struct {
-	Entries []getFeedEntryResponse `json:"entries"`
+	Entries []feedTimelineEntry `json:"entries"`
 }
 
 func (h *handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
@@ -360,9 +365,9 @@ func (h *handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
 		serverError(w, http.StatusInternalServerError, "Failed to fetch entries")
 		return
 	}
-	res := getFeedTimelineResBody{Entries: []getFeedEntryResponse{}}
+	res := getFeedTimelineResBody{Entries: []feedTimelineEntry{}}
 	for rows.Next() {
-		var e getFeedEntryResponse
+		var e feedTimelineEntry
 		err := rows.Scan(&e.ID, &e.FeedID, &e.URL, &e.Title, &e.Description, &e.PublishedAt, &e.SnapshotAt, &e.ReadingListItemID)
 		if err != nil {
 			fmt.Print(err)
