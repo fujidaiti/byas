@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'package:paperdoll/core/ui/tokens/app_colors.dart';
 import 'package:paperdoll/core/ui/tokens/app_spacing.dart';
+import 'package:paperdoll/core/ui/tokens/app_text_styles.dart';
 import 'package:paperdoll/core/ui/widgets/body_text.dart';
 import 'package:paperdoll/core/ui/widgets/caption_text.dart';
 import 'package:paperdoll/core/ui/widgets/gap.dart';
@@ -19,6 +21,7 @@ class FeedEntryRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final description = entry.description;
     final publishedAt = entry.publishedAt;
+    final savedToReadingList = entry.readingListItemId != null;
     return ListTile(
       isThreeLine: true,
       onTap: onTap,
@@ -34,9 +37,22 @@ class FeedEntryRow extends StatelessWidget {
             const Gap(spacingXs),
             BodyText(description, maxLines: 2, overflow: TextOverflow.ellipsis),
           ],
-          if (publishedAt != null) ...[
+          if (publishedAt != null || savedToReadingList) ...[
             const Gap(spacingXs),
-            CaptionText(formatDate(publishedAt)),
+            Row(
+              children: [
+                if (publishedAt != null) CaptionText(formatDate(publishedAt)),
+                const Spacer(),
+                if (savedToReadingList)
+                  Text(
+                    'Read later',
+                    style: textCaption.copyWith(
+                      color: colorAccent,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+              ],
+            ),
           ],
         ],
       ),
