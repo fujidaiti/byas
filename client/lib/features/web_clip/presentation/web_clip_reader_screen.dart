@@ -88,7 +88,7 @@ class _ArchiveButtonState extends ConsumerState<_ArchiveButton> {
   Widget build(BuildContext context) {
     return IconButton(
       key: AppDebugKey.webClipReaderArchiveButton,
-      tooltip: _archived ? 'Move back to reading list' : 'Archive',
+      tooltip: _archived ? 'Unarchive' : 'Archive',
       icon: Icon(_archived ? Icons.unarchive_outlined : Icons.archive_outlined),
       onPressed: () => unawaited(_archived ? _unarchive() : _archive()),
     );
@@ -121,7 +121,7 @@ class _ArchiveButtonState extends ConsumerState<_ArchiveButton> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         key: AppDebugKey.unarchiveSuccessSnackBar,
-        content: Text('Moved back to reading list'),
+        content: Text('Unarchived'),
       ),
     );
     try {
