@@ -32,13 +32,11 @@ class ReadingListRepositoryImpl implements ReadingListRepository {
   }
 
   @override
-  Future<ReadingListItem> saveWebArticle(int webArticleId) {
+  Future<ReadingListItem> saveWebClip(int webClipId) {
     return runRequest(() async {
       final res = await _dio.post<Map<String, dynamic>>(
         '/reading-list',
-        data: api.SaveToReadingListRequestOneOf2(
-          webArticleId: webArticleId,
-        ).toJson(),
+        data: api.SaveToReadingListRequestOneOf2(webClipId: webClipId).toJson(),
       );
       return _toItem(api.ReadingListItem.fromJson(res.data)!);
     });
@@ -79,9 +77,8 @@ class ReadingListRepositoryImpl implements ReadingListRepository {
 
   ReadingListItemKind _toKind(api.ReadingListItemKindEnum kind) =>
       switch (kind) {
-        api.ReadingListItemKindEnum.webArticle =>
-          ReadingListItemKind.webArticle,
+        api.ReadingListItemKindEnum.webClip => ReadingListItemKind.webClip,
         api.ReadingListItemKindEnum.feedEntry => ReadingListItemKind.feedEntry,
-        _ => ReadingListItemKind.webArticle,
+        _ => ReadingListItemKind.webClip,
       };
 }

@@ -98,9 +98,9 @@ class _NewspaperView extends StatelessWidget {
             pathParameters: {'feedEntryId': '${story.resourceId}'},
           ),
         );
-      case StoryKind.webArticle:
+      case StoryKind.webClip:
         throw UnimplementedError(
-          'Web-article-backed stories are not supported yet.',
+          'Web-clip-backed stories are not supported yet.',
         );
     }
   }

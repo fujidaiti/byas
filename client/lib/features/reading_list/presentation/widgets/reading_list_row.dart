@@ -44,10 +44,10 @@ class ReadingListRow extends StatelessWidget {
 
   void _open(BuildContext context) {
     switch (item.kind) {
-      case ReadingListItemKind.webArticle:
+      case ReadingListItemKind.webClip:
         unawaited(
           context.pushNamed(
-            routeWebArticleReaderName,
+            routeWebClipReaderName,
             pathParameters: {'id': '${item.resourceId}'},
             extra: item.title,
           ),

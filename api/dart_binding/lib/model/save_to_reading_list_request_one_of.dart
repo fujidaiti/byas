@@ -17,10 +17,10 @@ class SaveToReadingListRequestOneOf {
     this.title,
   });
 
-  /// The URL of the web article to save.
+  /// The URL of the web clip to save.
   String url;
 
-  /// Optional placeholder title (e.g. the page title shared by the browser). Shown until the article is fetched; a successful fetch replaces it with the extracted title.
+  /// Optional placeholder title (e.g. the page title shared by the browser). Shown until the clip is fetched; a successful fetch replaces it with the extracted title.
   ///
   /// Please note: This property should have been non-nullable! Since the specification file
   /// does not include a default value (using the "default:" property), however, the generated

@@ -32,8 +32,8 @@
              appear in the launcher. Its own task affinity + noHistory keep it out of the
              main app task and off recents, so closing it returns cleanly to the browser. -->
         <activity
-            android:name=".SaveWebArticleActivity"
-            android:theme="@style/Theme.SaveWebArticle.Dialog"
+            android:name=".SaveWebClipActivity"
+            android:theme="@style/Theme.SaveWebClip.Dialog"
             android:exported="true"
             android:excludeFromRecents="true"
             android:noHistory="true"
