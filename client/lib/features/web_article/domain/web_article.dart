@@ -13,5 +13,6 @@ abstract class WebArticle with _$WebArticle {
     String? title,
     String? description,
     String? content,
+    int? readingListItemId,
   }) = _WebArticle;
 }

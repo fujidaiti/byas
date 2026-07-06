@@ -61,9 +61,9 @@ CREATE TABLE web_articles (
 CREATE TABLE reading_list_items (
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   kind          text NOT NULL CHECK (kind IN ('feed_entry', 'web_article')),
-  web_article_id bigint REFERENCES web_articles (id),
-  feed_entry_id bigint REFERENCES feed_entries (id),
-  title         text NOT NULL,
+  web_article_id bigint REFERENCES web_articles (id), -- TODO: Make this unique
+  feed_entry_id bigint REFERENCES feed_entries (id), -- TODO: Make this unique
+  title         text NOT NULL, -- TODO: Make this nullable
   description   text,
   archived      boolean NOT NULL DEFAULT false,
   saved_at      timestamptz NOT NULL DEFAULT now(),

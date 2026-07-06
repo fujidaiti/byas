@@ -8,6 +8,18 @@ abstract interface class ReadingListRepository {
   /// `GET /reading-list` → the saved, unarchived items, newest first.
   Future<List<ReadingListItem>> list({String? cursor});
 
+  /// `POST /reading-list` with `{"feed_entry_id": id}` → saves the feed entry
+  /// and returns the created reading list item.
+  Future<ReadingListItem> saveFeedEntry(int feedEntryId);
+
+  /// `POST /reading-list` with `{"web_article_id": id}` → re-saves an existing
+  /// web article (e.g. one just unsaved from the reader) and returns the
+  /// created reading list item.
+  Future<ReadingListItem> saveWebArticle(int webArticleId);
+
+  /// `DELETE /reading-list/{id}` → removes the item from the reading list.
+  Future<void> removeItem(int id);
+
   /// `PATCH /reading-list/{id}` with `{"archived": true}` → archives the item.
   Future<void> archive(int id);
 

@@ -24,18 +24,20 @@ get:
 post:
   summary: Save an item to the reading list
   description:
-    Saves an item to the reading list, either a web article (via `url`) or a
-    feed entry (via `feed_entry_id`). Exactly one of the two must be specified.
-    When saving a web article, a placeholder item is appended immediately, and
-    its content is fetched and filled in asynchronously afterwards; in this case
-    a 201 response only means the placeholder was appended successfully — the
-    article fetch may still fail behind the scenes. An optional `title` may be
-    supplied alongside `url` (e.g. the page title shared by the browser) to give
-    the placeholder a meaningful label until the fetch fills in the real one.
+    Saves an item to the reading list, either a web article (via `url`), a feed
+    entry (via `feed_entry_id`), or a web article (via `web_article_id`).
+    Exactly one of the three must be specified. When saving a web article, a
+    placeholder item is appended immediately, and its content is fetched and
+    filled in asynchronously afterwards; in this case a 201 response only means
+    the placeholder was appended successfully — the article fetch may still fail
+    behind the scenes. An optional `title` may be supplied alongside `url` (e.g.
+    the page title shared by the browser) to give the placeholder a meaningful
+    label until the fetch fills in the real one.
   operationId: saveToReadingList
   requestBody:
     description:
-      The item to save. Specify exactly one of `url` or `feed_entry_id`.
+      The item to save. Specify exactly one of `url`, `feed_entry_id`, or
+      `web_article_id`.
     content:
       application/json:
         schema:
@@ -61,6 +63,13 @@ post:
                 feed_entry_id:
                   description: The ID of the feed entry to save.
                   type: integer
+            - type: object
+              additionalProperties: false
+              required: [web_article_id]
+              properties:
+                web_article_id:
+                  description: The ID of a web article to save.
+                  type: integer
           example:
             url: "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents"
   responses:
@@ -69,8 +78,7 @@ post:
       content:
         application/json:
           schema:
-            type: object
-          example: {}
+            $ref: "../components/schemas.yaml#/ReadingListItem"
     "400":
       $ref: "../components/responses.yaml#/BadRequest"
     "500":

@@ -21,6 +21,7 @@ class FeedEntry {
     this.content,
     this.publishedAt,
     this.snapshotAt,
+    this.readingListItemId,
   });
 
   int id;
@@ -63,6 +64,15 @@ class FeedEntry {
   ///
   DateTime? snapshotAt;
 
+  /// The id of the reading list item backing this entry, if it is currently saved (unarchived). Absent when the entry is not saved.
+  ///
+  /// Please note: This property should have been non-nullable! Since the specification file
+  /// does not include a default value (using the "default:" property), however, the generated
+  /// source code must fall back to having a nullable type.
+  /// Consider adding a "default:" property in the specification file to hide this note.
+  ///
+  int? readingListItemId;
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -74,7 +84,8 @@ class FeedEntry {
           other.description == description &&
           other.content == content &&
           other.publishedAt == publishedAt &&
-          other.snapshotAt == snapshotAt;
+          other.snapshotAt == snapshotAt &&
+          other.readingListItemId == readingListItemId;
 
   @override
   int get hashCode =>
@@ -86,11 +97,12 @@ class FeedEntry {
       (description == null ? 0 : description!.hashCode) +
       (content == null ? 0 : content!.hashCode) +
       (publishedAt == null ? 0 : publishedAt!.hashCode) +
-      (snapshotAt == null ? 0 : snapshotAt!.hashCode);
+      (snapshotAt == null ? 0 : snapshotAt!.hashCode) +
+      (readingListItemId == null ? 0 : readingListItemId!.hashCode);
 
   @override
   String toString() =>
-      'FeedEntry[id=$id, feedId=$feedId, url=$url, title=$title, description=$description, content=$content, publishedAt=$publishedAt, snapshotAt=$snapshotAt]';
+      'FeedEntry[id=$id, feedId=$feedId, url=$url, title=$title, description=$description, content=$content, publishedAt=$publishedAt, snapshotAt=$snapshotAt, readingListItemId=$readingListItemId]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -117,6 +129,11 @@ class FeedEntry {
       json[r'snapshot_at'] = this.snapshotAt!.toUtc().toIso8601String();
     } else {
       json[r'snapshot_at'] = null;
+    }
+    if (this.readingListItemId != null) {
+      json[r'reading_list_item_id'] = this.readingListItemId;
+    } else {
+      json[r'reading_list_item_id'] = null;
     }
     return json;
   }
@@ -160,6 +177,7 @@ class FeedEntry {
         content: mapValueOfType<String>(json, r'content'),
         publishedAt: mapDateTime(json, r'published_at', r''),
         snapshotAt: mapDateTime(json, r'snapshot_at', r''),
+        readingListItemId: mapValueOfType<int>(json, r'reading_list_item_id'),
       );
     }
     return null;

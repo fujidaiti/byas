@@ -61,6 +61,11 @@ FeedEntry:
     snapshot_at:
       type: string
       format: date-time
+    reading_list_item_id:
+      description:
+        The id of the reading list item backing this entry, if it is saved in
+        the reading list. Absent when the entry is not saved.
+      type: integer
 
 ReadingListItem:
   type: object

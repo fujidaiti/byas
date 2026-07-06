@@ -19,6 +19,7 @@ class WebArticleRepositoryImpl implements WebArticleRepository {
         title: a.title,
         description: a.description,
         content: a.content,
+        readingListItemId: a.readingListItemId,
       );
     });
   }

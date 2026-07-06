@@ -15,6 +15,11 @@ import (
 
 // DeleteItem removes an item from the list.
 // Reports false with no error if the id does not exist, true otherwise.
+//
+// TODO: Garbage-collect orphaned web articles in the background. Deleting the
+// join row here leaves the backing web_articles row unreachable (it can only be
+// reached via a reading_list_items row), so a background job should periodically
+// delete web_articles that have no referencing reading_list_items.
 func DeleteItem(ctx context.Context, db *sql.DB, id int) (bool, error) {
 	res, err := db.ExecContext(ctx, `
 		DELETE FROM reading_list_items
@@ -55,61 +60,86 @@ func setItemArchivedStatus(ctx context.Context, db *sql.DB, id int, s bool) erro
 	return nil
 }
 
-func SaveFeedEntry(ctx context.Context, db *sql.DB, id int) error {
+// SavedItem is the reading list item created by a save operation.
+type SavedItem struct {
+	ID          int
+	ResourceID  int
+	Kind        string
+	Title       string
+	Description *string
+	SavedAt     time.Time
+}
+
+func SaveFeedEntry(ctx context.Context, db *sql.DB, id int) (SavedItem, error) {
+	var it SavedItem
 	err := db.QueryRowContext(ctx, `
 		INSERT INTO reading_list_items (kind, feed_entry_id, title, description)
 		SELECT 'feed_entry', id, title, description
 		FROM feed_entries
 		WHERE id = $1
-		RETURNING id;
-	`, id).Scan(new(int))
+		RETURNING id, feed_entry_id, kind, title, description, saved_at;
+	`, id).Scan(&it.ID, &it.ResourceID, &it.Kind, &it.Title, &it.Description, &it.SavedAt)
 	// TODO: Return a dedicated error for the case where the id doesn't exist
-	return err
+	return it, err
 }
 
-// SaveWebArticle appends the web article specified by the URL to the reading list.
+func SaveWebArticleByID(ctx context.Context, db *sql.DB, id int) (SavedItem, error) {
+	// reading_list_items.title is NOT NULL but web_articles.title is nullable,
+	// so coalesce to keep the placeholder well-formed.
+	var it SavedItem
+	err := db.QueryRowContext(ctx, `
+		INSERT INTO reading_list_items (kind, web_article_id, title, description)
+		SELECT 'web_article', id, COALESCE(title, ''), description
+		FROM web_articles
+		WHERE id = $1
+		RETURNING id, web_article_id, kind, title, description, saved_at;
+	`, id).Scan(&it.ID, &it.ResourceID, &it.Kind, &it.Title, &it.Description, &it.SavedAt)
+	// TODO: Return a dedicated error for the case where the id doesn't exist
+	return it, err
+}
+
+// SaveWebArticle adds an web article specified by the URL to the reading list.
 // Reports nil if succeeds.
 //
 // Note that this function immediately returns after creating a placeholder reading list item.
 // It then tries fetching the article itself asynchronously, and fills the placeholders with actual metadata.
-func SaveWebArticle(ctx context.Context, db *sql.DB, u url.URL, title string) error {
+func SaveWebArticle(ctx context.Context, db *sql.DB, u url.URL, title string) (SavedItem, error) {
 	// TODO: Cleanup URL
 	// TODO: Validate URL (schema, host)
+	var it SavedItem
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return it, err
 	}
 	defer tx.Rollback()
-	var aID int
+	var waID int
 	err = tx.QueryRowContext(ctx, `
 		INSERT INTO web_articles (url)
 		VALUES ($1)
 		RETURNING id;
-	`, u.String()).Scan(&aID)
+	`, u.String()).Scan(&waID)
 	if err != nil {
-		return err
+		return it, err
 	}
-	var rID int
 	err = tx.QueryRowContext(ctx, `
 		INSERT INTO reading_list_items (kind, web_article_id, title)
 		VALUES ('web_article', $1, $2)
-		RETURNING id;
-	`, aID, title).Scan(&rID)
+		RETURNING id, web_article_id, kind, title, description, saved_at;
+	`, waID, title).Scan(&it.ID, &it.ResourceID, &it.Kind, &it.Title, &it.Description, &it.SavedAt)
 	if err != nil {
-		return err
+		return it, err
 	}
 	if err = tx.Commit(); err != nil {
-		return err
+		return it, err
 	}
-
 	go func() {
 		// TODO: Recover from panic
-		err := tryFetchWebArticle(db, rID, aID, u)
+		err := tryFetchWebArticle(db, it.ID, waID, u)
 		if err != nil {
 			fmt.Println(err)
 		}
 	}()
-	return nil
+	return it, nil
 }
 
 func tryFetchWebArticle(db *sql.DB, rID, aID int, u url.URL) error {
