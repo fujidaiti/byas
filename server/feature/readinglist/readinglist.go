@@ -60,9 +60,7 @@ func setItemArchivedStatus(ctx context.Context, db *sql.DB, id int, s bool) erro
 	return nil
 }
 
-// SavedItem is the reading list item created by a save operation, carrying the
-// same fields the reading list exposes elsewhere so callers can echo it back
-// without a follow-up read.
+// SavedItem is the reading list item created by a save operation.
 type SavedItem struct {
 	ID          int
 	ResourceID  int
@@ -85,10 +83,6 @@ func SaveFeedEntry(ctx context.Context, db *sql.DB, id int) (SavedItem, error) {
 	return it, err
 }
 
-// SaveWebArticleByID re-saves an existing web article to the reading list by its
-// id, re-attaching its row without re-fetching. Used when re-saving an article
-// that was just unsaved from the reader (the web_articles row survives an
-// unsave, since DeleteItem removes only the join row).
 func SaveWebArticleByID(ctx context.Context, db *sql.DB, id int) (SavedItem, error) {
 	// reading_list_items.title is NOT NULL but web_articles.title is nullable,
 	// so coalesce to keep the placeholder well-formed.
@@ -104,7 +98,7 @@ func SaveWebArticleByID(ctx context.Context, db *sql.DB, id int) (SavedItem, err
 	return it, err
 }
 
-// SaveWebArticle appends the web article specified by the URL to the reading list.
+// SaveWebArticle adds an web article specified by the URL to the reading list.
 // Reports nil if succeeds.
 //
 // Note that this function immediately returns after creating a placeholder reading list item.
@@ -118,12 +112,12 @@ func SaveWebArticle(ctx context.Context, db *sql.DB, u url.URL, title string) (S
 		return it, err
 	}
 	defer tx.Rollback()
-	var aID int
+	var waID int
 	err = tx.QueryRowContext(ctx, `
 		INSERT INTO web_articles (url)
 		VALUES ($1)
 		RETURNING id;
-	`, u.String()).Scan(&aID)
+	`, u.String()).Scan(&waID)
 	if err != nil {
 		return it, err
 	}
@@ -131,18 +125,16 @@ func SaveWebArticle(ctx context.Context, db *sql.DB, u url.URL, title string) (S
 		INSERT INTO reading_list_items (kind, web_article_id, title)
 		VALUES ('web_article', $1, $2)
 		RETURNING id, web_article_id, kind, title, description, saved_at;
-	`, aID, title).Scan(&it.ID, &it.ResourceID, &it.Kind, &it.Title, &it.Description, &it.SavedAt)
+	`, waID, title).Scan(&it.ID, &it.ResourceID, &it.Kind, &it.Title, &it.Description, &it.SavedAt)
 	if err != nil {
 		return it, err
 	}
 	if err = tx.Commit(); err != nil {
 		return it, err
 	}
-
-	rID := it.ID
 	go func() {
 		// TODO: Recover from panic
-		err := tryFetchWebArticle(db, rID, aID, u)
+		err := tryFetchWebArticle(db, it.ID, waID, u)
 		if err != nil {
 			fmt.Println(err)
 		}
