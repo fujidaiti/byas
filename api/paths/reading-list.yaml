@@ -25,14 +25,14 @@ post:
   summary: Save an item to the reading list
   description:
     Saves an item to the reading list, either a web article (via `url`), a feed
-    entry (via `feed_entry_id`), or an already-existing web article (via
-    `web_article_id`). Exactly one of the three must be specified. When saving a
-    web article, a placeholder item is appended immediately, and its content is
-    fetched and filled in asynchronously afterwards; in this case a 201 response
-    only means the placeholder was appended successfully — the article fetch may
-    still fail behind the scenes. An optional `title` may be supplied alongside
-    `url` (e.g. the page title shared by the browser) to give the placeholder a
-    meaningful label until the fetch fills in the real one.
+    entry (via `feed_entry_id`), or a web article (via `web_article_id`).
+    Exactly one of the three must be specified. When saving a web article, a
+    placeholder item is appended immediately, and its content is fetched and
+    filled in asynchronously afterwards; in this case a 201 response only means
+    the placeholder was appended successfully — the article fetch may still fail
+    behind the scenes. An optional `title` may be supplied alongside `url` (e.g.
+    the page title shared by the browser) to give the placeholder a meaningful
+    label until the fetch fills in the real one.
   operationId: saveToReadingList
   requestBody:
     description:
@@ -68,8 +68,7 @@ post:
               required: [web_article_id]
               properties:
                 web_article_id:
-                  description:
-                    The ID of an already-existing web article to re-save.
+                  description: The ID of a web article to save.
                   type: integer
           example:
             url: "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents"

@@ -180,7 +180,8 @@ type getFeedEntryResponse struct {
 	feedEntry
 
 	// ReadingListItemID is the id of the reading list item backing this entry,
-	// if it is currently saved (unarchived). Nil when the entry is not saved.
+	// if it is saved in the reading list (regardless of archive status). Nil
+	// when the entry is not saved.
 	ReadingListItemID *int `json:"reading_list_item_id,omitempty"`
 }
 
@@ -197,7 +198,7 @@ func (h *handler) getFeedEntry(w http.ResponseWriter, r *http.Request) {
 	err = h.db.QueryRowContext(ctx, `
 		SELECT id, feed_id, url, title, description, content, snapshot_at, published_at,
 			(SELECT id FROM reading_list_items
-				WHERE feed_entry_id = feed_entries.id AND archived = false
+				WHERE feed_entry_id = feed_entries.id
 				LIMIT 1)
 		FROM feed_entries
 		WHERE id = $1;
@@ -664,7 +665,8 @@ type getWebArticleResBody struct {
 	Content     *string `json:"content,omitempty"`
 
 	// ReadingListItemID is the id of the reading list item backing this article,
-	// if it is currently saved (unarchived). Nil when the article is not saved.
+	// if it is saved in the reading list (regardless of archive status). Nil
+	// when the article is not saved.
 	ReadingListItemID *int `json:"reading_list_item_id,omitempty"`
 }
 
@@ -681,7 +683,7 @@ func (h *handler) getWebArticle(w http.ResponseWriter, r *http.Request) {
 	err = h.db.QueryRowContext(ctx, `
 		SELECT id, url, title, description, content,
 			(SELECT id FROM reading_list_items
-				WHERE web_article_id = web_articles.id AND archived = false
+				WHERE web_article_id = web_articles.id
 				LIMIT 1)
 		FROM web_articles
 		WHERE id = $1;
