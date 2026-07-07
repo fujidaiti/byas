@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:paperdoll/core/pagination/infinite_scroll.dart';
+import 'package:paperdoll/core/pagination/load_more_footer.dart';
+import 'package:paperdoll/core/pagination/paged_state.dart';
 import 'package:paperdoll/core/ui/widgets/app_divider.dart';
 import 'package:paperdoll/core/ui/widgets/async_value_view.dart';
 import 'package:paperdoll/core/ui/widgets/empty_placeholder.dart';
@@ -22,33 +25,49 @@ class ArchivedReadingListScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Archived')),
       body: RefreshIndicator(
         onRefresh: () => ref.refresh(archivedReadingListProvider.future),
-        child: AsyncValueView<List<ReadingListItem>>(
+        child: AsyncValueView<PagedState<ReadingListItem>>(
           value: itemsAsync,
           onRetry: () => ref.invalidate(archivedReadingListProvider),
-          data: (items) => _ArchivedList(items: items),
+          data: (state) => _ArchivedList(state: state),
         ),
       ),
     );
   }
 }
 
-class _ArchivedList extends StatelessWidget {
-  const _ArchivedList({required this.items});
+class _ArchivedList extends ConsumerWidget {
+  const _ArchivedList({required this.state});
 
-  final List<ReadingListItem> items;
+  final PagedState<ReadingListItem> state;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final items = state.items;
     if (items.isEmpty) {
       return const ScrollableFill(
         child: EmptyPlaceholder(message: 'No archived items.'),
       );
     }
-    return ListView.separated(
-      physics: const AlwaysScrollableScrollPhysics(),
-      itemCount: items.length,
-      separatorBuilder: (context, index) => const AppDivider(),
-      itemBuilder: (context, index) => ReadingListRow(item: items[index]),
+    final showFooter = state.isLoadingMore || state.loadMoreError != null;
+    return InfiniteScrollList(
+      onEndReached: () =>
+          ref.read(archivedReadingListProvider.notifier).loadMore(),
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        itemCount: items.length + (showFooter ? 1 : 0),
+        separatorBuilder: (context, index) => const AppDivider(),
+        itemBuilder: (context, index) {
+          if (index >= items.length) {
+            return LoadMoreFooter(
+              isLoading: state.isLoadingMore,
+              error: state.loadMoreError,
+              onRetry: () =>
+                  ref.read(archivedReadingListProvider.notifier).loadMore(),
+            );
+          }
+          return ReadingListRow(item: items[index]);
+        },
+      ),
     );
   }
 }

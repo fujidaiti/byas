@@ -11,11 +11,23 @@ part 'reading_list_providers.g.dart';
 ReadingListRepository readingListRepository(Ref ref) =>
     ReadingListRepositoryImpl(ref.watch(dioProvider));
 
-/// The archived reading list items, newest first. Read-only: the archived
-/// screen has no swipe actions.
+/// The archived reading list, paginated. [build] loads the first page;
+/// [loadMore] appends the next. Read-only: the archived screen has no swipe
+/// actions.
 @riverpod
-Future<List<ReadingListItem>> archivedReadingList(Ref ref) =>
-    ref.watch(readingListRepositoryProvider).listArchived();
+class ArchivedReadingList extends _$ArchivedReadingList {
+  @override
+  Future<PagedState<ReadingListItem>> build() async => PagedState.first(
+    await ref.watch(readingListRepositoryProvider).listArchived(),
+  );
+
+  Future<void> loadMore() => appendNextPage(
+    read: () => state,
+    write: (next) => state = next,
+    fetch: (cursor) =>
+        ref.read(readingListRepositoryProvider).listArchived(cursor: cursor),
+  );
+}
 
 /// The saved, unarchived reading list, paginated. [build] loads the first page;
 /// [loadMore] appends the next.

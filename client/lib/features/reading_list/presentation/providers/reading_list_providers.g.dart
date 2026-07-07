@@ -57,27 +57,25 @@ final class ReadingListRepositoryProvider
 String _$readingListRepositoryHash() =>
     r'115ada14fd69a0d3589bc2a49ffde3a02b5ea366';
 
-/// The archived reading list items, newest first. Read-only: the archived
-/// screen has no swipe actions.
+/// The archived reading list, paginated. [build] loads the first page;
+/// [loadMore] appends the next. Read-only: the archived screen has no swipe
+/// actions.
 
-@ProviderFor(archivedReadingList)
+@ProviderFor(ArchivedReadingList)
 final archivedReadingListProvider = ArchivedReadingListProvider._();
 
-/// The archived reading list items, newest first. Read-only: the archived
-/// screen has no swipe actions.
-
+/// The archived reading list, paginated. [build] loads the first page;
+/// [loadMore] appends the next. Read-only: the archived screen has no swipe
+/// actions.
 final class ArchivedReadingListProvider
     extends
-        $FunctionalProvider<
-          AsyncValue<List<ReadingListItem>>,
-          List<ReadingListItem>,
-          FutureOr<List<ReadingListItem>>
-        >
-    with
-        $FutureModifier<List<ReadingListItem>>,
-        $FutureProvider<List<ReadingListItem>> {
-  /// The archived reading list items, newest first. Read-only: the archived
-  /// screen has no swipe actions.
+        $AsyncNotifierProvider<
+          ArchivedReadingList,
+          PagedState<ReadingListItem>
+        > {
+  /// The archived reading list, paginated. [build] loads the first page;
+  /// [loadMore] appends the next. Read-only: the archived screen has no swipe
+  /// actions.
   ArchivedReadingListProvider._()
     : super(
         from: null,
@@ -94,18 +92,42 @@ final class ArchivedReadingListProvider
 
   @$internal
   @override
-  $FutureProviderElement<List<ReadingListItem>> $createElement(
-    $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
-
-  @override
-  FutureOr<List<ReadingListItem>> create(Ref ref) {
-    return archivedReadingList(ref);
-  }
+  ArchivedReadingList create() => ArchivedReadingList();
 }
 
 String _$archivedReadingListHash() =>
-    r'01e9aa9d5ccfef5a5cceb173a7ca73b8e7976ffe';
+    r'5c0b4d2437addfe4b12adb87d8f09df9642d7973';
+
+/// The archived reading list, paginated. [build] loads the first page;
+/// [loadMore] appends the next. Read-only: the archived screen has no swipe
+/// actions.
+
+abstract class _$ArchivedReadingList
+    extends $AsyncNotifier<PagedState<ReadingListItem>> {
+  FutureOr<PagedState<ReadingListItem>> build();
+  @$mustCallSuper
+  @override
+  WhenComplete runBuild() {
+    final ref =
+        this.ref
+            as $Ref<
+              AsyncValue<PagedState<ReadingListItem>>,
+              PagedState<ReadingListItem>
+            >;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<
+                AsyncValue<PagedState<ReadingListItem>>,
+                PagedState<ReadingListItem>
+              >,
+              AsyncValue<PagedState<ReadingListItem>>,
+              Object?,
+              Object?
+            >;
+    return element.handleCreate(ref, build);
+  }
+}
 
 /// The saved, unarchived reading list, paginated. [build] loads the first page;
 /// [loadMore] appends the next.
