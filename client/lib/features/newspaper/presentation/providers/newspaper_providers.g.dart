@@ -88,7 +88,7 @@ final class TodayNewspaperProvider
   TodayNewspaper create() => TodayNewspaper();
 }
 
-String _$todayNewspaperHash() => r'f49a4e4c09a261c0350c22f01c7f94f6b939141b';
+String _$todayNewspaperHash() => r'9f81e01c665633055989a6403e78e95c41df171d';
 
 /// Today's newspaper, with its stories paginated. [build] loads the first page;
 /// [loadMore] appends the next page of stories while keeping the header.
