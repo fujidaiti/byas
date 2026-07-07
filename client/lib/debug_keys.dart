@@ -5,7 +5,14 @@ import 'package:flutter/widgets.dart';
 abstract final class AppDebugKey {
   static const addFeedButton = Key('addFeedButton');
   static const archiveSuccessSnackBar = Key('archiveSuccessSnackBar');
+  static const unarchiveSuccessSnackBar = Key('unarchiveSuccessSnackBar');
   static const feedDetailScreen = Key('feedDetailScreen');
+  static const feedEntryReaderArchiveButton = Key(
+    'feedEntryReaderArchiveButton',
+  );
+  static const feedEntryReaderArchivedBanner = Key(
+    'feedEntryReaderArchivedBanner',
+  );
   static const feedEntryReaderBookmarkButton = Key(
     'feedEntryReaderBookmarkButton',
   );
@@ -21,6 +28,8 @@ abstract final class AppDebugKey {
   static const readingListNavDestination = Key('readingListNavDestination');
   static const readingListScreen = Key('readingListScreen');
   static const webClipReaderScreen = Key('webClipReaderScreen');
+  static const webClipReaderArchiveButton = Key('webClipReaderArchiveButton');
+  static const webClipReaderArchivedBanner = Key('webClipReaderArchivedBanner');
   static const webClipReaderBookmarkButton = Key('webClipReaderBookmarkButton');
   static const webClipReaderOpenOriginalButton = Key(
     'webClipReaderOpenOriginalButton',

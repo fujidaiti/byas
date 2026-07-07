@@ -27,6 +27,7 @@ part 'model/get_feeds200_response.dart';
 part 'model/get_reading_list200_response.dart';
 part 'model/get_todays_newspaper200_response.dart';
 part 'model/get_web_clip200_response.dart';
+part 'model/read_later.dart';
 part 'model/reading_list_item.dart';
 part 'model/save_to_reading_list_request.dart';
 part 'model/save_to_reading_list_request_one_of.dart';

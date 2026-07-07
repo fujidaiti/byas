@@ -22,6 +22,7 @@ class FeedEntryRow extends StatelessWidget {
     final description = entry.description;
     final publishedAt = entry.publishedAt;
     final savedToReadingList = entry.readingListItemId != null;
+    final archived = entry.archived ?? false;
     return ListTile(
       isThreeLine: true,
       onTap: onTap,
@@ -47,8 +48,12 @@ class FeedEntryRow extends StatelessWidget {
                   Text(
                     'Read later',
                     style: textCaption.copyWith(
-                      color: colorAccent,
+                      color: archived
+                          ? colorAccent.withValues(alpha: 0.5)
+                          : colorAccent,
                       fontWeight: FontWeight.w600,
+                      decoration: archived ? TextDecoration.lineThrough : null,
+                      decorationColor: colorAccent.withValues(alpha: 0.5),
                     ),
                   ),
               ],
