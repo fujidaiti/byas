@@ -155,7 +155,7 @@ func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 		SELECT id, feed_entry_id, title, description, source, published_at,
 			(SELECT id FROM reading_list_items
 				WHERE feed_entry_id = stories.feed_entry_id
-				LIMIT 1),
+				LIMIT 1) as reading_list_item_id,
 			(SELECT archived FROM reading_list_items
 				WHERE feed_entry_id = stories.feed_entry_id
 				LIMIT 1)
@@ -465,7 +465,7 @@ func (h *handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
 		SELECT id, feed_id, url, title, description, published_at, snapshot_at,
 			(SELECT id FROM reading_list_items
 				WHERE feed_entry_id = feed_entries.id
-				LIMIT 1),
+				LIMIT 1) as reading_list_item_id,
 			(SELECT archived FROM reading_list_items
 				WHERE feed_entry_id = feed_entries.id
 				LIMIT 1)
