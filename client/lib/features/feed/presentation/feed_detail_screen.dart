@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:paperdoll/core/error/domain_error.dart';
+import 'package:paperdoll/core/pagination/infinite_scroll.dart';
+import 'package:paperdoll/core/pagination/load_more_footer.dart';
+import 'package:paperdoll/core/pagination/paged_state.dart';
 import 'package:paperdoll/core/router/routes.dart';
 import 'package:paperdoll/core/ui/tokens/app_spacing.dart';
 import 'package:paperdoll/core/ui/widgets/app_divider.dart';
@@ -44,6 +47,8 @@ class FeedDetailScreen extends ConsumerWidget {
             feed: feed,
             timeline: timelineAsync,
             onRetryTimeline: () => ref.invalidate(feedTimelineProvider(id: id)),
+            onLoadMore: () =>
+                ref.read(feedTimelineProvider(id: id).notifier).loadMore(),
             onOpenEntry: (entryId) => context.pushNamed(
               routeFeedEntryReaderName,
               pathParameters: {
@@ -63,62 +68,85 @@ class _FeedDetailBody extends StatelessWidget {
     required this.feed,
     required this.timeline,
     required this.onRetryTimeline,
+    required this.onLoadMore,
     required this.onOpenEntry,
   });
 
   final Feed feed;
-  final AsyncValue<List<FeedEntry>> timeline;
+  final AsyncValue<PagedState<FeedEntry>> timeline;
   final VoidCallback onRetryTimeline;
+  final VoidCallback onLoadMore;
   final void Function(int entryId) onOpenEntry;
 
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      slivers: [
-        SliverAppBar(
-          pinned: true,
-          centerTitle: false,
-          title: BodyText(feed.title),
-        ),
-        SliverToBoxAdapter(child: _FeedDetails(feed: feed)),
-        timeline.when(
-          data: _buildTimeline,
-          loading: () => const SliverFillRemaining(
-            hasScrollBody: false,
-            child: LoadingIndicator(),
+    return InfiniteScrollList(
+      onEndReached: onLoadMore,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverAppBar(
+            pinned: true,
+            centerTitle: false,
+            title: BodyText(feed.title),
           ),
-          error: (error, _) => SliverFillRemaining(
-            hasScrollBody: false,
-            child: ErrorPlaceholder(
-              message: describeError(error),
-              onRetry: onRetryTimeline,
-            ),
+          SliverToBoxAdapter(child: _FeedDetails(feed: feed)),
+          ...timeline.when(
+            data: _timelineSlivers,
+            loading: () => const [
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: LoadingIndicator(),
+              ),
+            ],
+            error: (error, _) => [
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: ErrorPlaceholder(
+                  message: describeError(error),
+                  onRetry: onRetryTimeline,
+                ),
+              ),
+            ],
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _buildTimeline(List<FeedEntry> entries) {
+  List<Widget> _timelineSlivers(PagedState<FeedEntry> page) {
+    final entries = page.items;
     if (entries.isEmpty) {
-      return const SliverFillRemaining(
-        hasScrollBody: false,
-        child: EmptyPlaceholder(message: 'No entries yet.'),
-      );
+      return const [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: EmptyPlaceholder(message: 'No entries yet.'),
+        ),
+      ];
     }
-    return SliverList.separated(
-      itemCount: entries.length,
-      separatorBuilder: (context, index) => const AppDivider(),
-      itemBuilder: (context, index) {
-        final entry = entries[index];
-        return FeedEntryRow(
-          key: AppDebugKey.feedEntryRow(entry.title),
-          entry: entry,
-          onTap: () => onOpenEntry(entry.id),
-        );
-      },
-    );
+    final showFooter = page.isLoadingMore || page.loadMoreError != null;
+    return [
+      SliverList.separated(
+        itemCount: entries.length,
+        separatorBuilder: (context, index) => const AppDivider(),
+        itemBuilder: (context, index) {
+          final entry = entries[index];
+          return FeedEntryRow(
+            key: AppDebugKey.feedEntryRow(entry.title),
+            entry: entry,
+            onTap: () => onOpenEntry(entry.id),
+          );
+        },
+      ),
+      if (showFooter)
+        SliverToBoxAdapter(
+          child: LoadMoreFooter(
+            isLoading: page.isLoadingMore,
+            error: page.loadMoreError,
+            onRetry: onLoadMore,
+          ),
+        ),
+    ];
   }
 }
 

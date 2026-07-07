@@ -57,17 +57,18 @@ final class NewspaperRepositoryProvider
 String _$newspaperRepositoryHash() =>
     r'f3f71c19d3c1de50acd534e650d868296ee40aed';
 
-@ProviderFor(todayNewspaper)
+/// Today's newspaper, with its stories paginated. [build] loads the first page;
+/// [loadMore] appends the next page of stories while keeping the header.
+
+@ProviderFor(TodayNewspaper)
 final todayNewspaperProvider = TodayNewspaperProvider._();
 
+/// Today's newspaper, with its stories paginated. [build] loads the first page;
+/// [loadMore] appends the next page of stories while keeping the header.
 final class TodayNewspaperProvider
-    extends
-        $FunctionalProvider<
-          AsyncValue<Newspaper>,
-          Newspaper,
-          FutureOr<Newspaper>
-        >
-    with $FutureModifier<Newspaper>, $FutureProvider<Newspaper> {
+    extends $AsyncNotifierProvider<TodayNewspaper, TodayState> {
+  /// Today's newspaper, with its stories paginated. [build] loads the first page;
+  /// [loadMore] appends the next page of stories while keeping the header.
   TodayNewspaperProvider._()
     : super(
         from: null,
@@ -84,13 +85,28 @@ final class TodayNewspaperProvider
 
   @$internal
   @override
-  $FutureProviderElement<Newspaper> $createElement($ProviderPointer pointer) =>
-      $FutureProviderElement(pointer);
-
-  @override
-  FutureOr<Newspaper> create(Ref ref) {
-    return todayNewspaper(ref);
-  }
+  TodayNewspaper create() => TodayNewspaper();
 }
 
-String _$todayNewspaperHash() => r'269e8adc6869a3f1ab692d7fc0bd702a658acdeb';
+String _$todayNewspaperHash() => r'f49a4e4c09a261c0350c22f01c7f94f6b939141b';
+
+/// Today's newspaper, with its stories paginated. [build] loads the first page;
+/// [loadMore] appends the next page of stories while keeping the header.
+
+abstract class _$TodayNewspaper extends $AsyncNotifier<TodayState> {
+  FutureOr<TodayState> build();
+  @$mustCallSuper
+  @override
+  WhenComplete runBuild() {
+    final ref = this.ref as $Ref<AsyncValue<TodayState>, TodayState>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<AsyncValue<TodayState>, TodayState>,
+              AsyncValue<TodayState>,
+              Object?,
+              Object?
+            >;
+    return element.handleCreate(ref, build);
+  }
+}

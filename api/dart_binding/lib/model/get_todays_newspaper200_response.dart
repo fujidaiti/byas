@@ -16,6 +16,7 @@ class GetTodaysNewspaper200Response {
     required this.id,
     required this.publishedAt,
     this.stories = const [],
+    this.nextCursor,
   });
 
   int id;
@@ -24,28 +25,46 @@ class GetTodaysNewspaper200Response {
 
   List<Story> stories;
 
+  /// Opaque cursor to fetch the next page. Absent when there are no more stories.
+  ///
+  /// Please note: This property should have been non-nullable! Since the specification file
+  /// does not include a default value (using the "default:" property), however, the generated
+  /// source code must fall back to having a nullable type.
+  /// Consider adding a "default:" property in the specification file to hide this note.
+  ///
+  String? nextCursor;
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is GetTodaysNewspaper200Response &&
           other.id == id &&
           other.publishedAt == publishedAt &&
-          _deepEquality.equals(other.stories, stories);
+          _deepEquality.equals(other.stories, stories) &&
+          other.nextCursor == nextCursor;
 
   @override
   int get hashCode =>
       // ignore: unnecessary_parenthesis
-      (id.hashCode) + (publishedAt.hashCode) + (stories.hashCode);
+      (id.hashCode) +
+      (publishedAt.hashCode) +
+      (stories.hashCode) +
+      (nextCursor == null ? 0 : nextCursor!.hashCode);
 
   @override
   String toString() =>
-      'GetTodaysNewspaper200Response[id=$id, publishedAt=$publishedAt, stories=$stories]';
+      'GetTodaysNewspaper200Response[id=$id, publishedAt=$publishedAt, stories=$stories, nextCursor=$nextCursor]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
     json[r'id'] = this.id;
     json[r'published_at'] = this.publishedAt.toUtc().toIso8601String();
     json[r'stories'] = this.stories;
+    if (this.nextCursor != null) {
+      json[r'next_cursor'] = this.nextCursor;
+    } else {
+      json[r'next_cursor'] = null;
+    }
     return json;
   }
 
@@ -79,6 +98,7 @@ class GetTodaysNewspaper200Response {
         id: mapValueOfType<int>(json, r'id')!,
         publishedAt: mapDateTime(json, r'published_at', r'')!,
         stories: Story.listFromJson(json[r'stories']),
+        nextCursor: mapValueOfType<String>(json, r'next_cursor'),
       );
     }
     return null;
