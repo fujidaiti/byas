@@ -56,18 +56,27 @@ final class WebClipRepositoryProvider
 
 String _$webClipRepositoryHash() => r'53586faadd7246a222f08fe5f404d220a2a6c437';
 
-/// Loads a web clip for the reader and holds it as mutable state so the reader
-/// can reflect an archive/unarchive toggle optimistically, without refetching.
+/// Single source of truth for one web clip in the reader. It loads the clip
+/// and owns every reading-list mutation (save, remove, archive, unarchive):
+/// each one patches the cached clip optimistically so watchers update
+/// instantly, fires the request, and rolls the state back before rethrowing if
+/// it fails. The UI only reacts to the state and surfaces snackbars.
 
 @ProviderFor(WebClipController)
 final webClipControllerProvider = WebClipControllerFamily._();
 
-/// Loads a web clip for the reader and holds it as mutable state so the reader
-/// can reflect an archive/unarchive toggle optimistically, without refetching.
+/// Single source of truth for one web clip in the reader. It loads the clip
+/// and owns every reading-list mutation (save, remove, archive, unarchive):
+/// each one patches the cached clip optimistically so watchers update
+/// instantly, fires the request, and rolls the state back before rethrowing if
+/// it fails. The UI only reacts to the state and surfaces snackbars.
 final class WebClipControllerProvider
     extends $AsyncNotifierProvider<WebClipController, WebClip> {
-  /// Loads a web clip for the reader and holds it as mutable state so the reader
-  /// can reflect an archive/unarchive toggle optimistically, without refetching.
+  /// Single source of truth for one web clip in the reader. It loads the clip
+  /// and owns every reading-list mutation (save, remove, archive, unarchive):
+  /// each one patches the cached clip optimistically so watchers update
+  /// instantly, fires the request, and rolls the state back before rethrowing if
+  /// it fails. The UI only reacts to the state and surfaces snackbars.
   WebClipControllerProvider._({
     required WebClipControllerFamily super.from,
     required int super.argument,
@@ -104,10 +113,13 @@ final class WebClipControllerProvider
   }
 }
 
-String _$webClipControllerHash() => r'924cd352426cb36d36e24593ee52136012cb6037';
+String _$webClipControllerHash() => r'7a0a0e60026f2eb3bf4cbafc6c3eaa34e7b7b4fe';
 
-/// Loads a web clip for the reader and holds it as mutable state so the reader
-/// can reflect an archive/unarchive toggle optimistically, without refetching.
+/// Single source of truth for one web clip in the reader. It loads the clip
+/// and owns every reading-list mutation (save, remove, archive, unarchive):
+/// each one patches the cached clip optimistically so watchers update
+/// instantly, fires the request, and rolls the state back before rethrowing if
+/// it fails. The UI only reacts to the state and surfaces snackbars.
 
 final class WebClipControllerFamily extends $Family
     with
@@ -127,8 +139,11 @@ final class WebClipControllerFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// Loads a web clip for the reader and holds it as mutable state so the reader
-  /// can reflect an archive/unarchive toggle optimistically, without refetching.
+  /// Single source of truth for one web clip in the reader. It loads the clip
+  /// and owns every reading-list mutation (save, remove, archive, unarchive):
+  /// each one patches the cached clip optimistically so watchers update
+  /// instantly, fires the request, and rolls the state back before rethrowing if
+  /// it fails. The UI only reacts to the state and surfaces snackbars.
 
   WebClipControllerProvider call({required int id}) =>
       WebClipControllerProvider._(argument: id, from: this);
@@ -137,8 +152,11 @@ final class WebClipControllerFamily extends $Family
   String toString() => r'webClipControllerProvider';
 }
 
-/// Loads a web clip for the reader and holds it as mutable state so the reader
-/// can reflect an archive/unarchive toggle optimistically, without refetching.
+/// Single source of truth for one web clip in the reader. It loads the clip
+/// and owns every reading-list mutation (save, remove, archive, unarchive):
+/// each one patches the cached clip optimistically so watchers update
+/// instantly, fires the request, and rolls the state back before rethrowing if
+/// it fails. The UI only reacts to the state and surfaces snackbars.
 
 abstract class _$WebClipController extends $AsyncNotifier<WebClip> {
   late final _$args = ref.$arg as int;

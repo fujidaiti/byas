@@ -79,6 +79,7 @@ class FeedRepositoryImpl implements FeedRepository {
               snapshotAt: e.snapshotAt,
               readingListItemId: e.readLater?.id,
               archived: e.readLater?.archived,
+              saved: e.readLater != null,
             ),
           )
           .toList();

@@ -21,6 +21,7 @@ class WebClipRepositoryImpl implements WebClipRepository {
         content: a.content,
         readingListItemId: a.readLater?.id,
         archived: a.readLater?.archived,
+        saved: a.readLater != null,
       );
     });
   }

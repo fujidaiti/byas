@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$FeedEntry {
 
- int get id; int get feedId; String get url; String get title; String? get description; String? get content; DateTime? get publishedAt; DateTime? get snapshotAt; int? get readingListItemId; bool? get archived;
+ int get id; int get feedId; String get url; String get title; String? get description; String? get content; DateTime? get publishedAt; DateTime? get snapshotAt; int? get readingListItemId; bool? get archived; bool get saved;
 /// Create a copy of FeedEntry
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $FeedEntryCopyWith<FeedEntry> get copyWith => _$FeedEntryCopyWithImpl<FeedEntry>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FeedEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.feedId, feedId) || other.feedId == feedId)&&(identical(other.url, url) || other.url == url)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.content, content) || other.content == content)&&(identical(other.publishedAt, publishedAt) || other.publishedAt == publishedAt)&&(identical(other.snapshotAt, snapshotAt) || other.snapshotAt == snapshotAt)&&(identical(other.readingListItemId, readingListItemId) || other.readingListItemId == readingListItemId)&&(identical(other.archived, archived) || other.archived == archived));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is FeedEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.feedId, feedId) || other.feedId == feedId)&&(identical(other.url, url) || other.url == url)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.content, content) || other.content == content)&&(identical(other.publishedAt, publishedAt) || other.publishedAt == publishedAt)&&(identical(other.snapshotAt, snapshotAt) || other.snapshotAt == snapshotAt)&&(identical(other.readingListItemId, readingListItemId) || other.readingListItemId == readingListItemId)&&(identical(other.archived, archived) || other.archived == archived)&&(identical(other.saved, saved) || other.saved == saved));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,feedId,url,title,description,content,publishedAt,snapshotAt,readingListItemId,archived);
+int get hashCode => Object.hash(runtimeType,id,feedId,url,title,description,content,publishedAt,snapshotAt,readingListItemId,archived,saved);
 
 @override
 String toString() {
-  return 'FeedEntry(id: $id, feedId: $feedId, url: $url, title: $title, description: $description, content: $content, publishedAt: $publishedAt, snapshotAt: $snapshotAt, readingListItemId: $readingListItemId, archived: $archived)';
+  return 'FeedEntry(id: $id, feedId: $feedId, url: $url, title: $title, description: $description, content: $content, publishedAt: $publishedAt, snapshotAt: $snapshotAt, readingListItemId: $readingListItemId, archived: $archived, saved: $saved)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $FeedEntryCopyWith<$Res>  {
   factory $FeedEntryCopyWith(FeedEntry value, $Res Function(FeedEntry) _then) = _$FeedEntryCopyWithImpl;
 @useResult
 $Res call({
- int id, int feedId, String url, String title, String? description, String? content, DateTime? publishedAt, DateTime? snapshotAt, int? readingListItemId, bool? archived
+ int id, int feedId, String url, String title, String? description, String? content, DateTime? publishedAt, DateTime? snapshotAt, int? readingListItemId, bool? archived, bool saved
 });
 
 
@@ -62,7 +62,7 @@ class _$FeedEntryCopyWithImpl<$Res>
 
 /// Create a copy of FeedEntry
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? feedId = null,Object? url = null,Object? title = null,Object? description = freezed,Object? content = freezed,Object? publishedAt = freezed,Object? snapshotAt = freezed,Object? readingListItemId = freezed,Object? archived = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? feedId = null,Object? url = null,Object? title = null,Object? description = freezed,Object? content = freezed,Object? publishedAt = freezed,Object? snapshotAt = freezed,Object? readingListItemId = freezed,Object? archived = freezed,Object? saved = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,feedId: null == feedId ? _self.feedId : feedId // ignore: cast_nullable_to_non_nullable
@@ -74,7 +74,8 @@ as String?,publishedAt: freezed == publishedAt ? _self.publishedAt : publishedAt
 as DateTime?,snapshotAt: freezed == snapshotAt ? _self.snapshotAt : snapshotAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,readingListItemId: freezed == readingListItemId ? _self.readingListItemId : readingListItemId // ignore: cast_nullable_to_non_nullable
 as int?,archived: freezed == archived ? _self.archived : archived // ignore: cast_nullable_to_non_nullable
-as bool?,
+as bool?,saved: null == saved ? _self.saved : saved // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -159,10 +160,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  int feedId,  String url,  String title,  String? description,  String? content,  DateTime? publishedAt,  DateTime? snapshotAt,  int? readingListItemId,  bool? archived)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  int feedId,  String url,  String title,  String? description,  String? content,  DateTime? publishedAt,  DateTime? snapshotAt,  int? readingListItemId,  bool? archived,  bool saved)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _FeedEntry() when $default != null:
-return $default(_that.id,_that.feedId,_that.url,_that.title,_that.description,_that.content,_that.publishedAt,_that.snapshotAt,_that.readingListItemId,_that.archived);case _:
+return $default(_that.id,_that.feedId,_that.url,_that.title,_that.description,_that.content,_that.publishedAt,_that.snapshotAt,_that.readingListItemId,_that.archived,_that.saved);case _:
   return orElse();
 
 }
@@ -180,10 +181,10 @@ return $default(_that.id,_that.feedId,_that.url,_that.title,_that.description,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  int feedId,  String url,  String title,  String? description,  String? content,  DateTime? publishedAt,  DateTime? snapshotAt,  int? readingListItemId,  bool? archived)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  int feedId,  String url,  String title,  String? description,  String? content,  DateTime? publishedAt,  DateTime? snapshotAt,  int? readingListItemId,  bool? archived,  bool saved)  $default,) {final _that = this;
 switch (_that) {
 case _FeedEntry():
-return $default(_that.id,_that.feedId,_that.url,_that.title,_that.description,_that.content,_that.publishedAt,_that.snapshotAt,_that.readingListItemId,_that.archived);case _:
+return $default(_that.id,_that.feedId,_that.url,_that.title,_that.description,_that.content,_that.publishedAt,_that.snapshotAt,_that.readingListItemId,_that.archived,_that.saved);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -200,10 +201,10 @@ return $default(_that.id,_that.feedId,_that.url,_that.title,_that.description,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  int feedId,  String url,  String title,  String? description,  String? content,  DateTime? publishedAt,  DateTime? snapshotAt,  int? readingListItemId,  bool? archived)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  int feedId,  String url,  String title,  String? description,  String? content,  DateTime? publishedAt,  DateTime? snapshotAt,  int? readingListItemId,  bool? archived,  bool saved)?  $default,) {final _that = this;
 switch (_that) {
 case _FeedEntry() when $default != null:
-return $default(_that.id,_that.feedId,_that.url,_that.title,_that.description,_that.content,_that.publishedAt,_that.snapshotAt,_that.readingListItemId,_that.archived);case _:
+return $default(_that.id,_that.feedId,_that.url,_that.title,_that.description,_that.content,_that.publishedAt,_that.snapshotAt,_that.readingListItemId,_that.archived,_that.saved);case _:
   return null;
 
 }
@@ -215,7 +216,7 @@ return $default(_that.id,_that.feedId,_that.url,_that.title,_that.description,_t
 
 
 class _FeedEntry implements FeedEntry {
-  const _FeedEntry({required this.id, required this.feedId, required this.url, required this.title, this.description, this.content, this.publishedAt, this.snapshotAt, this.readingListItemId, this.archived});
+  const _FeedEntry({required this.id, required this.feedId, required this.url, required this.title, this.description, this.content, this.publishedAt, this.snapshotAt, this.readingListItemId, this.archived, this.saved = false});
   
 
 @override final  int id;
@@ -228,6 +229,7 @@ class _FeedEntry implements FeedEntry {
 @override final  DateTime? snapshotAt;
 @override final  int? readingListItemId;
 @override final  bool? archived;
+@override@JsonKey() final  bool saved;
 
 /// Create a copy of FeedEntry
 /// with the given fields replaced by the non-null parameter values.
@@ -239,16 +241,16 @@ _$FeedEntryCopyWith<_FeedEntry> get copyWith => __$FeedEntryCopyWithImpl<_FeedEn
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _FeedEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.feedId, feedId) || other.feedId == feedId)&&(identical(other.url, url) || other.url == url)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.content, content) || other.content == content)&&(identical(other.publishedAt, publishedAt) || other.publishedAt == publishedAt)&&(identical(other.snapshotAt, snapshotAt) || other.snapshotAt == snapshotAt)&&(identical(other.readingListItemId, readingListItemId) || other.readingListItemId == readingListItemId)&&(identical(other.archived, archived) || other.archived == archived));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _FeedEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.feedId, feedId) || other.feedId == feedId)&&(identical(other.url, url) || other.url == url)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.content, content) || other.content == content)&&(identical(other.publishedAt, publishedAt) || other.publishedAt == publishedAt)&&(identical(other.snapshotAt, snapshotAt) || other.snapshotAt == snapshotAt)&&(identical(other.readingListItemId, readingListItemId) || other.readingListItemId == readingListItemId)&&(identical(other.archived, archived) || other.archived == archived)&&(identical(other.saved, saved) || other.saved == saved));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,feedId,url,title,description,content,publishedAt,snapshotAt,readingListItemId,archived);
+int get hashCode => Object.hash(runtimeType,id,feedId,url,title,description,content,publishedAt,snapshotAt,readingListItemId,archived,saved);
 
 @override
 String toString() {
-  return 'FeedEntry(id: $id, feedId: $feedId, url: $url, title: $title, description: $description, content: $content, publishedAt: $publishedAt, snapshotAt: $snapshotAt, readingListItemId: $readingListItemId, archived: $archived)';
+  return 'FeedEntry(id: $id, feedId: $feedId, url: $url, title: $title, description: $description, content: $content, publishedAt: $publishedAt, snapshotAt: $snapshotAt, readingListItemId: $readingListItemId, archived: $archived, saved: $saved)';
 }
 
 
@@ -259,7 +261,7 @@ abstract mixin class _$FeedEntryCopyWith<$Res> implements $FeedEntryCopyWith<$Re
   factory _$FeedEntryCopyWith(_FeedEntry value, $Res Function(_FeedEntry) _then) = __$FeedEntryCopyWithImpl;
 @override @useResult
 $Res call({
- int id, int feedId, String url, String title, String? description, String? content, DateTime? publishedAt, DateTime? snapshotAt, int? readingListItemId, bool? archived
+ int id, int feedId, String url, String title, String? description, String? content, DateTime? publishedAt, DateTime? snapshotAt, int? readingListItemId, bool? archived, bool saved
 });
 
 
@@ -276,7 +278,7 @@ class __$FeedEntryCopyWithImpl<$Res>
 
 /// Create a copy of FeedEntry
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? feedId = null,Object? url = null,Object? title = null,Object? description = freezed,Object? content = freezed,Object? publishedAt = freezed,Object? snapshotAt = freezed,Object? readingListItemId = freezed,Object? archived = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? feedId = null,Object? url = null,Object? title = null,Object? description = freezed,Object? content = freezed,Object? publishedAt = freezed,Object? snapshotAt = freezed,Object? readingListItemId = freezed,Object? archived = freezed,Object? saved = null,}) {
   return _then(_FeedEntry(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,feedId: null == feedId ? _self.feedId : feedId // ignore: cast_nullable_to_non_nullable
@@ -288,7 +290,8 @@ as String?,publishedAt: freezed == publishedAt ? _self.publishedAt : publishedAt
 as DateTime?,snapshotAt: freezed == snapshotAt ? _self.snapshotAt : snapshotAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,readingListItemId: freezed == readingListItemId ? _self.readingListItemId : readingListItemId // ignore: cast_nullable_to_non_nullable
 as int?,archived: freezed == archived ? _self.archived : archived // ignore: cast_nullable_to_non_nullable
-as bool?,
+as bool?,saved: null == saved ? _self.saved : saved // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
