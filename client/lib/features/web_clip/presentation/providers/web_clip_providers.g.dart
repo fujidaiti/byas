@@ -104,7 +104,7 @@ final class WebClipControllerProvider
   }
 }
 
-String _$webClipControllerHash() => r'9fcbe2d8fa908516a8db1356e40c496e5059b664';
+String _$webClipControllerHash() => r'924cd352426cb36d36e24593ee52136012cb6037';
 
 /// Loads a web clip for the reader and holds it as mutable state so the reader
 /// can reflect an archive/unarchive toggle optimistically, without refetching.

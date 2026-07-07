@@ -57,18 +57,21 @@ final class FeedEntryRepositoryProvider
 String _$feedEntryRepositoryHash() =>
     r'f9c74603d05aaf5d786d1a55ae6ca43d0c9b5b5e';
 
-/// Loads a feed entry for the reader and holds it as mutable state so the reader
-/// can reflect an archive/unarchive toggle optimistically, without refetching.
+/// Loads a feed entry for the reader and holds it as mutable state so the
+/// reader can reflect an archive/unarchive toggle optimistically, without
+/// refetching.
 
 @ProviderFor(FeedEntryController)
 final feedEntryControllerProvider = FeedEntryControllerFamily._();
 
-/// Loads a feed entry for the reader and holds it as mutable state so the reader
-/// can reflect an archive/unarchive toggle optimistically, without refetching.
+/// Loads a feed entry for the reader and holds it as mutable state so the
+/// reader can reflect an archive/unarchive toggle optimistically, without
+/// refetching.
 final class FeedEntryControllerProvider
     extends $AsyncNotifierProvider<FeedEntryController, FeedEntry> {
-  /// Loads a feed entry for the reader and holds it as mutable state so the reader
-  /// can reflect an archive/unarchive toggle optimistically, without refetching.
+  /// Loads a feed entry for the reader and holds it as mutable state so the
+  /// reader can reflect an archive/unarchive toggle optimistically, without
+  /// refetching.
   FeedEntryControllerProvider._({
     required FeedEntryControllerFamily super.from,
     required int super.argument,
@@ -106,10 +109,11 @@ final class FeedEntryControllerProvider
 }
 
 String _$feedEntryControllerHash() =>
-    r'747df3e1d5414b9a1c311489b27ece2f5f74d53e';
+    r'71b32b381244316bb79ddff2002313594566b692';
 
-/// Loads a feed entry for the reader and holds it as mutable state so the reader
-/// can reflect an archive/unarchive toggle optimistically, without refetching.
+/// Loads a feed entry for the reader and holds it as mutable state so the
+/// reader can reflect an archive/unarchive toggle optimistically, without
+/// refetching.
 
 final class FeedEntryControllerFamily extends $Family
     with
@@ -129,8 +133,9 @@ final class FeedEntryControllerFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// Loads a feed entry for the reader and holds it as mutable state so the reader
-  /// can reflect an archive/unarchive toggle optimistically, without refetching.
+  /// Loads a feed entry for the reader and holds it as mutable state so the
+  /// reader can reflect an archive/unarchive toggle optimistically, without
+  /// refetching.
 
   FeedEntryControllerProvider call({required int id}) =>
       FeedEntryControllerProvider._(argument: id, from: this);
@@ -139,8 +144,9 @@ final class FeedEntryControllerFamily extends $Family
   String toString() => r'feedEntryControllerProvider';
 }
 
-/// Loads a feed entry for the reader and holds it as mutable state so the reader
-/// can reflect an archive/unarchive toggle optimistically, without refetching.
+/// Loads a feed entry for the reader and holds it as mutable state so the
+/// reader can reflect an archive/unarchive toggle optimistically, without
+/// refetching.
 
 abstract class _$FeedEntryController extends $AsyncNotifier<FeedEntry> {
   late final _$args = ref.$arg as int;
