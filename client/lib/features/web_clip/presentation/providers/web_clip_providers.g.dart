@@ -56,47 +56,46 @@ final class WebClipRepositoryProvider
 
 String _$webClipRepositoryHash() => r'53586faadd7246a222f08fe5f404d220a2a6c437';
 
-@ProviderFor(webClip)
-final webClipProvider = WebClipFamily._();
+/// Loads a web clip for the reader and holds it as mutable state so the reader
+/// can reflect an archive/unarchive toggle optimistically, without refetching.
 
-final class WebClipProvider
-    extends $FunctionalProvider<AsyncValue<WebClip>, WebClip, FutureOr<WebClip>>
-    with $FutureModifier<WebClip>, $FutureProvider<WebClip> {
-  WebClipProvider._({
-    required WebClipFamily super.from,
+@ProviderFor(WebClipController)
+final webClipControllerProvider = WebClipControllerFamily._();
+
+/// Loads a web clip for the reader and holds it as mutable state so the reader
+/// can reflect an archive/unarchive toggle optimistically, without refetching.
+final class WebClipControllerProvider
+    extends $AsyncNotifierProvider<WebClipController, WebClip> {
+  /// Loads a web clip for the reader and holds it as mutable state so the reader
+  /// can reflect an archive/unarchive toggle optimistically, without refetching.
+  WebClipControllerProvider._({
+    required WebClipControllerFamily super.from,
     required int super.argument,
   }) : super(
          retry: null,
-         name: r'webClipProvider',
+         name: r'webClipControllerProvider',
          isAutoDispose: true,
          dependencies: null,
          $allTransitiveDependencies: null,
        );
 
   @override
-  String debugGetCreateSourceHash() => _$webClipHash();
+  String debugGetCreateSourceHash() => _$webClipControllerHash();
 
   @override
   String toString() {
-    return r'webClipProvider'
+    return r'webClipControllerProvider'
         ''
         '($argument)';
   }
 
   @$internal
   @override
-  $FutureProviderElement<WebClip> $createElement($ProviderPointer pointer) =>
-      $FutureProviderElement(pointer);
-
-  @override
-  FutureOr<WebClip> create(Ref ref) {
-    final argument = this.argument as int;
-    return webClip(ref, id: argument);
-  }
+  WebClipController create() => WebClipController();
 
   @override
   bool operator ==(Object other) {
-    return other is WebClipProvider && other.argument == argument;
+    return other is WebClipControllerProvider && other.argument == argument;
   }
 
   @override
@@ -105,22 +104,59 @@ final class WebClipProvider
   }
 }
 
-String _$webClipHash() => r'c56a6d94b1639d1095baa082580f6a625a1dbb3c';
+String _$webClipControllerHash() => r'9fcbe2d8fa908516a8db1356e40c496e5059b664';
 
-final class WebClipFamily extends $Family
-    with $FunctionalFamilyOverride<FutureOr<WebClip>, int> {
-  WebClipFamily._()
+/// Loads a web clip for the reader and holds it as mutable state so the reader
+/// can reflect an archive/unarchive toggle optimistically, without refetching.
+
+final class WebClipControllerFamily extends $Family
+    with
+        $ClassFamilyOverride<
+          WebClipController,
+          AsyncValue<WebClip>,
+          WebClip,
+          FutureOr<WebClip>,
+          int
+        > {
+  WebClipControllerFamily._()
     : super(
         retry: null,
-        name: r'webClipProvider',
+        name: r'webClipControllerProvider',
         dependencies: null,
         $allTransitiveDependencies: null,
         isAutoDispose: true,
       );
 
-  WebClipProvider call({required int id}) =>
-      WebClipProvider._(argument: id, from: this);
+  /// Loads a web clip for the reader and holds it as mutable state so the reader
+  /// can reflect an archive/unarchive toggle optimistically, without refetching.
+
+  WebClipControllerProvider call({required int id}) =>
+      WebClipControllerProvider._(argument: id, from: this);
 
   @override
-  String toString() => r'webClipProvider';
+  String toString() => r'webClipControllerProvider';
+}
+
+/// Loads a web clip for the reader and holds it as mutable state so the reader
+/// can reflect an archive/unarchive toggle optimistically, without refetching.
+
+abstract class _$WebClipController extends $AsyncNotifier<WebClip> {
+  late final _$args = ref.$arg as int;
+  int get id => _$args;
+
+  FutureOr<WebClip> build({required int id});
+  @$mustCallSuper
+  @override
+  WhenComplete runBuild() {
+    final ref = this.ref as $Ref<AsyncValue<WebClip>, WebClip>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<AsyncValue<WebClip>, WebClip>,
+              AsyncValue<WebClip>,
+              Object?,
+              Object?
+            >;
+    return element.handleCreate(ref, () => build(id: _$args));
+  }
 }
