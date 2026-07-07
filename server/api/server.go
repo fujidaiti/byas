@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -588,7 +589,8 @@ func (h *handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 }
 
 type getReadingListResBody struct {
-	Items []readingListItem `json:"items"`
+	Items      []readingListItem `json:"items"`
+	NextCursor *string           `json:"next_cursor,omitempty"`
 }
 
 type readingListItem struct {
@@ -600,16 +602,30 @@ type readingListItem struct {
 	SavedAt     time.Time `json:"saved_at"`
 }
 
-// TODO: Support pagination; add a tiebreaker to ORDER BY in case saved_at timestamps are the same
-// TODO: Report pending/failed clips separately from the Items, if any
 func (h *handler) getReadingList(w http.ResponseWriter, r *http.Request) {
+	var cursor *paginationCusor[time.Time]
+	if c := r.URL.Query().Get("after"); c != "" {
+		var err error
+		if cursor, err = decodeCursor[time.Time](c); err != nil {
+			serverError(w, http.StatusBadRequest, "Malformed cursor")
+			return
+		}
+	}
+
 	ctx := r.Context()
-	rows, err := h.db.QueryContext(ctx, `
+	args := []any{}
+	var where string
+	if cursor != nil {
+		args = append(args, cursor.Key, cursor.Tiebreaker)
+		where = "AND (saved_at, id) < ($1, $2)"
+	}
+	rows, err := h.db.QueryContext(ctx, fmt.Sprintf(`
 		SELECT id, kind, title, description, saved_at, web_clip_id, feed_entry_id
 		FROM reading_list_items
-		WHERE archived = false
-		ORDER BY saved_at DESC;
-	`)
+		WHERE archived = false %s
+		ORDER BY saved_at DESC, id DESC
+		LIMIT %d;
+	`, where, paginationSize+1), args...)
 	if err != nil {
 		fmt.Println(err)
 		serverError(w, http.StatusInternalServerError, "Failed to fetch reading list")
@@ -654,6 +670,16 @@ func (h *handler) getReadingList(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 		serverError(w, http.StatusInternalServerError, "Failed to fetch reading list")
 		return
+	}
+
+	if len(res.Items) > paginationSize {
+		res.Items = res.Items[:paginationSize]
+		last := res.Items[len(res.Items)-1]
+		c := paginationCusor[time.Time]{Key: last.SavedAt, Tiebreaker: last.ID}
+		if res.NextCursor, err = encodeCursor(c); err != nil {
+			serverError(w, http.StatusInternalServerError, "Something went wrong")
+			return
+		}
 	}
 
 	jres, err := json.Marshal(res)
@@ -788,4 +814,32 @@ func serverError(w http.ResponseWriter, statusCode int, msg string) {
 		w.WriteHeader(statusCode)
 		w.Write(res)
 	}
+}
+
+const paginationSize = 50
+
+type paginationCusor[T any] struct {
+	Key        T   `json:"key"`
+	Tiebreaker int `json:"tiebreaker"`
+}
+
+func encodeCursor[T any](cursor paginationCusor[T]) (*string, error) {
+	c, err := json.Marshal(cursor)
+	if err != nil {
+		return nil, err
+	}
+	return new(base64.RawURLEncoding.EncodeToString(c)), nil
+}
+
+func decodeCursor[T any](cursor string) (*paginationCusor[T], error) {
+	d, err := base64.RawURLEncoding.DecodeString(cursor)
+	if err != nil {
+		return nil, err
+	}
+	c := new(paginationCusor[T])
+	err = json.Unmarshal(d, c)
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
 }
