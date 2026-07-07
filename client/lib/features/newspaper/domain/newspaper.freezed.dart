@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Newspaper {
 
- int get id; DateTime get publishedAt; List<Story> get stories;
+ int get id; DateTime get publishedAt; List<Story> get stories; String? get nextCursor;
 /// Create a copy of Newspaper
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $NewspaperCopyWith<Newspaper> get copyWith => _$NewspaperCopyWithImpl<Newspaper>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Newspaper&&(identical(other.id, id) || other.id == id)&&(identical(other.publishedAt, publishedAt) || other.publishedAt == publishedAt)&&const DeepCollectionEquality().equals(other.stories, stories));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Newspaper&&(identical(other.id, id) || other.id == id)&&(identical(other.publishedAt, publishedAt) || other.publishedAt == publishedAt)&&const DeepCollectionEquality().equals(other.stories, stories)&&(identical(other.nextCursor, nextCursor) || other.nextCursor == nextCursor));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,publishedAt,const DeepCollectionEquality().hash(stories));
+int get hashCode => Object.hash(runtimeType,id,publishedAt,const DeepCollectionEquality().hash(stories),nextCursor);
 
 @override
 String toString() {
-  return 'Newspaper(id: $id, publishedAt: $publishedAt, stories: $stories)';
+  return 'Newspaper(id: $id, publishedAt: $publishedAt, stories: $stories, nextCursor: $nextCursor)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $NewspaperCopyWith<$Res>  {
   factory $NewspaperCopyWith(Newspaper value, $Res Function(Newspaper) _then) = _$NewspaperCopyWithImpl;
 @useResult
 $Res call({
- int id, DateTime publishedAt, List<Story> stories
+ int id, DateTime publishedAt, List<Story> stories, String? nextCursor
 });
 
 
@@ -62,12 +62,13 @@ class _$NewspaperCopyWithImpl<$Res>
 
 /// Create a copy of Newspaper
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? publishedAt = null,Object? stories = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? publishedAt = null,Object? stories = null,Object? nextCursor = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,publishedAt: null == publishedAt ? _self.publishedAt : publishedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,stories: null == stories ? _self.stories : stories // ignore: cast_nullable_to_non_nullable
-as List<Story>,
+as List<Story>,nextCursor: freezed == nextCursor ? _self.nextCursor : nextCursor // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -152,10 +153,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  DateTime publishedAt,  List<Story> stories)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  DateTime publishedAt,  List<Story> stories,  String? nextCursor)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Newspaper() when $default != null:
-return $default(_that.id,_that.publishedAt,_that.stories);case _:
+return $default(_that.id,_that.publishedAt,_that.stories,_that.nextCursor);case _:
   return orElse();
 
 }
@@ -173,10 +174,10 @@ return $default(_that.id,_that.publishedAt,_that.stories);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  DateTime publishedAt,  List<Story> stories)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  DateTime publishedAt,  List<Story> stories,  String? nextCursor)  $default,) {final _that = this;
 switch (_that) {
 case _Newspaper():
-return $default(_that.id,_that.publishedAt,_that.stories);case _:
+return $default(_that.id,_that.publishedAt,_that.stories,_that.nextCursor);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -193,10 +194,10 @@ return $default(_that.id,_that.publishedAt,_that.stories);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  DateTime publishedAt,  List<Story> stories)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  DateTime publishedAt,  List<Story> stories,  String? nextCursor)?  $default,) {final _that = this;
 switch (_that) {
 case _Newspaper() when $default != null:
-return $default(_that.id,_that.publishedAt,_that.stories);case _:
+return $default(_that.id,_that.publishedAt,_that.stories,_that.nextCursor);case _:
   return null;
 
 }
@@ -208,7 +209,7 @@ return $default(_that.id,_that.publishedAt,_that.stories);case _:
 
 
 class _Newspaper implements Newspaper {
-  const _Newspaper({required this.id, required this.publishedAt, required final  List<Story> stories}): _stories = stories;
+  const _Newspaper({required this.id, required this.publishedAt, required final  List<Story> stories, this.nextCursor}): _stories = stories;
   
 
 @override final  int id;
@@ -220,6 +221,7 @@ class _Newspaper implements Newspaper {
   return EqualUnmodifiableListView(_stories);
 }
 
+@override final  String? nextCursor;
 
 /// Create a copy of Newspaper
 /// with the given fields replaced by the non-null parameter values.
@@ -231,16 +233,16 @@ _$NewspaperCopyWith<_Newspaper> get copyWith => __$NewspaperCopyWithImpl<_Newspa
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Newspaper&&(identical(other.id, id) || other.id == id)&&(identical(other.publishedAt, publishedAt) || other.publishedAt == publishedAt)&&const DeepCollectionEquality().equals(other._stories, _stories));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Newspaper&&(identical(other.id, id) || other.id == id)&&(identical(other.publishedAt, publishedAt) || other.publishedAt == publishedAt)&&const DeepCollectionEquality().equals(other._stories, _stories)&&(identical(other.nextCursor, nextCursor) || other.nextCursor == nextCursor));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,publishedAt,const DeepCollectionEquality().hash(_stories));
+int get hashCode => Object.hash(runtimeType,id,publishedAt,const DeepCollectionEquality().hash(_stories),nextCursor);
 
 @override
 String toString() {
-  return 'Newspaper(id: $id, publishedAt: $publishedAt, stories: $stories)';
+  return 'Newspaper(id: $id, publishedAt: $publishedAt, stories: $stories, nextCursor: $nextCursor)';
 }
 
 
@@ -251,7 +253,7 @@ abstract mixin class _$NewspaperCopyWith<$Res> implements $NewspaperCopyWith<$Re
   factory _$NewspaperCopyWith(_Newspaper value, $Res Function(_Newspaper) _then) = __$NewspaperCopyWithImpl;
 @override @useResult
 $Res call({
- int id, DateTime publishedAt, List<Story> stories
+ int id, DateTime publishedAt, List<Story> stories, String? nextCursor
 });
 
 
@@ -268,12 +270,13 @@ class __$NewspaperCopyWithImpl<$Res>
 
 /// Create a copy of Newspaper
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? publishedAt = null,Object? stories = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? publishedAt = null,Object? stories = null,Object? nextCursor = freezed,}) {
   return _then(_Newspaper(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,publishedAt: null == publishedAt ? _self.publishedAt : publishedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,stories: null == stories ? _self._stories : stories // ignore: cast_nullable_to_non_nullable
-as List<Story>,
+as List<Story>,nextCursor: freezed == nextCursor ? _self.nextCursor : nextCursor // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

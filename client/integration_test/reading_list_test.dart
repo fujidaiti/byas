@@ -83,6 +83,7 @@ void main() {
           title: targetEntryTitle,
           content:
               '<article><p>A good harness keeps the agent on track.</p></article>',
+          snapshotAt: DateTime.utc(2026),
         ).toJson(),
       ),
     );
@@ -219,6 +220,7 @@ void main() {
           title: archivedTitle,
           content:
               '<article><p>A good harness keeps the agent on track.</p></article>',
+          snapshotAt: DateTime.utc(2026),
         ).toJson(),
       ),
     );
@@ -249,6 +251,7 @@ void main() {
       title: entryTitle,
       content:
           '<article><p>A good harness keeps the agent on track.</p></article>',
+      snapshotAt: DateTime.utc(2026),
       readLater: null, // This entry is not yet saved
     );
 

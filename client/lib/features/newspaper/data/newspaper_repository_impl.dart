@@ -12,9 +12,12 @@ class NewspaperRepositoryImpl implements NewspaperRepository {
   final Dio _dio;
 
   @override
-  Future<Newspaper> getToday() {
+  Future<Newspaper> getToday({String? cursor}) {
     return runRequest(() async {
-      final res = await _dio.get<Map<String, dynamic>>('/newspapers/today');
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/newspapers/today',
+        queryParameters: cursor != null ? {'after': cursor} : null,
+      );
       final body = api.GetTodaysNewspaper200Response.fromJson(res.data)!;
       return Newspaper(
         id: body.id,
@@ -34,6 +37,7 @@ class NewspaperRepositoryImpl implements NewspaperRepository {
               ),
             )
             .toList(),
+        nextCursor: body.nextCursor,
       );
     });
   }

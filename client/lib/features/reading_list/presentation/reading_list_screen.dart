@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:paperdoll/core/pagination/infinite_scroll.dart';
+import 'package:paperdoll/core/pagination/load_more_footer.dart';
+import 'package:paperdoll/core/pagination/paged_state.dart';
 import 'package:paperdoll/core/router/routes.dart';
 import 'package:paperdoll/core/ui/tokens/app_colors.dart';
 import 'package:paperdoll/core/ui/tokens/app_spacing.dart';
@@ -22,7 +25,7 @@ class ReadingListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final itemsAsync = ref.watch(readingListProvider());
+    final itemsAsync = ref.watch(readingListProvider);
     return Scaffold(
       key: AppDebugKey.readingListScreen,
       appBar: AppBar(
@@ -36,11 +39,11 @@ class ReadingListScreen extends ConsumerWidget {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () => ref.refresh(readingListProvider().future),
-        child: AsyncValueView<List<ReadingListItem>>(
+        onRefresh: () => ref.refresh(readingListProvider.future),
+        child: AsyncValueView<PagedState<ReadingListItem>>(
           value: itemsAsync,
-          onRetry: () => ref.invalidate(readingListProvider()),
-          data: (items) => _ReadingList(items: items),
+          onRetry: () => ref.invalidate(readingListProvider),
+          data: (state) => _ReadingList(state: state),
         ),
       ),
     );
@@ -48,9 +51,9 @@ class ReadingListScreen extends ConsumerWidget {
 }
 
 class _ReadingList extends ConsumerStatefulWidget {
-  const _ReadingList({required this.items});
+  const _ReadingList({required this.state});
 
-  final List<ReadingListItem> items;
+  final PagedState<ReadingListItem> state;
 
   @override
   ConsumerState<_ReadingList> createState() => _ReadingListState();
@@ -59,45 +62,58 @@ class _ReadingList extends ConsumerStatefulWidget {
 class _ReadingListState extends ConsumerState<_ReadingList> {
   @override
   Widget build(BuildContext context) {
-    if (widget.items.isEmpty) {
+    final items = widget.state.items;
+    if (items.isEmpty) {
       return const ScrollableFill(
         child: EmptyPlaceholder(message: 'Your reading list is empty.'),
       );
     }
-    return ListView.separated(
-      physics: const AlwaysScrollableScrollPhysics(),
-      itemCount: widget.items.length,
-      separatorBuilder: (context, index) => const AppDivider(),
-      itemBuilder: (context, index) {
-        final item = widget.items[index];
-        return Dismissible(
-          key: ValueKey(item.id),
-          direction: DismissDirection.startToEnd,
-          background: ColoredBox(
-            color: colorAccent,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: spacingMd),
-              child: Row(
-                spacing: spacingSm,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.archive,
-                    color: colorBackground,
-                    size: iconSm,
-                  ),
-                  Text(
-                    'Archive',
-                    style: textLabel.copyWith(color: colorBackground),
-                  ),
-                ],
+    final showFooter =
+        widget.state.isLoadingMore || widget.state.loadMoreError != null;
+    return InfiniteScrollList(
+      onEndReached: () => ref.read(readingListProvider.notifier).loadMore(),
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        itemCount: items.length + (showFooter ? 1 : 0),
+        separatorBuilder: (context, index) => const AppDivider(),
+        itemBuilder: (context, index) {
+          if (index >= items.length) {
+            return LoadMoreFooter(
+              isLoading: widget.state.isLoadingMore,
+              error: widget.state.loadMoreError,
+              onRetry: () => ref.read(readingListProvider.notifier).loadMore(),
+            );
+          }
+          final item = items[index];
+          return Dismissible(
+            key: ValueKey(item.id),
+            direction: DismissDirection.startToEnd,
+            background: ColoredBox(
+              color: colorAccent,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: spacingMd),
+                child: Row(
+                  spacing: spacingSm,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.archive,
+                      color: colorBackground,
+                      size: iconSm,
+                    ),
+                    Text(
+                      'Archive',
+                      style: textLabel.copyWith(color: colorBackground),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          onDismissed: (_) => _archive(item, index),
-          child: ReadingListRow(item: item),
-        );
-      },
+            onDismissed: (_) => _archive(item, index),
+            child: ReadingListRow(item: item),
+          );
+        },
+      ),
     );
   }
 
@@ -119,7 +135,7 @@ class _ReadingListState extends ConsumerState<_ReadingList> {
       ),
     );
     try {
-      await ref.read(readingListProvider().notifier).archive(item);
+      await ref.read(readingListProvider.notifier).archive(item);
     } on Exception {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -131,7 +147,7 @@ class _ReadingListState extends ConsumerState<_ReadingList> {
 
   Future<void> _unarchive(ReadingListItem item, int index) async {
     try {
-      await ref.read(readingListProvider().notifier).unarchive(item, index);
+      await ref.read(readingListProvider.notifier).unarchive(item, index);
     } on Exception {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

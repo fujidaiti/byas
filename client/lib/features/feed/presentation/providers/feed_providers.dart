@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:paperdoll/core/network/dio_provider.dart';
+import 'package:paperdoll/core/pagination/paged_state.dart';
 import 'package:paperdoll/features/feed/data/feed_repository_impl.dart';
 import 'package:paperdoll/features/feed/domain/feed.dart';
 import 'package:paperdoll/features/feed/domain/feed_candidate.dart';
@@ -14,20 +15,41 @@ part 'feed_providers.g.dart';
 FeedRepository feedRepository(Ref ref) =>
     FeedRepositoryImpl(ref.watch(dioProvider));
 
+/// The subscribed feeds, paginated. [build] loads the first page; [loadMore]
+/// appends the next.
 @riverpod
-Future<List<Feed>> feeds(Ref ref, {String? cursor}) =>
-    ref.watch(feedRepositoryProvider).listFeeds(cursor: cursor);
+class Feeds extends _$Feeds {
+  @override
+  Future<PagedState<Feed>> build() async =>
+      PagedState.first(await ref.watch(feedRepositoryProvider).listFeeds());
+
+  Future<void> loadMore() => appendNextPage(
+    read: () => state,
+    write: (next) => state = next,
+    fetch: (cursor) =>
+        ref.read(feedRepositoryProvider).listFeeds(cursor: cursor),
+  );
+}
 
 @riverpod
 Future<Feed> feedDetail(Ref ref, {required int id}) =>
     ref.watch(feedRepositoryProvider).getFeed(id);
 
+/// A feed's timeline entries, paginated. [build] loads the first page;
+/// [loadMore] appends the next.
 @riverpod
-Future<List<FeedEntry>> feedTimeline(
-  Ref ref, {
-  required int id,
-  String? cursor,
-}) => ref.watch(feedRepositoryProvider).timeline(id, cursor: cursor);
+class FeedTimeline extends _$FeedTimeline {
+  @override
+  Future<PagedState<FeedEntry>> build({required int id}) async =>
+      PagedState.first(await ref.watch(feedRepositoryProvider).timeline(id));
+
+  Future<void> loadMore() => appendNextPage(
+    read: () => state,
+    write: (next) => state = next,
+    fetch: (cursor) =>
+        ref.read(feedRepositoryProvider).timeline(id, cursor: cursor),
+  );
+}
 
 /// Drives the Feed Search / Subscribe screen. [search] populates the candidate
 /// list; [subscribe] adds a feed and refreshes the Feeds list.

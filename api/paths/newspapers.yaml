@@ -2,6 +2,15 @@ today:
   get:
     summary: Get today's newspaper
     operationId: getTodaysNewspaper
+    parameters:
+      - name: after
+        in: query
+        required: false
+        description:
+          Opaque pagination cursor. Pass the `next_cursor` from the previous
+          response to fetch the next page of stories. Omit for the first page.
+        schema:
+          type: string
     responses:
       "200":
         description: OK
@@ -20,6 +29,11 @@ today:
                   type: array
                   items:
                     $ref: "../components/schemas.yaml#/Story"
+                next_cursor:
+                  description:
+                    Opaque cursor to fetch the next page. Absent when there are
+                    no more stories.
+                  type: string
             example:
               id: 1
               published_at: "2026-06-28T09:00:00+09:00"

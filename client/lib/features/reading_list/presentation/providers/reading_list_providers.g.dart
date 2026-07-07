@@ -107,96 +107,65 @@ final class ArchivedReadingListProvider
 String _$archivedReadingListHash() =>
     r'01e9aa9d5ccfef5a5cceb173a7ca73b8e7976ffe';
 
-@ProviderFor(ReadingList)
-final readingListProvider = ReadingListFamily._();
+/// The saved, unarchived reading list, paginated. [build] loads the first page;
+/// [loadMore] appends the next.
 
+@ProviderFor(ReadingList)
+final readingListProvider = ReadingListProvider._();
+
+/// The saved, unarchived reading list, paginated. [build] loads the first page;
+/// [loadMore] appends the next.
 final class ReadingListProvider
-    extends $AsyncNotifierProvider<ReadingList, List<ReadingListItem>> {
-  ReadingListProvider._({
-    required ReadingListFamily super.from,
-    required String? super.argument,
-  }) : super(
-         retry: null,
-         name: r'readingListProvider',
-         isAutoDispose: true,
-         dependencies: null,
-         $allTransitiveDependencies: null,
-       );
+    extends $AsyncNotifierProvider<ReadingList, PagedState<ReadingListItem>> {
+  /// The saved, unarchived reading list, paginated. [build] loads the first page;
+  /// [loadMore] appends the next.
+  ReadingListProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'readingListProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
   @override
   String debugGetCreateSourceHash() => _$readingListHash();
 
-  @override
-  String toString() {
-    return r'readingListProvider'
-        ''
-        '($argument)';
-  }
-
   @$internal
   @override
   ReadingList create() => ReadingList();
-
-  @override
-  bool operator ==(Object other) {
-    return other is ReadingListProvider && other.argument == argument;
-  }
-
-  @override
-  int get hashCode {
-    return argument.hashCode;
-  }
 }
 
-String _$readingListHash() => r'386747c03b5d98f8fa10b9a993b752dadc91d552';
+String _$readingListHash() => r'8101516aab564b30b6310dfea68eebccf15169e3';
 
-final class ReadingListFamily extends $Family
-    with
-        $ClassFamilyOverride<
-          ReadingList,
-          AsyncValue<List<ReadingListItem>>,
-          List<ReadingListItem>,
-          FutureOr<List<ReadingListItem>>,
-          String?
-        > {
-  ReadingListFamily._()
-    : super(
-        retry: null,
-        name: r'readingListProvider',
-        dependencies: null,
-        $allTransitiveDependencies: null,
-        isAutoDispose: true,
-      );
+/// The saved, unarchived reading list, paginated. [build] loads the first page;
+/// [loadMore] appends the next.
 
-  ReadingListProvider call({String? cursor}) =>
-      ReadingListProvider._(argument: cursor, from: this);
-
-  @override
-  String toString() => r'readingListProvider';
-}
-
-abstract class _$ReadingList extends $AsyncNotifier<List<ReadingListItem>> {
-  late final _$args = ref.$arg as String?;
-  String? get cursor => _$args;
-
-  FutureOr<List<ReadingListItem>> build({String? cursor});
+abstract class _$ReadingList
+    extends $AsyncNotifier<PagedState<ReadingListItem>> {
+  FutureOr<PagedState<ReadingListItem>> build();
   @$mustCallSuper
   @override
   WhenComplete runBuild() {
     final ref =
         this.ref
-            as $Ref<AsyncValue<List<ReadingListItem>>, List<ReadingListItem>>;
+            as $Ref<
+              AsyncValue<PagedState<ReadingListItem>>,
+              PagedState<ReadingListItem>
+            >;
     final element =
         ref.element
             as $ClassProviderElement<
               AnyNotifier<
-                AsyncValue<List<ReadingListItem>>,
-                List<ReadingListItem>
+                AsyncValue<PagedState<ReadingListItem>>,
+                PagedState<ReadingListItem>
               >,
-              AsyncValue<List<ReadingListItem>>,
+              AsyncValue<PagedState<ReadingListItem>>,
               Object?,
               Object?
             >;
-    return element.handleCreate(ref, () => build(cursor: _$args));
+    return element.handleCreate(ref, build);
   }
 }
