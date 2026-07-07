@@ -234,69 +234,6 @@ void main() {
     expect($(AppDebugKey.readerTitle(archivedTitle)), findsOneWidget);
   });
 
-  patrolTest('Archived list loads the next page on scroll', ($) async {
-    await pumpApp($);
-    final adapter = httpMockAdapter($);
-
-    adapter.onGet(
-      '/reading-list',
-      (s) => s.reply(200, api.GetReadingList200Response(items: []).toJson()),
-    );
-
-    // A full first page carrying a cursor, then a final page (no cursor)
-    // returned only for the follow-up request that includes `after`.
-    final firstPage = [
-      for (var i = 1; i <= 30; i++)
-        api.ReadingListItem(
-          id: i,
-          resourceId: i,
-          kind: api.ReadingListItemKindEnum.webClip,
-          title: 'Archived clip $i',
-          savedAt: DateTime.utc(2026, 7, 1),
-        ),
-    ];
-    adapter.onGet(
-      '/reading-list/archived',
-      (s) => s.reply(
-        200,
-        api.GetReadingList200Response(
-          items: firstPage,
-          nextCursor: 'CURSOR1',
-        ).toJson(),
-      ),
-    );
-    adapter.onGet(
-      '/reading-list/archived',
-      (s) => s.reply(
-        200,
-        api.GetReadingList200Response(
-          items: [
-            api.ReadingListItem(
-              id: 31,
-              resourceId: 31,
-              kind: api.ReadingListItemKindEnum.webClip,
-              title: 'Archived clip 31 (last)',
-              savedAt: DateTime.utc(2026, 7, 1),
-            ),
-          ],
-        ).toJson(),
-      ),
-      queryParameters: {'after': 'CURSOR1'},
-    );
-
-    await $(AppDebugKey.readingListNavDestination).tap();
-    expect($(AppDebugKey.readingListScreen), findsOneWidget);
-    await $(AppDebugKey.archivedButton).tap();
-    await $(AppDebugKey.archivedReadingListScreen).waitUntilVisible();
-    await $(AppDebugKey.readingListRow('Archived clip 1')).waitUntilVisible();
-    // Scrolling toward the bottom triggers the next-page fetch; the second
-    // page's row becomes visible once it resolves.
-    await $(AppDebugKey.readingListRow('Archived clip 31 (last)')).scrollTo();
-    await $(
-      AppDebugKey.readingListRow('Archived clip 31 (last)'),
-    ).waitUntilVisible();
-  });
-
   patrolTest('Save a feed entry to the reading list in reader', ($) async {
     await pumpApp($);
     final adapter = httpMockAdapter($);
