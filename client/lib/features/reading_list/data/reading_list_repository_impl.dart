@@ -19,6 +19,17 @@ class ReadingListRepositoryImpl implements ReadingListRepository {
   }
 
   @override
+  Future<List<ReadingListItem>> listArchived() {
+    return runRequest(() async {
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/reading-list/archived',
+      );
+      final body = api.GetReadingList200Response.fromJson(res.data)!;
+      return body.items.map(_toItem).toList();
+    });
+  }
+
+  @override
   Future<ReadingListItem> saveFeedEntry(int feedEntryId) {
     return runRequest(() async {
       final res = await _dio.post<Map<String, dynamic>>(

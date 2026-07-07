@@ -50,6 +50,7 @@ func StartServer(ctx context.Context) {
 	mux.HandleFunc("GET /web-clips/{id}", h.getWebClip)
 	mux.HandleFunc("POST /reading-list", h.saveToReadingList)
 	mux.HandleFunc("GET /reading-list", h.getReadingList)
+	mux.HandleFunc("GET /reading-list/archived", h.getArchivedReadingList)
 	mux.HandleFunc("DELETE /reading-list/{id}", h.deleteReadingListItem)
 	mux.HandleFunc("PATCH /reading-list/{id}", h.setReadingListItemArchivedStatus)
 
@@ -603,13 +604,24 @@ type readingListItem struct {
 // TODO: Support pagination; add a tiebreaker to ORDER BY in case saved_at timestamps are the same
 // TODO: Report pending/failed clips separately from the Items, if any
 func (h *handler) getReadingList(w http.ResponseWriter, r *http.Request) {
+	h.writeReadingList(w, r, false)
+}
+
+// getArchivedReadingList returns the archived reading list items, newest first.
+func (h *handler) getArchivedReadingList(w http.ResponseWriter, r *http.Request) {
+	h.writeReadingList(w, r, true)
+}
+
+// writeReadingList fetches the reading list items filtered by archive status
+// and writes them as the JSON response.
+func (h *handler) writeReadingList(w http.ResponseWriter, r *http.Request, archived bool) {
 	ctx := r.Context()
 	rows, err := h.db.QueryContext(ctx, `
 		SELECT id, kind, title, description, saved_at, web_clip_id, feed_entry_id
 		FROM reading_list_items
-		WHERE archived = false
+		WHERE archived = $1
 		ORDER BY saved_at DESC;
-	`)
+	`, archived)
 	if err != nil {
 		fmt.Println(err)
 		serverError(w, http.StatusInternalServerError, "Failed to fetch reading list")

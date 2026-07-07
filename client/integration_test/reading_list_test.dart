@@ -133,6 +133,105 @@ void main() {
     expect($(AppDebugKey.readingListRow(articleTitle)), findsNothing);
   }, tags: ['archive']);
 
+  patrolTest('Read an archived item from the archived screen', ($) async {
+    await pumpApp($);
+    final adapter = httpMockAdapter($);
+
+    const archivedTitle = 'Demystifying evals for AI agents';
+    adapter.onGet(
+      '/reading-list',
+      (s) => s.reply(200, api.GetReadingList200Response(items: []).toJson()),
+    );
+    adapter.onGet(
+      '/reading-list/archived',
+      (s) => s.reply(
+        200,
+        api.GetReadingList200Response(
+          items: [
+            api.ReadingListItem(
+              id: 1,
+              resourceId: 7,
+              kind: api.ReadingListItemKindEnum.webClip,
+              title: archivedTitle,
+              savedAt: DateTime.utc(2026, 7, 1),
+            ),
+          ],
+        ).toJson(),
+      ),
+    );
+    adapter.onGet(
+      '/web-clips/7',
+      (s) => s.reply(
+        200,
+        api.GetWebClip200Response(
+          id: 7,
+          url: 'https://www.anthropic.com/engineering/demystifying-evals',
+          title: archivedTitle,
+          content:
+              '<article><p>Good evaluations help teams ship.</p></article>',
+        ).toJson(),
+      ),
+    );
+
+    await $(AppDebugKey.readingListNavDestination).tap();
+    expect($(AppDebugKey.readingListScreen), findsOneWidget);
+    await $(AppDebugKey.archivedButton).tap();
+    expect($(AppDebugKey.archivedReadingListScreen), findsOneWidget);
+    await $(AppDebugKey.readingListRow(archivedTitle)).tap();
+    expect($(AppDebugKey.webClipReaderScreen), findsOneWidget);
+    expect($(AppDebugKey.readerTitle(archivedTitle)), findsOneWidget);
+  });
+
+  patrolTest('Read an archived feed entry from the archived screen', ($) async {
+    await pumpApp($);
+    final adapter = httpMockAdapter($);
+
+    const archivedTitle = 'Effective harnesses for long-running agents';
+    adapter.onGet(
+      '/reading-list',
+      (s) => s.reply(200, api.GetReadingList200Response(items: []).toJson()),
+    );
+    adapter.onGet(
+      '/reading-list/archived',
+      (s) => s.reply(
+        200,
+        api.GetReadingList200Response(
+          items: [
+            api.ReadingListItem(
+              id: 5,
+              resourceId: 11,
+              kind: api.ReadingListItemKindEnum.feedEntry,
+              title: archivedTitle,
+              savedAt: DateTime.utc(2026, 7, 1),
+            ),
+          ],
+        ).toJson(),
+      ),
+    );
+    adapter.onGet(
+      '/feed-entries/11',
+      (s) => s.reply(
+        200,
+        api.FeedEntry(
+          id: 11,
+          feedId: 1,
+          url: 'https://example.com/anthropic/blog/effective-harness',
+          title: archivedTitle,
+          content:
+              '<article><p>A good harness keeps the agent on track.</p></article>',
+        ).toJson(),
+      ),
+    );
+
+    await $(AppDebugKey.readingListNavDestination).tap();
+    expect($(AppDebugKey.readingListScreen), findsOneWidget);
+    await $(AppDebugKey.archivedButton).tap();
+    expect($(AppDebugKey.archivedReadingListScreen), findsOneWidget);
+    await $(AppDebugKey.readingListRow(archivedTitle)).tap();
+    expect($(AppDebugKey.feedEntryReaderScreen), findsOneWidget);
+    expect($(AppDebugKey.readerTitle(archivedTitle)), findsOneWidget);
+  });
+
   patrolTest('Save a feed entry to the reading list in reader', ($) async {
     await pumpApp($);
     final adapter = httpMockAdapter($);

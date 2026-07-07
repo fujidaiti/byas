@@ -1,0 +1,21 @@
+get:
+  summary: Get the archived reading list
+  description:
+    Returns all archived reading list items, most recently saved first. The
+    response has the same shape as `GET /reading-list`.
+  operationId: getArchivedReadingList
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [items]
+            properties:
+              items:
+                type: array
+                items:
+                  $ref: "../components/schemas.yaml#/ReadingListItem"
+    "500":
+      $ref: "../components/responses.yaml#/InternalServerError"

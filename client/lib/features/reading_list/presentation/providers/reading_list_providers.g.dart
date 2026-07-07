@@ -57,6 +57,56 @@ final class ReadingListRepositoryProvider
 String _$readingListRepositoryHash() =>
     r'115ada14fd69a0d3589bc2a49ffde3a02b5ea366';
 
+/// The archived reading list items, newest first. Read-only: the archived
+/// screen has no swipe actions.
+
+@ProviderFor(archivedReadingList)
+final archivedReadingListProvider = ArchivedReadingListProvider._();
+
+/// The archived reading list items, newest first. Read-only: the archived
+/// screen has no swipe actions.
+
+final class ArchivedReadingListProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<ReadingListItem>>,
+          List<ReadingListItem>,
+          FutureOr<List<ReadingListItem>>
+        >
+    with
+        $FutureModifier<List<ReadingListItem>>,
+        $FutureProvider<List<ReadingListItem>> {
+  /// The archived reading list items, newest first. Read-only: the archived
+  /// screen has no swipe actions.
+  ArchivedReadingListProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'archivedReadingListProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$archivedReadingListHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<List<ReadingListItem>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<ReadingListItem>> create(Ref ref) {
+    return archivedReadingList(ref);
+  }
+}
+
+String _$archivedReadingListHash() =>
+    r'01e9aa9d5ccfef5a5cceb173a7ca73b8e7976ffe';
+
 @ProviderFor(ReadingList)
 final readingListProvider = ReadingListFamily._();
 

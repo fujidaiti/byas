@@ -10,6 +10,12 @@ part 'reading_list_providers.g.dart';
 ReadingListRepository readingListRepository(Ref ref) =>
     ReadingListRepositoryImpl(ref.watch(dioProvider));
 
+/// The archived reading list items, newest first. Read-only: the archived
+/// screen has no swipe actions.
+@riverpod
+Future<List<ReadingListItem>> archivedReadingList(Ref ref) =>
+    ref.watch(readingListRepositoryProvider).listArchived();
+
 @riverpod
 class ReadingList extends _$ReadingList {
   @override

@@ -8,6 +8,9 @@ abstract interface class ReadingListRepository {
   /// `GET /reading-list` → the saved, unarchived items, newest first.
   Future<List<ReadingListItem>> list({String? cursor});
 
+  /// `GET /reading-list/archived` → the archived items, newest first.
+  Future<List<ReadingListItem>> listArchived();
+
   /// `POST /reading-list` with `{"feed_entry_id": id}` → saves the feed entry
   /// and returns the created reading list item.
   Future<ReadingListItem> saveFeedEntry(int feedEntryId);
