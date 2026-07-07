@@ -1,0 +1,77 @@
+name: Health
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Flutter SDK
+        uses: ./.github/actions/setup-flutter
+
+      - name: Verify generated code
+        run: |
+          dart run build_runner build --delete-conflicting-outputs
+          git diff --exit-code
+
+      - name: Format
+        run: dart format . -o none --set-exit-if-changed
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+
+      - name: Install goimports
+        run: go install golang.org/x/tools/cmd/goimports@latest
+
+      - name: Check server formatting
+        working-directory: server
+        run: |
+          unformatted=$(goimports -l .)
+          if [ -n "$unformatted" ]; then
+            echo "The following files are not formatted with goimports:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Static analysis (server)
+        working-directory: server
+        run: go vet ./...
+
+      - name: Set up Redocly CLI
+        id: redocly
+        uses: ./.github/actions/setup-redocly
+
+      - name: Prettier
+        run: npx prettier --check "**/*.{json,yaml,yml,md}"
+
+      - name: Validate API spec
+        run: npx @redocly/cli@${{ steps.redocly.outputs.version }} lint api/api.yaml
+
+  testing:
+    name: Testing
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+
+      - name: Test server
+        working-directory: server
+        run: go test ./...
