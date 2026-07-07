@@ -40,7 +40,7 @@ FeedCandidate:
 
 FeedEntry:
   type: object
-  required: [id, feed_id, url, title]
+  required: [id, feed_id, url, title, snapshot_at]
   properties:
     id:
       type: integer

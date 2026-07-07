@@ -50,78 +50,59 @@ final class FeedRepositoryProvider
 
 String _$feedRepositoryHash() => r'd4a3492cc9d9fd60215d0f6583f52b2b9b89c7e8';
 
-@ProviderFor(feeds)
-final feedsProvider = FeedsFamily._();
+/// The subscribed feeds, paginated. [build] loads the first page; [loadMore]
+/// appends the next.
 
+@ProviderFor(Feeds)
+final feedsProvider = FeedsProvider._();
+
+/// The subscribed feeds, paginated. [build] loads the first page; [loadMore]
+/// appends the next.
 final class FeedsProvider
-    extends
-        $FunctionalProvider<
-          AsyncValue<List<Feed>>,
-          List<Feed>,
-          FutureOr<List<Feed>>
-        >
-    with $FutureModifier<List<Feed>>, $FutureProvider<List<Feed>> {
-  FeedsProvider._({
-    required FeedsFamily super.from,
-    required String? super.argument,
-  }) : super(
-         retry: null,
-         name: r'feedsProvider',
-         isAutoDispose: true,
-         dependencies: null,
-         $allTransitiveDependencies: null,
-       );
+    extends $AsyncNotifierProvider<Feeds, PagedState<Feed>> {
+  /// The subscribed feeds, paginated. [build] loads the first page; [loadMore]
+  /// appends the next.
+  FeedsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'feedsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
   @override
   String debugGetCreateSourceHash() => _$feedsHash();
 
-  @override
-  String toString() {
-    return r'feedsProvider'
-        ''
-        '($argument)';
-  }
-
   @$internal
   @override
-  $FutureProviderElement<List<Feed>> $createElement($ProviderPointer pointer) =>
-      $FutureProviderElement(pointer);
-
-  @override
-  FutureOr<List<Feed>> create(Ref ref) {
-    final argument = this.argument as String?;
-    return feeds(ref, cursor: argument);
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return other is FeedsProvider && other.argument == argument;
-  }
-
-  @override
-  int get hashCode {
-    return argument.hashCode;
-  }
+  Feeds create() => Feeds();
 }
 
-String _$feedsHash() => r'de3b0a133b07e32a659545890ecd877bd1bef46b';
+String _$feedsHash() => r'9cbd3693242f4933838309e873cc2cc300754b62';
 
-final class FeedsFamily extends $Family
-    with $FunctionalFamilyOverride<FutureOr<List<Feed>>, String?> {
-  FeedsFamily._()
-    : super(
-        retry: null,
-        name: r'feedsProvider',
-        dependencies: null,
-        $allTransitiveDependencies: null,
-        isAutoDispose: true,
-      );
+/// The subscribed feeds, paginated. [build] loads the first page; [loadMore]
+/// appends the next.
 
-  FeedsProvider call({String? cursor}) =>
-      FeedsProvider._(argument: cursor, from: this);
-
+abstract class _$Feeds extends $AsyncNotifier<PagedState<Feed>> {
+  FutureOr<PagedState<Feed>> build();
+  @$mustCallSuper
   @override
-  String toString() => r'feedsProvider';
+  WhenComplete runBuild() {
+    final ref =
+        this.ref as $Ref<AsyncValue<PagedState<Feed>>, PagedState<Feed>>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<AsyncValue<PagedState<Feed>>, PagedState<Feed>>,
+              AsyncValue<PagedState<Feed>>,
+              Object?,
+              Object?
+            >;
+    return element.handleCreate(ref, build);
+  }
 }
 
 @ProviderFor(feedDetail)
@@ -193,20 +174,21 @@ final class FeedDetailFamily extends $Family
   String toString() => r'feedDetailProvider';
 }
 
-@ProviderFor(feedTimeline)
+/// A feed's timeline entries, paginated. [build] loads the first page;
+/// [loadMore] appends the next.
+
+@ProviderFor(FeedTimeline)
 final feedTimelineProvider = FeedTimelineFamily._();
 
+/// A feed's timeline entries, paginated. [build] loads the first page;
+/// [loadMore] appends the next.
 final class FeedTimelineProvider
-    extends
-        $FunctionalProvider<
-          AsyncValue<List<FeedEntry>>,
-          List<FeedEntry>,
-          FutureOr<List<FeedEntry>>
-        >
-    with $FutureModifier<List<FeedEntry>>, $FutureProvider<List<FeedEntry>> {
+    extends $AsyncNotifierProvider<FeedTimeline, PagedState<FeedEntry>> {
+  /// A feed's timeline entries, paginated. [build] loads the first page;
+  /// [loadMore] appends the next.
   FeedTimelineProvider._({
     required FeedTimelineFamily super.from,
-    required ({int id, String? cursor}) super.argument,
+    required int super.argument,
   }) : super(
          retry: null,
          name: r'feedTimelineProvider',
@@ -222,20 +204,12 @@ final class FeedTimelineProvider
   String toString() {
     return r'feedTimelineProvider'
         ''
-        '$argument';
+        '($argument)';
   }
 
   @$internal
   @override
-  $FutureProviderElement<List<FeedEntry>> $createElement(
-    $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
-
-  @override
-  FutureOr<List<FeedEntry>> create(Ref ref) {
-    final argument = this.argument as ({int id, String? cursor});
-    return feedTimeline(ref, id: argument.id, cursor: argument.cursor);
-  }
+  FeedTimeline create() => FeedTimeline();
 
   @override
   bool operator ==(Object other) {
@@ -248,13 +222,19 @@ final class FeedTimelineProvider
   }
 }
 
-String _$feedTimelineHash() => r'a589419eb89c155af391d90d86ba43af4bd8c0bf';
+String _$feedTimelineHash() => r'c9f7eeccd2d901ed7529c21c244ca3d74c37a8b8';
+
+/// A feed's timeline entries, paginated. [build] loads the first page;
+/// [loadMore] appends the next.
 
 final class FeedTimelineFamily extends $Family
     with
-        $FunctionalFamilyOverride<
-          FutureOr<List<FeedEntry>>,
-          ({int id, String? cursor})
+        $ClassFamilyOverride<
+          FeedTimeline,
+          AsyncValue<PagedState<FeedEntry>>,
+          PagedState<FeedEntry>,
+          FutureOr<PagedState<FeedEntry>>,
+          int
         > {
   FeedTimelineFamily._()
     : super(
@@ -265,11 +245,43 @@ final class FeedTimelineFamily extends $Family
         isAutoDispose: true,
       );
 
-  FeedTimelineProvider call({required int id, String? cursor}) =>
-      FeedTimelineProvider._(argument: (id: id, cursor: cursor), from: this);
+  /// A feed's timeline entries, paginated. [build] loads the first page;
+  /// [loadMore] appends the next.
+
+  FeedTimelineProvider call({required int id}) =>
+      FeedTimelineProvider._(argument: id, from: this);
 
   @override
   String toString() => r'feedTimelineProvider';
+}
+
+/// A feed's timeline entries, paginated. [build] loads the first page;
+/// [loadMore] appends the next.
+
+abstract class _$FeedTimeline extends $AsyncNotifier<PagedState<FeedEntry>> {
+  late final _$args = ref.$arg as int;
+  int get id => _$args;
+
+  FutureOr<PagedState<FeedEntry>> build({required int id});
+  @$mustCallSuper
+  @override
+  WhenComplete runBuild() {
+    final ref =
+        this.ref
+            as $Ref<AsyncValue<PagedState<FeedEntry>>, PagedState<FeedEntry>>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<
+                AsyncValue<PagedState<FeedEntry>>,
+                PagedState<FeedEntry>
+              >,
+              AsyncValue<PagedState<FeedEntry>>,
+              Object?,
+              Object?
+            >;
+    return element.handleCreate(ref, () => build(id: _$args));
+  }
 }
 
 /// Drives the Feed Search / Subscribe screen. [search] populates the candidate
