@@ -18,7 +18,7 @@ class GetWebClip200Response {
     this.title,
     this.description,
     this.content,
-    this.readingListItemId,
+    this.readLater,
   });
 
   int id;
@@ -49,14 +49,14 @@ class GetWebClip200Response {
   ///
   String? content;
 
-  /// The id of the reading list item backing this clip, if it is saved in the reading list. Absent when not saved.
+  /// The reading list item backing this clip, if it is saved in the reading list. Absent when not saved.
   ///
   /// Please note: This property should have been non-nullable! Since the specification file
   /// does not include a default value (using the "default:" property), however, the generated
   /// source code must fall back to having a nullable type.
   /// Consider adding a "default:" property in the specification file to hide this note.
   ///
-  int? readingListItemId;
+  ReadLater? readLater;
 
   @override
   bool operator ==(Object other) =>
@@ -67,7 +67,7 @@ class GetWebClip200Response {
           other.title == title &&
           other.description == description &&
           other.content == content &&
-          other.readingListItemId == readingListItemId;
+          other.readLater == readLater;
 
   @override
   int get hashCode =>
@@ -77,11 +77,11 @@ class GetWebClip200Response {
       (title == null ? 0 : title!.hashCode) +
       (description == null ? 0 : description!.hashCode) +
       (content == null ? 0 : content!.hashCode) +
-      (readingListItemId == null ? 0 : readingListItemId!.hashCode);
+      (readLater == null ? 0 : readLater!.hashCode);
 
   @override
   String toString() =>
-      'GetWebClip200Response[id=$id, url=$url, title=$title, description=$description, content=$content, readingListItemId=$readingListItemId]';
+      'GetWebClip200Response[id=$id, url=$url, title=$title, description=$description, content=$content, readLater=$readLater]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -102,10 +102,10 @@ class GetWebClip200Response {
     } else {
       json[r'content'] = null;
     }
-    if (this.readingListItemId != null) {
-      json[r'reading_list_item_id'] = this.readingListItemId;
+    if (this.readLater != null) {
+      json[r'read_later'] = this.readLater;
     } else {
-      json[r'reading_list_item_id'] = null;
+      json[r'read_later'] = null;
     }
     return json;
   }
@@ -138,7 +138,7 @@ class GetWebClip200Response {
         title: mapValueOfType<String>(json, r'title'),
         description: mapValueOfType<String>(json, r'description'),
         content: mapValueOfType<String>(json, r'content'),
-        readingListItemId: mapValueOfType<int>(json, r'reading_list_item_id'),
+        readLater: ReadLater.fromJson(json[r'read_later']),
       );
     }
     return null;

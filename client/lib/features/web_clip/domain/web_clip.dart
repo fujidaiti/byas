@@ -6,6 +6,11 @@ part 'web_clip.freezed.dart';
 ///
 /// `content` is the fetched HTML body; it is null while the fetch is still
 /// pending or has failed.
+///
+/// `saved` is whether the clip is in the reading list. It normally agrees with
+/// `readingListItemId != null`, but the reader flips it on optimistically the
+/// moment a save is tapped — before the server hands back the item id — so the
+/// two diverge briefly during an in-flight save.
 @freezed
 abstract class WebClip with _$WebClip {
   const factory WebClip({
@@ -14,5 +19,7 @@ abstract class WebClip with _$WebClip {
     String? description,
     String? content,
     int? readingListItemId,
+    bool? archived,
+    @Default(false) bool saved,
   }) = _WebClip;
 }

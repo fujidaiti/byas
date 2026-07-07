@@ -32,7 +32,8 @@ class NewspaperRepositoryImpl implements NewspaperRepository {
                 description: s.description,
                 source: s.source_,
                 publishedAt: s.publishedAt,
-                readingListItemId: s.readingListItemId,
+                readingListItemId: s.readLater?.id,
+                archived: s.readLater?.archived,
               ),
             )
             .toList(),

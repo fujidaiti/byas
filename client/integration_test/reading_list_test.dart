@@ -152,7 +152,7 @@ void main() {
       content:
           '<article><p>A good harness keeps the agent on track.</p></article>',
       snapshotAt: DateTime.utc(2026),
-      readingListItemId: null, // This entry is not yet saved
+      readLater: null, // This entry is not yet saved
     );
 
     adapter.onGet(

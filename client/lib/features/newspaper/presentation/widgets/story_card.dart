@@ -21,6 +21,7 @@ class StoryCard extends StatelessWidget {
     final description = story.description;
     final source = story.source;
     final savedToReadingList = story.readingListItemId != null;
+    final archived = story.archived ?? false;
     return ListTile(
       isThreeLine: true,
       onTap: onTap,
@@ -46,8 +47,12 @@ class StoryCard extends StatelessWidget {
                   Text(
                     'Read later',
                     style: textCaption.copyWith(
-                      color: colorAccent,
+                      color: archived
+                          ? colorAccent.withValues(alpha: 0.5)
+                          : colorAccent,
                       fontWeight: FontWeight.w600,
+                      decoration: archived ? TextDecoration.lineThrough : null,
+                      decorationColor: colorAccent.withValues(alpha: 0.5),
                     ),
                   ),
               ],

@@ -21,7 +21,7 @@ class FeedEntry {
     this.content,
     this.publishedAt,
     required this.snapshotAt,
-    this.readingListItemId,
+    this.readLater,
   });
 
   int id;
@@ -58,14 +58,14 @@ class FeedEntry {
 
   DateTime snapshotAt;
 
-  /// The id of the reading list item backing this entry, if it is saved in the reading list. Absent when the entry is not saved.
+  /// The reading list item backing this entry, if it is saved in the reading list. Absent when the entry is not saved.
   ///
   /// Please note: This property should have been non-nullable! Since the specification file
   /// does not include a default value (using the "default:" property), however, the generated
   /// source code must fall back to having a nullable type.
   /// Consider adding a "default:" property in the specification file to hide this note.
   ///
-  int? readingListItemId;
+  ReadLater? readLater;
 
   @override
   bool operator ==(Object other) =>
@@ -79,7 +79,7 @@ class FeedEntry {
           other.content == content &&
           other.publishedAt == publishedAt &&
           other.snapshotAt == snapshotAt &&
-          other.readingListItemId == readingListItemId;
+          other.readLater == readLater;
 
   @override
   int get hashCode =>
@@ -92,11 +92,11 @@ class FeedEntry {
       (content == null ? 0 : content!.hashCode) +
       (publishedAt == null ? 0 : publishedAt!.hashCode) +
       (snapshotAt.hashCode) +
-      (readingListItemId == null ? 0 : readingListItemId!.hashCode);
+      (readLater == null ? 0 : readLater!.hashCode);
 
   @override
   String toString() =>
-      'FeedEntry[id=$id, feedId=$feedId, url=$url, title=$title, description=$description, content=$content, publishedAt=$publishedAt, snapshotAt=$snapshotAt, readingListItemId=$readingListItemId]';
+      'FeedEntry[id=$id, feedId=$feedId, url=$url, title=$title, description=$description, content=$content, publishedAt=$publishedAt, snapshotAt=$snapshotAt, readLater=$readLater]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
@@ -120,10 +120,10 @@ class FeedEntry {
       json[r'published_at'] = null;
     }
     json[r'snapshot_at'] = this.snapshotAt.toUtc().toIso8601String();
-    if (this.readingListItemId != null) {
-      json[r'reading_list_item_id'] = this.readingListItemId;
+    if (this.readLater != null) {
+      json[r'read_later'] = this.readLater;
     } else {
-      json[r'reading_list_item_id'] = null;
+      json[r'read_later'] = null;
     }
     return json;
   }
@@ -171,7 +171,7 @@ class FeedEntry {
         content: mapValueOfType<String>(json, r'content'),
         publishedAt: mapDateTime(json, r'published_at', r''),
         snapshotAt: mapDateTime(json, r'snapshot_at', r'')!,
-        readingListItemId: mapValueOfType<int>(json, r'reading_list_item_id'),
+        readLater: ReadLater.fromJson(json[r'read_later']),
       );
     }
     return null;
