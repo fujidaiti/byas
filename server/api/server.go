@@ -437,6 +437,7 @@ func (h *handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
 	}
 	// TODO: Replace this correlated subquery with a LEFT JOIN once
 	//       a UNIQUE (feed_entry_id) constraint exists on reading_list_items.
+	// TODO: Store sort keys in DB and create an index
 	rows, err := h.db.QueryContext(ctx, fmt.Sprintf(`
 		SELECT id, feed_id, url, title, description, published_at, snapshot_at,
 			(SELECT id FROM reading_list_items
@@ -444,6 +445,7 @@ func (h *handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
 				LIMIT 1)
 		FROM feed_entries
 		WHERE feed_id = $1 %s
+		ORDER BY COALESCE(published_at, snapshot_at) DESC, id DESC
 		LIMIT %d;
 	`, where, paginationSize+1), args...)
 	if err != nil {
