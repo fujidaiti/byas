@@ -22,6 +22,8 @@ paths:
     $ref: "./paths/web-clips.yaml"
   /reading-list:
     $ref: "./paths/reading-list.yaml"
+  /reading-list/archived:
+    $ref: "./paths/reading-list-archived.yaml"
   /reading-list/{id}:
     $ref: "./paths/reading-list-item.yaml"
 

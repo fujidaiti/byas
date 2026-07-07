@@ -7,6 +7,7 @@ import 'package:paperdoll/features/feed/presentation/feed_search_screen.dart';
 import 'package:paperdoll/features/feed/presentation/feeds_screen.dart';
 import 'package:paperdoll/features/feed_entry/presentation/feed_entry_reader_screen.dart';
 import 'package:paperdoll/features/newspaper/presentation/today_screen.dart';
+import 'package:paperdoll/features/reading_list/presentation/archived_reading_list_screen.dart';
 import 'package:paperdoll/features/reading_list/presentation/reading_list_screen.dart';
 import 'package:paperdoll/features/web_clip/presentation/web_clip_reader_screen.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -55,6 +56,12 @@ GoRouter goRouter(Ref ref) {
                 name: routeReadingListName,
                 builder: (context, state) => const ReadingListScreen(),
                 routes: [
+                  GoRoute(
+                    path: routeArchivedReadingListPath,
+                    name: routeArchivedReadingListName,
+                    builder: (context, state) =>
+                        const ArchivedReadingListScreen(),
+                  ),
                   GoRoute(
                     path: routeWebClipReaderPath,
                     name: routeWebClipReaderName,

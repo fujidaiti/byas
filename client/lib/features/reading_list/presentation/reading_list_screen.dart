@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:paperdoll/core/pagination/infinite_scroll.dart';
 import 'package:paperdoll/core/pagination/load_more_footer.dart';
 import 'package:paperdoll/core/pagination/paged_state.dart';
+import 'package:paperdoll/core/router/routes.dart';
 import 'package:paperdoll/core/ui/tokens/app_colors.dart';
 import 'package:paperdoll/core/ui/tokens/app_spacing.dart';
 import 'package:paperdoll/core/ui/tokens/app_text_styles.dart';
@@ -26,7 +28,16 @@ class ReadingListScreen extends ConsumerWidget {
     final itemsAsync = ref.watch(readingListProvider);
     return Scaffold(
       key: AppDebugKey.readingListScreen,
-      appBar: AppBar(),
+      appBar: AppBar(
+        actions: [
+          IconButton(
+            key: AppDebugKey.archivedButton,
+            tooltip: 'Archived',
+            icon: const Icon(Icons.archive_outlined),
+            onPressed: () => context.pushNamed(routeArchivedReadingListName),
+          ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: () => ref.refresh(readingListProvider.future),
         child: AsyncValueView<PagedState<ReadingListItem>>(

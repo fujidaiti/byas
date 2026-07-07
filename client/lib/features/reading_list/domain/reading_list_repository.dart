@@ -9,6 +9,11 @@ abstract interface class ReadingListRepository {
   /// `GET /reading-list` → a page of the saved, unarchived items, newest first.
   Future<PageResult<ReadingListItem>> list({String? cursor});
 
+  /// `GET /reading-list/archived` → a page of the archived items, newest
+  /// first. Takes an optional `cursor` and returns a [PageResult] carrying the
+  /// next cursor, mirroring [list].
+  Future<PageResult<ReadingListItem>> listArchived({String? cursor});
+
   /// `POST /reading-list` with `{"feed_entry_id": id}` → saves the feed entry
   /// and returns the created reading list item.
   Future<ReadingListItem> saveFeedEntry(int feedEntryId);
