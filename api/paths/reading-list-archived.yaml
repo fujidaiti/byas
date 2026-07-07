@@ -4,6 +4,15 @@ get:
     Returns all archived reading list items, most recently saved first. The
     response has the same shape as `GET /reading-list`.
   operationId: getArchivedReadingList
+  parameters:
+    - name: after
+      in: query
+      required: false
+      description:
+        Opaque pagination cursor. Pass the `next_cursor` from the previous
+        response to fetch the next page of items. Omit for the first page.
+      schema:
+        type: string
   responses:
     "200":
       description: OK
@@ -17,5 +26,10 @@ get:
                 type: array
                 items:
                   $ref: "../components/schemas.yaml#/ReadingListItem"
+              next_cursor:
+                description:
+                  Opaque cursor to fetch the next page. Absent when there are no
+                  more items.
+                type: string
     "500":
       $ref: "../components/responses.yaml#/InternalServerError"
