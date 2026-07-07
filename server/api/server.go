@@ -51,6 +51,7 @@ func StartServer(ctx context.Context) {
 	mux.HandleFunc("GET /web-clips/{id}", h.getWebClip)
 	mux.HandleFunc("POST /reading-list", h.saveToReadingList)
 	mux.HandleFunc("GET /reading-list", h.getReadingList)
+	mux.HandleFunc("GET /reading-list/archived", h.getArchivedReadingList)
 	mux.HandleFunc("DELETE /reading-list/{id}", h.deleteReadingListItem)
 	mux.HandleFunc("PATCH /reading-list/{id}", h.setReadingListItemArchivedStatus)
 
@@ -729,6 +730,17 @@ type readingListItem struct {
 }
 
 func (h *handler) getReadingList(w http.ResponseWriter, r *http.Request) {
+	h.writeReadingList(w, r, false)
+}
+
+// getArchivedReadingList returns the archived reading list items, newest first.
+func (h *handler) getArchivedReadingList(w http.ResponseWriter, r *http.Request) {
+	h.writeReadingList(w, r, true)
+}
+
+// writeReadingList fetches the reading list items filtered by archive status,
+// paginated newest-first, and writes them as the JSON response.
+func (h *handler) writeReadingList(w http.ResponseWriter, r *http.Request, archived bool) {
 	var cursor *paginationCusor[time.Time]
 	if c := r.URL.Query().Get("after"); c != "" {
 		var err error
@@ -739,16 +751,16 @@ func (h *handler) getReadingList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	args := []any{}
+	args := []any{archived}
 	var where string
 	if cursor != nil {
 		args = append(args, cursor.Key, cursor.Tiebreaker)
-		where = "AND (saved_at, id) < ($1, $2)"
+		where = "AND (saved_at, id) < ($2, $3)"
 	}
 	rows, err := h.db.QueryContext(ctx, fmt.Sprintf(`
 		SELECT id, kind, title, description, saved_at, web_clip_id, feed_entry_id
 		FROM reading_list_items
-		WHERE archived = false %s
+		WHERE archived = $1 %s
 		ORDER BY saved_at DESC, id DESC
 		LIMIT %d;
 	`, where, paginationSize+1), args...)

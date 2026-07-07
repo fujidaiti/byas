@@ -5,6 +5,8 @@ import 'package:flutter/widgets.dart';
 abstract final class AppDebugKey {
   static const addFeedButton = Key('addFeedButton');
   static const archiveSuccessSnackBar = Key('archiveSuccessSnackBar');
+  static const archivedButton = Key('archivedButton');
+  static const archivedReadingListScreen = Key('archivedReadingListScreen');
   static const unarchiveSuccessSnackBar = Key('unarchiveSuccessSnackBar');
   static const feedDetailScreen = Key('feedDetailScreen');
   static const feedEntryReaderArchiveButton = Key(

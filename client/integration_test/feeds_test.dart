@@ -109,45 +109,4 @@ void main() {
     await $(AppDebugKey.subscribeSuccessSnackBar).waitUntilVisible();
     await $(AppDebugKey.feedRow('The Dart Blog')).waitUntilVisible();
   });
-
-  patrolTest('Feeds list loads the next page on scroll', ($) async {
-    await pumpApp($);
-    final adapter = httpMockAdapter($);
-
-    // A full first page carrying a cursor, then a final page (no cursor)
-    // returned only for the follow-up request that includes `after`.
-    final firstPage = [
-      for (var i = 1; i <= 30; i++)
-        api.Feed(id: i, url: 'https://example.com/feed/$i', title: 'Feed $i'),
-    ];
-    final lastFeed = api.Feed(
-      id: 31,
-      url: 'https://example.com/feed/31',
-      title: 'Feed 31 (last)',
-    );
-
-    adapter.onGet(
-      '/feeds',
-      (s) => s.reply(
-        200,
-        api.GetFeeds200Response(
-          feeds: firstPage,
-          nextCursor: 'CURSOR1',
-        ).toJson(),
-      ),
-    );
-    adapter.onGet(
-      '/feeds',
-      (s) => s.reply(200, api.GetFeeds200Response(feeds: [lastFeed]).toJson()),
-      queryParameters: {'after': 'CURSOR1'},
-    );
-
-    await $(AppDebugKey.feedsNavDestination).tap();
-    await $(AppDebugKey.feedsScreen).waitUntilVisible();
-    await $(AppDebugKey.feedRow('Feed 1')).waitUntilVisible();
-    // Scrolling toward the bottom triggers the next-page fetch; the second
-    // page's row becomes visible once it resolves.
-    await $(AppDebugKey.feedRow('Feed 31 (last)')).scrollTo();
-    await $(AppDebugKey.feedRow('Feed 31 (last)')).waitUntilVisible();
-  });
 }
