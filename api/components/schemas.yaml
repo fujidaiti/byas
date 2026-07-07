@@ -61,11 +61,26 @@ FeedEntry:
     snapshot_at:
       type: string
       format: date-time
-    reading_list_item_id:
+    read_later:
+      allOf:
+        - $ref: "#/ReadLater"
       description:
-        The id of the reading list item backing this entry, if it is saved in
-        the reading list. Absent when the entry is not saved.
+        The reading list item backing this entry, if it is saved in the reading
+        list. Absent when the entry is not saved.
+
+ReadLater:
+  description:
+    The reading list item backing a resource. Present only when the resource is
+    saved in the reading list; absent otherwise.
+  type: object
+  required: [id, archived]
+  properties:
+    id:
+      description: The id of the reading list item.
       type: integer
+    archived:
+      description: Whether the reading list item is archived.
+      type: boolean
 
 ReadingListItem:
   type: object
@@ -115,11 +130,12 @@ Story:
     published_at:
       type: string
       format: date-time
-    reading_list_item_id:
+    read_later:
+      allOf:
+        - $ref: "#/ReadLater"
       description:
-        The id of the reading list item backing this story, if it is saved in
-        the reading list. Absent when the story is not saved.
-      type: integer
+        The reading list item backing this story, if it is saved in the reading
+        list. Absent when the story is not saved.
 
 Error:
   type: object
