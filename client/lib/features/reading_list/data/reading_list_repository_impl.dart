@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:openapi/api.dart' as api;
 import 'package:paperdoll/core/network/request_runner.dart';
-import 'package:paperdoll/core/pagination/page.dart';
+import 'package:paperdoll/core/pagination/page_result.dart';
 import 'package:paperdoll/features/reading_list/domain/reading_list_item.dart';
 import 'package:paperdoll/features/reading_list/domain/reading_list_repository.dart';
 
@@ -11,14 +11,14 @@ class ReadingListRepositoryImpl implements ReadingListRepository {
   final Dio _dio;
 
   @override
-  Future<Page<ReadingListItem>> list({String? cursor}) {
+  Future<PageResult<ReadingListItem>> list({String? cursor}) {
     return runRequest(() async {
       final res = await _dio.get<Map<String, dynamic>>(
         '/reading-list',
         queryParameters: cursor != null ? {'after': cursor} : null,
       );
       final body = api.GetReadingList200Response.fromJson(res.data)!;
-      return Page(
+      return PageResult(
         items: body.items.map(_toItem).toList(),
         nextCursor: body.nextCursor,
       );

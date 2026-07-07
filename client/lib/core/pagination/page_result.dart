@@ -4,8 +4,8 @@ import 'package:flutter/foundation.dart';
 /// [nextCursor] to fetch the following page ([hasMore] is false on the last
 /// page, where the server omits the cursor).
 @immutable
-class Page<T> {
-  const Page({required this.items, this.nextCursor});
+class PageResult<T> {
+  const PageResult({required this.items, this.nextCursor});
 
   final List<T> items;
   final String? nextCursor;

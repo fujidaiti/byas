@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:paperdoll/core/pagination/page.dart';
+import 'package:paperdoll/core/pagination/page_result.dart';
 
 /// Accumulated state of a paginated list across the pages fetched so far. This
 /// is what a paginating notifier carries inside its [AsyncValue].
@@ -19,7 +19,7 @@ class PagedState<T> {
   });
 
   /// Seeds accumulated state from the first [page].
-  PagedState.first(Page<T> page)
+  PagedState.first(PageResult<T> page)
     : items = page.items,
       nextCursor = page.nextCursor,
       isLoadingMore = false,
@@ -54,9 +54,9 @@ class PagedState<T> {
       copyWith(isLoadingMore: true, clearLoadMoreError: true);
 
   /// Appends a freshly fetched [page] and clears the loading flag. Builds a
-  /// fresh instance (rather than [copyWith]) so a null [Page.nextCursor]
+  /// fresh instance (rather than [copyWith]) so a null [PageResult.nextCursor]
   /// correctly ends pagination.
-  PagedState<T> append(Page<T> page) => PagedState<T>(
+  PagedState<T> append(PageResult<T> page) => PagedState<T>(
     items: [...items, ...page.items],
     nextCursor: page.nextCursor,
   );
@@ -74,7 +74,7 @@ class PagedState<T> {
 Future<void> appendNextPage<T>({
   required AsyncValue<PagedState<T>> Function() read,
   required void Function(AsyncValue<PagedState<T>> next) write,
-  required Future<Page<T>> Function(String? cursor) fetch,
+  required Future<PageResult<T>> Function(String? cursor) fetch,
 }) async {
   final current = read().value;
   if (current == null || !current.hasMore || current.isLoadingMore) {

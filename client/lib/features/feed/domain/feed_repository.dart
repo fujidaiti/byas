@@ -1,15 +1,16 @@
-import 'package:paperdoll/core/pagination/page.dart';
+import 'package:paperdoll/core/pagination/page_result.dart';
 import 'package:paperdoll/features/feed/domain/feed.dart';
 import 'package:paperdoll/features/feed/domain/feed_candidate.dart';
 import 'package:paperdoll/features/feed_entry/domain/feed_entry.dart';
 
 /// Manages feed subscriptions and reads feed timelines.
 ///
-/// The list methods take an optional `cursor` and return a [Page] carrying the
-/// next cursor, so callers can page through the server's keyset pagination.
+/// The list methods take an optional `cursor` and return a [PageResult]
+/// carrying the next cursor, so callers can page through the server's keyset
+/// pagination.
 abstract interface class FeedRepository {
   /// `GET /feeds` → a page of the subscribed feeds.
-  Future<Page<Feed>> listFeeds({String? cursor});
+  Future<PageResult<Feed>> listFeeds({String? cursor});
 
   /// `GET /feeds/search?q=` → subscribable candidates.
   Future<List<FeedCandidate>> search(String query);
@@ -21,5 +22,5 @@ abstract interface class FeedRepository {
   Future<Feed> getFeed(int id);
 
   /// `GET /feeds/{id}/timeline` → a page of the feed's stream of entries.
-  Future<Page<FeedEntry>> timeline(int id, {String? cursor});
+  Future<PageResult<FeedEntry>> timeline(int id, {String? cursor});
 }

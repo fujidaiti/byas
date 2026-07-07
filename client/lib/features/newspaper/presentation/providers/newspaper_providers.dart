@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:paperdoll/core/network/dio_provider.dart';
-import 'package:paperdoll/core/pagination/page.dart';
+import 'package:paperdoll/core/pagination/page_result.dart';
 import 'package:paperdoll/core/pagination/paged_state.dart';
 import 'package:paperdoll/features/newspaper/data/newspaper_repository_impl.dart';
 import 'package:paperdoll/features/newspaper/domain/newspaper.dart';
@@ -82,6 +82,6 @@ class TodayNewspaper extends _$TodayNewspaper {
     }
   }
 
-  Page<Story> _pageOf(Newspaper paper) =>
-      Page(items: paper.stories, nextCursor: paper.nextCursor);
+  PageResult<Story> _pageOf(Newspaper paper) =>
+      PageResult(items: paper.stories, nextCursor: paper.nextCursor);
 }

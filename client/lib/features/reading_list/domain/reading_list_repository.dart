@@ -1,13 +1,13 @@
-import 'package:paperdoll/core/pagination/page.dart';
+import 'package:paperdoll/core/pagination/page_result.dart';
 import 'package:paperdoll/features/reading_list/domain/reading_list_item.dart';
 
 /// Reads the saved reading list.
 ///
-/// [list] takes an optional `cursor` and returns a [Page] carrying the next
-/// cursor, so callers can page through the server's keyset pagination.
+/// [list] takes an optional `cursor` and returns a [PageResult] carrying the
+/// next cursor, so callers can page through the server's keyset pagination.
 abstract interface class ReadingListRepository {
   /// `GET /reading-list` → a page of the saved, unarchived items, newest first.
-  Future<Page<ReadingListItem>> list({String? cursor});
+  Future<PageResult<ReadingListItem>> list({String? cursor});
 
   /// `POST /reading-list` with `{"feed_entry_id": id}` → saves the feed entry
   /// and returns the created reading list item.
