@@ -1,12 +1,35 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
+    id("org.jetbrains.kotlin.plugin.compose")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val apiBaseUrl: String =
+    run {
+        val envFile = rootProject.file("../.env")
+        if (!envFile.exists()) {
+            throw GradleException(".env not found.")
+        }
+        val props = Properties()
+        envFile.inputStream().use { props.load(it) }
+        props.getProperty("API_BASE_URL")?.trim()?.takeIf { it.isNotEmpty() }
+            ?: throw GradleException("API_BASE_URL is missing or empty.")
+    }
+
 dependencies {
     // Patrol: https://patrol.leancode.co/documentation
     androidTestUtil("androidx.test:orchestrator:1.5.1")
+
+    // Jetpack Compose (share sheet activity UI). BOM pins all androidx.compose.* versions.
+    val composeBom = platform("androidx.compose:compose-bom:2026.06.00")
+    implementation(composeBom)
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    debugImplementation("androidx.compose.ui:ui-tooling")
+    implementation("androidx.activity:activity-compose")
 }
 
 android {
@@ -19,11 +42,14 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
+
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "dev.norelease.paperdoll"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -32,6 +58,9 @@ android {
         // Patrol: https://patrol.leancode.co/documentation
         testInstrumentationRunner = "pl.leancode.patrol.PatrolJUnitRunner"
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
+
+        // Base URL for the native reading-list POST
+        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
     }
 
     // Patrol: https://patrol.leancode.co/documentation

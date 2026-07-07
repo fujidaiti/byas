@@ -57,17 +57,18 @@ final class NewspaperRepositoryProvider
 String _$newspaperRepositoryHash() =>
     r'f3f71c19d3c1de50acd534e650d868296ee40aed';
 
-@ProviderFor(todayNewspaper)
+/// Today's newspaper, with its stories paginated. [build] loads the first page;
+/// [loadMore] appends the next page of stories while keeping the header.
+
+@ProviderFor(TodayNewspaper)
 final todayNewspaperProvider = TodayNewspaperProvider._();
 
+/// Today's newspaper, with its stories paginated. [build] loads the first page;
+/// [loadMore] appends the next page of stories while keeping the header.
 final class TodayNewspaperProvider
-    extends
-        $FunctionalProvider<
-          AsyncValue<Newspaper>,
-          Newspaper,
-          FutureOr<Newspaper>
-        >
-    with $FutureModifier<Newspaper>, $FutureProvider<Newspaper> {
+    extends $AsyncNotifierProvider<TodayNewspaper, TodayState> {
+  /// Today's newspaper, with its stories paginated. [build] loads the first page;
+  /// [loadMore] appends the next page of stories while keeping the header.
   TodayNewspaperProvider._()
     : super(
         from: null,
@@ -84,87 +85,28 @@ final class TodayNewspaperProvider
 
   @$internal
   @override
-  $FutureProviderElement<Newspaper> $createElement($ProviderPointer pointer) =>
-      $FutureProviderElement(pointer);
-
-  @override
-  FutureOr<Newspaper> create(Ref ref) {
-    return todayNewspaper(ref);
-  }
+  TodayNewspaper create() => TodayNewspaper();
 }
 
-String _$todayNewspaperHash() => r'269e8adc6869a3f1ab692d7fc0bd702a658acdeb';
+String _$todayNewspaperHash() => r'9f81e01c665633055989a6403e78e95c41df171d';
 
-@ProviderFor(story)
-final storyProvider = StoryFamily._();
+/// Today's newspaper, with its stories paginated. [build] loads the first page;
+/// [loadMore] appends the next page of stories while keeping the header.
 
-final class StoryProvider
-    extends
-        $FunctionalProvider<
-          AsyncValue<FeedEntry>,
-          FeedEntry,
-          FutureOr<FeedEntry>
-        >
-    with $FutureModifier<FeedEntry>, $FutureProvider<FeedEntry> {
-  StoryProvider._({
-    required StoryFamily super.from,
-    required int super.argument,
-  }) : super(
-         retry: null,
-         name: r'storyProvider',
-         isAutoDispose: true,
-         dependencies: null,
-         $allTransitiveDependencies: null,
-       );
-
+abstract class _$TodayNewspaper extends $AsyncNotifier<TodayState> {
+  FutureOr<TodayState> build();
+  @$mustCallSuper
   @override
-  String debugGetCreateSourceHash() => _$storyHash();
-
-  @override
-  String toString() {
-    return r'storyProvider'
-        ''
-        '($argument)';
+  WhenComplete runBuild() {
+    final ref = this.ref as $Ref<AsyncValue<TodayState>, TodayState>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<AsyncValue<TodayState>, TodayState>,
+              AsyncValue<TodayState>,
+              Object?,
+              Object?
+            >;
+    return element.handleCreate(ref, build);
   }
-
-  @$internal
-  @override
-  $FutureProviderElement<FeedEntry> $createElement($ProviderPointer pointer) =>
-      $FutureProviderElement(pointer);
-
-  @override
-  FutureOr<FeedEntry> create(Ref ref) {
-    final argument = this.argument as int;
-    return story(ref, id: argument);
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return other is StoryProvider && other.argument == argument;
-  }
-
-  @override
-  int get hashCode {
-    return argument.hashCode;
-  }
-}
-
-String _$storyHash() => r'7363941f328a116849f6321f01eadccf46ff704e';
-
-final class StoryFamily extends $Family
-    with $FunctionalFamilyOverride<FutureOr<FeedEntry>, int> {
-  StoryFamily._()
-    : super(
-        retry: null,
-        name: r'storyProvider',
-        dependencies: null,
-        $allTransitiveDependencies: null,
-        isAutoDispose: true,
-      );
-
-  StoryProvider call({required int id}) =>
-      StoryProvider._(argument: id, from: this);
-
-  @override
-  String toString() => r'storyProvider';
 }

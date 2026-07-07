@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/fujidaiti/paperdoll/feature/feed"
+	"github.com/fujidaiti/paperdoll/feature/readinglist"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -40,13 +42,18 @@ func StartServer(ctx context.Context) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", h.getHealth)
 	mux.HandleFunc("GET /newspapers/today", h.getTodaysNewspaper)
-	mux.HandleFunc("GET /newspapers/stories/{id}", h.getStory)
 	mux.HandleFunc("GET /feeds", h.getFeeds)
 	mux.HandleFunc("PUT /feeds", h.subscribeToFeed)
 	mux.HandleFunc("GET /feeds/search", h.searchFeeds)
 	mux.HandleFunc("GET /feeds/{id}", h.getFeed)
 	mux.HandleFunc("GET /feeds/{id}/timeline", h.getFeedTimeline)
 	mux.HandleFunc("GET /feed-entries/{id}", h.getFeedEntry)
+	mux.HandleFunc("GET /web-clips/{id}", h.getWebClip)
+	mux.HandleFunc("POST /reading-list", h.saveToReadingList)
+	mux.HandleFunc("GET /reading-list", h.getReadingList)
+	mux.HandleFunc("GET /reading-list/archived", h.getArchivedReadingList)
+	mux.HandleFunc("DELETE /reading-list/{id}", h.deleteReadingListItem)
+	mux.HandleFunc("PATCH /reading-list/{id}", h.setReadingListItemArchivedStatus)
 
 	srv := http.Server{
 		Addr:    ":8080",
@@ -93,17 +100,39 @@ type getTodaysNewspaperResponse struct {
 	ID          int       `json:"id"`
 	PublishedAt time.Time `json:"published_at"`
 	Stories     []stories `json:"stories"`
+	NextCursor  *string   `json:"next_cursor,omitempty"`
+}
+
+// readLater describes an item's presence in the reading list. It is nil (and
+// omitted from responses) when the item is not saved.
+type readLater struct {
+	ID       int  `json:"id"`
+	Archived bool `json:"archived"`
 }
 
 type stories struct {
 	ID          int        `json:"id"`
+	ResourceID  int        `json:"resource_id"`
+	Kind        string     `json:"kind"`
 	Title       string     `json:"title"`
 	Description *string    `json:"description,omitempty"`
 	Source      *string    `json:"source,omitempty"`
 	PublishedAt *time.Time `json:"published_at,omitempty"`
+	ReadLater   *readLater `json:"read_later,omitempty"`
 }
 
 func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
+	// TODO: Design a better cursor (e.g. priority)
+	var cursor int
+	if c := r.URL.Query().Get("after"); c != "" {
+		var err error
+		cursor, err = strconv.Atoi(c)
+		if err != nil {
+			serverError(w, http.StatusBadRequest, "Malformed cursor")
+			return
+		}
+	}
+
 	ctx := r.Context()
 	res := getTodaysNewspaperResponse{}
 	err := h.db.QueryRowContext(ctx, `
@@ -120,13 +149,24 @@ func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO: Replace the correlated subquery with a LEFT JOIN on
+	// reading_list_items once reading_list_items.feed_entry_id is unique. The
+	// subquery + LIMIT 1 is a workaround for the currently non-unique column.
 	rows, err := h.db.QueryContext(ctx, `
-		SELECT id, title, description, source, published_at
+		SELECT id, feed_entry_id, title, description, source, published_at,
+			(SELECT id FROM reading_list_items
+				WHERE feed_entry_id = stories.feed_entry_id
+				LIMIT 1) as reading_list_item_id,
+			(SELECT archived FROM reading_list_items
+				WHERE feed_entry_id = stories.feed_entry_id
+				LIMIT 1)
 		FROM stories
-		WHERE newspaper_id = $1
-		ORDER BY published_at DESC;
-	`, res.ID)
+		WHERE newspaper_id = $1 AND id > $2
+		ORDER BY id ASC
+		LIMIT $3;
+	`, res.ID, cursor, paginationSize+1)
 	if err != nil {
+		fmt.Println(err)
 		serverError(
 			w, http.StatusInternalServerError,
 			fmt.Sprintf("Failed to fetch stories for the newspaper (ID=%d).", res.ID),
@@ -134,17 +174,28 @@ func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for rows.Next() {
-		a := stories{}
-		err := rows.Scan(&a.ID, &a.Title, &a.Description, &a.Source, &a.PublishedAt)
+		a := stories{Kind: "feed_entry"}
+		var rlID *int
+		var rlArchived *bool
+		err := rows.Scan(&a.ID, &a.ResourceID, &a.Title, &a.Description, &a.Source, &a.PublishedAt, &rlID, &rlArchived)
 		if err != nil {
 			serverError(w, http.StatusInternalServerError, "Failed to parse a story.")
 			return
+		}
+		if rlID != nil {
+			a.ReadLater = &readLater{ID: *rlID, Archived: rlArchived != nil && *rlArchived}
 		}
 		res.Stories = append(res.Stories, a)
 	}
 	if err := rows.Err(); err != nil {
 		serverError(w, http.StatusInternalServerError, "Failed to parse stories.")
 		return
+	}
+
+	if len(res.Stories) > paginationSize {
+		res.Stories = res.Stories[:paginationSize]
+		last := res.Stories[len(res.Stories)-1]
+		res.NextCursor = new(strconv.Itoa(last.ID))
 	}
 
 	jres, err := json.Marshal(res)
@@ -158,45 +209,6 @@ func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 	w.Write(jres)
 }
 
-type getStoryResponse struct {
-	Type string    `json:"type"`
-	Data feedEntry `json:"data"`
-}
-
-func (h *handler) getStory(w http.ResponseWriter, r *http.Request) {
-	rawId := r.PathValue("id")
-	id, err := strconv.Atoi(rawId)
-	if err != nil {
-		serverError(w, http.StatusBadRequest, fmt.Sprintf("Invalid story ID: %s", rawId))
-		return
-	}
-
-	ctx := r.Context()
-	res := getStoryResponse{Type: "feed_entry"}
-	d := &res.Data
-	err = h.db.QueryRowContext(ctx, `
-		SELECT e.id, e.feed_id, e.url, e.title, e.description, e.content, e.snapshot_at, e.published_at
-		FROM feed_entries e JOIN stories s ON e.id = s.feed_entry_id
-		WHERE s.id = $1;
-	`, id).Scan(&d.ID, &d.FeedID, &d.URL, &d.Title, &d.Description, &d.Content, &d.SnapshotAt, &d.PublishedAt)
-	if errors.Is(err, sql.ErrNoRows) {
-		serverError(w, http.StatusNotFound, "Story not found.")
-		return
-	} else if err != nil {
-		serverError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to fetch story by ID: %s", rawId))
-		return
-	}
-
-	jres, err := json.Marshal(res)
-	if err != nil {
-		serverError(w, http.StatusInternalServerError, "Failed to construct the response.")
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(jres)
-}
-
 type feedEntry struct {
 	ID          int        `json:"id"`
 	URL         string     `json:"url"`
@@ -205,11 +217,12 @@ type feedEntry struct {
 	Description *string    `json:"description,omitempty"`
 	Content     *string    `json:"content,omitempty"`
 	PublishedAt *time.Time `json:"published_at,omitempty"`
-	SnapshotAt  *time.Time `json:"snapshot_at,omitempty"`
+	SnapshotAt  time.Time  `json:"snapshot_at"`
 }
 
 type getFeedEntryResponse struct {
 	feedEntry
+	ReadLater *readLater `json:"read_later,omitempty"`
 }
 
 func (h *handler) getFeedEntry(w http.ResponseWriter, r *http.Request) {
@@ -222,17 +235,28 @@ func (h *handler) getFeedEntry(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	res := getFeedEntryResponse{}
+	var rlID *int
+	var rlArchived *bool
 	err = h.db.QueryRowContext(ctx, `
-		SELECT id, feed_id, url, title, description, content, snapshot_at, published_at
+		SELECT id, feed_id, url, title, description, content, snapshot_at, published_at,
+			(SELECT id FROM reading_list_items
+				WHERE feed_entry_id = feed_entries.id
+				LIMIT 1),
+			(SELECT archived FROM reading_list_items
+				WHERE feed_entry_id = feed_entries.id
+				LIMIT 1)
 		FROM feed_entries
 		WHERE id = $1;
-	`, id).Scan(&res.ID, &res.FeedID, &res.URL, &res.Title, &res.Description, &res.Content, &res.SnapshotAt, &res.PublishedAt)
+	`, id).Scan(&res.ID, &res.FeedID, &res.URL, &res.Title, &res.Description, &res.Content, &res.SnapshotAt, &res.PublishedAt, &rlID, &rlArchived)
 	if errors.Is(err, sql.ErrNoRows) {
 		serverError(w, http.StatusNotFound, "Entry not found.")
 		return
 	} else if err != nil {
 		serverError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to fetch entry by ID=%d", id))
 		return
+	}
+	if rlID != nil {
+		res.ReadLater = &readLater{ID: *rlID, Archived: rlArchived != nil && *rlArchived}
 	}
 
 	jres, err := json.Marshal(res)
@@ -260,14 +284,40 @@ type feedSchema struct {
 }
 
 type getFeedsResBody struct {
-	Feeds []feedSchema `json:"feeds"`
+	Feeds      []feedSchema `json:"feeds"`
+	NextCursor *string      `json:"next_cursor,omitempty"`
 }
 
+const getFeedsSortKeyLen = 5
+
 func (h *handler) getFeeds(w http.ResponseWriter, r *http.Request) {
+	var cursor *paginationCusor[string]
+	if c := r.URL.Query().Get("after"); c != "" {
+		var err error
+		if cursor, err = decodeCursor[string](c); err != nil {
+			serverError(w, http.StatusBadRequest, "Malformed cursor")
+			return
+		}
+	}
+
 	ctx := r.Context()
 	var res getFeedsResBody
-	// TODO: Support pagination
-	rows, err := h.db.QueryContext(ctx, `SELECT id, url, site_url, icon_url, title, description FROM feeds;`)
+	var where string
+	args := []any{}
+	if cursor != nil {
+		where = "WHERE (sort_key, id) > ($1, $2)"
+		args = append(args, cursor.Key, cursor.Tiebreaker)
+	}
+	rows, err := h.db.QueryContext(ctx, fmt.Sprintf(`
+		SELECT *
+		FROM (
+			SELECT id, url, site_url, icon_url, title, description, LEFT(title, %d) AS sort_key
+			FROM feeds
+		)
+		%s
+		ORDER BY sort_key ASC, id ASC
+		LIMIT %d;
+	`, getFeedsSortKeyLen, where, paginationSize+1), args...)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		fmt.Print(err)
 		serverError(w, http.StatusInternalServerError, "Failed to fetch feeds")
@@ -276,7 +326,7 @@ func (h *handler) getFeeds(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var f feedSchema
 		var su, iu, desc sql.NullString
-		err := rows.Scan(&f.ID, &f.URL, &su, &iu, &f.Title, &desc)
+		err := rows.Scan(&f.ID, &f.URL, &su, &iu, &f.Title, &desc, new(string))
 		if err != nil {
 			fmt.Print(err)
 			serverError(w, http.StatusInternalServerError, "Failed to fetch feeds")
@@ -297,6 +347,24 @@ func (h *handler) getFeeds(w http.ResponseWriter, r *http.Request) {
 		fmt.Print(err)
 		serverError(w, http.StatusInternalServerError, "Failed to fetch feeds")
 		return
+	}
+
+	if len(res.Feeds) > paginationSize {
+		res.Feeds = res.Feeds[:paginationSize]
+		last := res.Feeds[len(res.Feeds)-1]
+		var sortKey string
+		// TODO: Use a better sort key
+		if t := last.Title; len(t) < getFeedsSortKeyLen {
+			sortKey = t
+		} else {
+			sortKey = string([]rune(t)[:getFeedsSortKeyLen])
+		}
+		c := paginationCusor[string]{Key: sortKey, Tiebreaker: last.ID}
+		if res.NextCursor, err = encodeCursor(c); err != nil {
+			fmt.Println(err)
+			serverError(w, http.StatusInternalServerError, "Something went wrong")
+			return
+		}
 	}
 
 	jres, err := json.Marshal(res)
@@ -359,8 +427,14 @@ func (h *handler) getFeed(w http.ResponseWriter, r *http.Request) {
 	w.Write(jres)
 }
 
+type feedTimelineEntry struct {
+	feedEntry
+	ReadLater *readLater `json:"read_later,omitempty"`
+}
+
 type getFeedTimelineResBody struct {
-	Entries []feedEntry `json:"entries"`
+	Entries    []feedTimelineEntry `json:"entries"`
+	NextCursor *string             `json:"next_cursor,omitempty"`
 }
 
 func (h *handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
@@ -370,27 +444,55 @@ func (h *handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
 		serverError(w, http.StatusBadRequest, "Invalid feed id")
 		return
 	}
+	var cursor *paginationCusor[time.Time]
+	if c := r.URL.Query().Get("after"); c != "" {
+		if cursor, err = decodeCursor[time.Time](c); err != nil {
+			serverError(w, http.StatusBadRequest, "Malformed cursor")
+			return
+		}
+	}
 
 	ctx := r.Context()
-	// TODO: Support pagination
-	rows, err := h.db.QueryContext(ctx, `
-		SELECT id, feed_id, url, title, description, published_at, snapshot_at
+	var where string
+	args := []any{id}
+	if cursor != nil {
+		where = "AND (COALESCE(published_at, snapshot_at), id) < ($2, $3)"
+		args = append(args, cursor.Key, cursor.Tiebreaker)
+	}
+	// TODO: Replace this correlated subquery with a LEFT JOIN once
+	//       a UNIQUE (feed_entry_id) constraint exists on reading_list_items.
+	// TODO: Store sort keys in DB and create an index
+	rows, err := h.db.QueryContext(ctx, fmt.Sprintf(`
+		SELECT id, feed_id, url, title, description, published_at, snapshot_at,
+			(SELECT id FROM reading_list_items
+				WHERE feed_entry_id = feed_entries.id
+				LIMIT 1) as reading_list_item_id,
+			(SELECT archived FROM reading_list_items
+				WHERE feed_entry_id = feed_entries.id
+				LIMIT 1)
 		FROM feed_entries
-		WHERE feed_id = $1;
-	`, id)
+		WHERE feed_id = $1 %s
+		ORDER BY COALESCE(published_at, snapshot_at) DESC, id DESC
+		LIMIT %d;
+	`, where, paginationSize+1), args...)
 	if err != nil {
 		fmt.Print(err)
 		serverError(w, http.StatusInternalServerError, "Failed to fetch entries")
 		return
 	}
-	res := getFeedTimelineResBody{Entries: []feedEntry{}}
+	res := getFeedTimelineResBody{Entries: []feedTimelineEntry{}}
 	for rows.Next() {
-		var e feedEntry
-		err := rows.Scan(&e.ID, &e.FeedID, &e.URL, &e.Title, &e.Description, &e.PublishedAt, &e.SnapshotAt)
+		var e feedTimelineEntry
+		var rlID *int
+		var rlArchived *bool
+		err := rows.Scan(&e.ID, &e.FeedID, &e.URL, &e.Title, &e.Description, &e.PublishedAt, &e.SnapshotAt, &rlID, &rlArchived)
 		if err != nil {
 			fmt.Print(err)
 			serverError(w, http.StatusInternalServerError, "Failed to fetch entry")
 			return
+		}
+		if rlID != nil {
+			e.ReadLater = &readLater{ID: *rlID, Archived: rlArchived != nil && *rlArchived}
 		}
 		res.Entries = append(res.Entries, e)
 	}
@@ -398,6 +500,21 @@ func (h *handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
 		fmt.Print(err)
 		serverError(w, http.StatusInternalServerError, "Failed to fetch entries")
 		return
+	}
+
+	if len(res.Entries) > paginationSize {
+		res.Entries = res.Entries[:paginationSize]
+		last := res.Entries[len(res.Entries)-1]
+		sortKey := last.PublishedAt
+		if sortKey == nil {
+			sortKey = &last.SnapshotAt
+		}
+		c := paginationCusor[time.Time]{Key: *sortKey, Tiebreaker: last.ID}
+		if res.NextCursor, err = encodeCursor(c); err != nil {
+			fmt.Println(err)
+			serverError(w, http.StatusInternalServerError, "Something went wrong")
+			return
+		}
 	}
 
 	jres, err := json.Marshal(res)
@@ -502,6 +619,336 @@ func (h *handler) subscribeToFeed(w http.ResponseWriter, r *http.Request) {
 	w.Write(jres)
 }
 
+type saveToReadingListReqBody struct {
+	URL *string `json:"url"`
+
+	// Title is the optional placeholder, e.g. the page title shared by the browser.
+	// This is only honored on the URL path; it is ignored for feed entries.
+	Title *string `json:"title"`
+
+	FeedEntryID *int `json:"feed_entry_id"`
+	WebClipID   *int `json:"web_clip_id"`
+}
+
+func (h *handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
+	var b saveToReadingListReqBody
+	// TODO: Limit request body size (http.MaxBytesReader)
+	err := json.NewDecoder(r.Body).Decode(&b)
+	if err != nil {
+		fmt.Println(err)
+		serverError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+	argn := 0
+	if b.URL != nil {
+		argn++
+	}
+	if b.FeedEntryID != nil {
+		argn++
+	}
+	if b.WebClipID != nil {
+		argn++
+	}
+	if argn != 1 {
+		serverError(w, http.StatusBadRequest, "Specify exactly one item to save")
+		return
+	}
+
+	ctx := r.Context()
+	var saved readinglist.SavedItem
+	switch {
+	case b.URL != nil:
+		// TODO: Validate URL (schema and host)
+		u, err := url.Parse(*b.URL)
+		if err != nil || *b.URL == "" {
+			serverError(w, http.StatusBadRequest, "Invalid URL")
+			return
+		}
+		// TODO: trim and length-cap the client-supplied title
+		var title string
+		if b.Title != nil {
+			title = *b.Title
+		}
+		saved, err = readinglist.SaveWebClip(ctx, h.db, *u, title)
+		if err != nil {
+			fmt.Println(err)
+			serverError(w, http.StatusInternalServerError, "Failed to save clip")
+			return
+		}
+
+	case b.FeedEntryID != nil:
+		// TODO: Return 404 instead of 500 when the given ID doesn't exist
+		var err error
+		saved, err = readinglist.SaveFeedEntry(ctx, h.db, *b.FeedEntryID)
+		if err != nil {
+			fmt.Println(err)
+			serverError(w, http.StatusInternalServerError, "Failed to save feed entry")
+			return
+		}
+
+	case b.WebClipID != nil:
+		// TODO: Return 404 instead of 500 when the given ID doesn't exist
+		var err error
+		saved, err = readinglist.SaveWebClipByID(ctx, h.db, *b.WebClipID)
+		if err != nil {
+			fmt.Println(err)
+			serverError(w, http.StatusInternalServerError, "Failed to save web clip")
+			return
+		}
+	}
+
+	jres, err := json.Marshal(readingListItem{
+		ID:          saved.ID,
+		ResourceID:  saved.ResourceID,
+		Kind:        saved.Kind,
+		Title:       saved.Title,
+		Description: saved.Description,
+		SavedAt:     saved.SavedAt,
+	})
+	if err != nil {
+		fmt.Println(err)
+		serverError(w, http.StatusInternalServerError, "Failed to construct JSON response")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	w.Write(jres)
+}
+
+type getReadingListResBody struct {
+	Items      []readingListItem `json:"items"`
+	NextCursor *string           `json:"next_cursor,omitempty"`
+}
+
+type readingListItem struct {
+	ID          int       `json:"id"`
+	ResourceID  int       `json:"resource_id"`
+	Kind        string    `json:"kind"`
+	Title       string    `json:"title"` // Make this optional
+	Description *string   `json:"description,omitempty"`
+	SavedAt     time.Time `json:"saved_at"`
+}
+
+func (h *handler) getReadingList(w http.ResponseWriter, r *http.Request) {
+	h.writeReadingList(w, r, false)
+}
+
+// getArchivedReadingList returns the archived reading list items, newest first.
+func (h *handler) getArchivedReadingList(w http.ResponseWriter, r *http.Request) {
+	h.writeReadingList(w, r, true)
+}
+
+// writeReadingList fetches the reading list items filtered by archive status,
+// paginated newest-first, and writes them as the JSON response.
+func (h *handler) writeReadingList(w http.ResponseWriter, r *http.Request, archived bool) {
+	var cursor *paginationCusor[time.Time]
+	if c := r.URL.Query().Get("after"); c != "" {
+		var err error
+		if cursor, err = decodeCursor[time.Time](c); err != nil {
+			serverError(w, http.StatusBadRequest, "Malformed cursor")
+			return
+		}
+	}
+
+	ctx := r.Context()
+	args := []any{archived}
+	var where string
+	if cursor != nil {
+		args = append(args, cursor.Key, cursor.Tiebreaker)
+		where = "AND (saved_at, id) < ($2, $3)"
+	}
+	rows, err := h.db.QueryContext(ctx, fmt.Sprintf(`
+		SELECT id, kind, title, description, saved_at, web_clip_id, feed_entry_id
+		FROM reading_list_items
+		WHERE archived = $1 %s
+		ORDER BY saved_at DESC, id DESC
+		LIMIT %d;
+	`, where, paginationSize+1), args...)
+	if err != nil {
+		fmt.Println(err)
+		serverError(w, http.StatusInternalServerError, "Failed to fetch reading list")
+		return
+	}
+	defer rows.Close()
+	res := getReadingListResBody{Items: []readingListItem{}}
+	for rows.Next() {
+		var li readingListItem
+		var wcID, feID *int
+		err := rows.Scan(&li.ID, &li.Kind, &li.Title, &li.Description, &li.SavedAt, &wcID, &feID)
+		if err != nil {
+			fmt.Println(err)
+			serverError(w, http.StatusInternalServerError, "Failed to fetch reading list item")
+			return
+		}
+		switch li.Kind {
+		case "web_clip":
+			if wcID == nil {
+				fmt.Println("Malformed data: a reading list item of kind 'web_clip' is expected to have a web clip ID, but it doesn't.")
+				serverError(w, http.StatusInternalServerError, "Failed to fetch reading list item")
+				return
+			}
+			li.ResourceID = *wcID
+
+		case "feed_entry":
+			if feID == nil {
+				fmt.Println("Malformed data: a reading list item of kind 'feed_entry' is expected to have a feed entry ID, but it doesn't.")
+				serverError(w, http.StatusInternalServerError, "Failed to fetch reading list item")
+				return
+			}
+			li.ResourceID = *feID
+
+		default:
+			fmt.Printf("Unknown reading list item kind: %s\n", li.Kind)
+			serverError(w, http.StatusInternalServerError, "Failed to fetch reading list item")
+			return
+		}
+		res.Items = append(res.Items, li)
+	}
+	if err := rows.Err(); err != nil {
+		fmt.Println(err)
+		serverError(w, http.StatusInternalServerError, "Failed to fetch reading list")
+		return
+	}
+
+	if len(res.Items) > paginationSize {
+		res.Items = res.Items[:paginationSize]
+		last := res.Items[len(res.Items)-1]
+		c := paginationCusor[time.Time]{Key: last.SavedAt, Tiebreaker: last.ID}
+		if res.NextCursor, err = encodeCursor(c); err != nil {
+			serverError(w, http.StatusInternalServerError, "Something went wrong")
+			return
+		}
+	}
+
+	jres, err := json.Marshal(res)
+	if err != nil {
+		fmt.Println(err)
+		serverError(w, http.StatusInternalServerError, "Failed to construct JSON response")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(jres)
+}
+
+type getWebClipResBody struct {
+	ID          int     `json:"id"`
+	URL         string  `json:"url"`
+	Title       *string `json:"title,omitempty"`
+	Description *string `json:"description,omitempty"`
+	Content     *string `json:"content,omitempty"`
+
+	// ReadLater describes the reading list item backing this clip, if it is
+	// saved in the reading list (regardless of archive status). Nil (and omitted)
+	// when the clip is not saved.
+	ReadLater *readLater `json:"read_later,omitempty"`
+}
+
+func (h *handler) getWebClip(w http.ResponseWriter, r *http.Request) {
+	rawId := r.PathValue("id")
+	id, err := strconv.Atoi(rawId)
+	if err != nil {
+		serverError(w, http.StatusBadRequest, fmt.Sprintf("Invalid web clip ID: %s", rawId))
+		return
+	}
+
+	ctx := r.Context()
+	var res getWebClipResBody
+	var rlID *int
+	var rlArchived *bool
+	err = h.db.QueryRowContext(ctx, `
+		SELECT id, url, title, description, content,
+			(SELECT id FROM reading_list_items
+				WHERE web_clip_id = web_clips.id
+				LIMIT 1),
+			(SELECT archived FROM reading_list_items
+				WHERE web_clip_id = web_clips.id
+				LIMIT 1)
+		FROM web_clips
+		WHERE id = $1;
+	`, id).Scan(&res.ID, &res.URL, &res.Title, &res.Description, &res.Content, &rlID, &rlArchived)
+	if errors.Is(err, sql.ErrNoRows) {
+		serverError(w, http.StatusNotFound, "Web clip not found.")
+		return
+	} else if err != nil {
+		fmt.Println(err)
+		serverError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to fetch web clip by ID=%d", id))
+		return
+	}
+	if rlID != nil {
+		res.ReadLater = &readLater{ID: *rlID, Archived: rlArchived != nil && *rlArchived}
+	}
+
+	jres, err := json.Marshal(res)
+	if err != nil {
+		serverError(w, http.StatusInternalServerError, "Failed to construct a JSON response.")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(jres)
+}
+
+func (h *handler) deleteReadingListItem(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		serverError(w, http.StatusBadRequest, "Malformed ID")
+		return
+	}
+	ok, err := readinglist.DeleteItem(r.Context(), h.db, id)
+	if err != nil {
+		fmt.Println(err)
+		serverError(w, http.StatusInternalServerError, "Something went wrong.")
+		return
+	}
+	if !ok {
+		serverError(w, http.StatusNotFound, "Item not found")
+		return
+	}
+	// TODO: DRY JSON response creation
+	jres, err := json.Marshal(map[string]string{})
+	if err != nil {
+		serverError(w, http.StatusInternalServerError, "Failed to construct JSON response")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusNoContent)
+	w.Write(jres)
+}
+
+type setReadingListItemArchivedStatusReqBody struct {
+	Archived *bool `json:"archived"`
+}
+
+func (h *handler) setReadingListItemArchivedStatus(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		serverError(w, http.StatusBadRequest, "Invalid ID")
+		return
+	}
+	var b setReadingListItemArchivedStatusReqBody
+	err = json.NewDecoder(r.Body).Decode(&b)
+	if err != nil || b.Archived == nil {
+		serverError(w, http.StatusBadRequest, "Malformed request body")
+		return
+	}
+	if *b.Archived {
+		err = readinglist.ArchiveItem(r.Context(), h.db, id)
+	} else {
+		err = readinglist.UnarchiveItem(r.Context(), h.db, id)
+	}
+	if err != nil {
+		fmt.Println(err)
+		serverError(w, http.StatusInternalServerError, "Something went wrong")
+		return
+	}
+	// TODO: DRY JSON response creation
+	jres, _ := json.Marshal(map[string]string{})
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusNoContent)
+	w.Write(jres)
+}
+
 func serverError(w http.ResponseWriter, statusCode int, msg string) {
 	res, err := json.Marshal(map[string]any{
 		"message": msg,
@@ -513,4 +960,32 @@ func serverError(w http.ResponseWriter, statusCode int, msg string) {
 		w.WriteHeader(statusCode)
 		w.Write(res)
 	}
+}
+
+const paginationSize = 50
+
+type paginationCusor[T any] struct {
+	Key        T   `json:"key"`
+	Tiebreaker int `json:"tiebreaker"`
+}
+
+func encodeCursor[T any](cursor paginationCusor[T]) (*string, error) {
+	c, err := json.Marshal(cursor)
+	if err != nil {
+		return nil, err
+	}
+	return new(base64.RawURLEncoding.EncodeToString(c)), nil
+}
+
+func decodeCursor[T any](cursor string) (*paginationCusor[T], error) {
+	d, err := base64.RawURLEncoding.DecodeString(cursor)
+	if err != nil {
+		return nil, err
+	}
+	c := new(paginationCusor[T])
+	err = json.Unmarshal(d, c)
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
 }

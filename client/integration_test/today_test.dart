@@ -20,6 +20,8 @@ void main() {
           stories: [
             api.Story(
               id: 1,
+              resourceId: 1,
+              kind: api.StoryKindEnum.feedEntry,
               title: 'Demystifying evals for AI agents',
               source_: 'Cursor AI Blog',
             ),
@@ -28,24 +30,22 @@ void main() {
       ),
     );
     adapter.onGet(
-      '/newspapers/stories/1',
+      '/feed-entries/1',
       (s) => s.reply(
         200,
-        api.GetStory200Response(
-          type: api.GetStory200ResponseTypeEnum.feedEntry,
-          data: api.FeedEntry(
-            id: 1,
-            feedId: 1,
-            url: 'https://cursor.ai/blog/1',
-            title: 'Demystifying evals for AI agents',
-          ),
+        api.FeedEntry(
+          id: 1,
+          feedId: 1,
+          url: 'https://cursor.ai/blog/1',
+          title: 'Demystifying evals for AI agents',
+          snapshotAt: DateTime.utc(2026),
         ).toJson(),
       ),
     );
 
     expect($(AppDebugKey.todayScreen), findsOneWidget);
     await $(AppDebugKey.storyCard('Demystifying evals for AI agents')).tap();
-    await $(AppDebugKey.storyReaderScreen).waitUntilVisible();
+    await $(AppDebugKey.feedEntryReaderScreen).waitUntilVisible();
     await $(
       AppDebugKey.readerTitle('Demystifying evals for AI agents'),
     ).waitUntilVisible();

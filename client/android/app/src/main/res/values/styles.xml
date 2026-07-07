@@ -15,4 +15,11 @@
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">?android:colorBackground</item>
     </style>
+    <!-- Dialog theme for SaveWebClipActivity. Drops the platform title bar so the
+         Compose Surface (which uses the Material 3 dynamic color scheme) fills the whole
+         dialog; the title bar is window chrome Compose cannot reach, and left black.
+         DeviceDefault already adapts to the system light/dark setting. -->
+    <style name="Theme.SaveWebClip.Dialog" parent="@android:style/Theme.DeviceDefault.Dialog">
+        <item name="android:windowNoTitle">true</item>
+    </style>
 </resources>

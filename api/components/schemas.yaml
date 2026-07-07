@@ -40,7 +40,7 @@ FeedCandidate:
 
 FeedEntry:
   type: object
-  required: [id, feed_id, url, title]
+  required: [id, feed_id, url, title, snapshot_at]
   properties:
     id:
       type: integer
@@ -61,13 +61,66 @@ FeedEntry:
     snapshot_at:
       type: string
       format: date-time
+    read_later:
+      allOf:
+        - $ref: "#/ReadLater"
+      description:
+        The reading list item backing this entry, if it is saved in the reading
+        list. Absent when the entry is not saved.
 
-Story:
+ReadLater:
+  description:
+    The reading list item backing a resource. Present only when the resource is
+    saved in the reading list; absent otherwise.
   type: object
-  required: [id, title]
+  required: [id, archived]
+  properties:
+    id:
+      description: The id of the reading list item.
+      type: integer
+    archived:
+      description: Whether the reading list item is archived.
+      type: boolean
+
+ReadingListItem:
+  type: object
+  required: [id, resource_id, kind, title, saved_at]
   properties:
     id:
       type: integer
+    resource_id:
+      description:
+        The ID of the resource backing this item — the web clip ID for
+        `web_clip`, or the feed entry ID for `feed_entry`. Use this to navigate
+        directly to the appropriate reader.
+      type: integer
+    kind:
+      description: The kind of the reading list item.
+      type: string
+      enum: [web_clip, feed_entry]
+    title:
+      type: string
+    description:
+      type: string
+    saved_at:
+      type: string
+      format: date-time
+
+Story:
+  type: object
+  required: [id, resource_id, kind, title]
+  properties:
+    id:
+      type: integer
+    resource_id:
+      description:
+        The ID of the resource backing this story. Use this to navigate directly
+        to the appropriate reader.
+      type: integer
+    kind:
+      description: The kind of the resource backing this story.
+      type: string
+      enum: [web_clip, feed_entry]
     title:
       type: string
     description:
@@ -77,6 +130,12 @@ Story:
     published_at:
       type: string
       format: date-time
+    read_later:
+      allOf:
+        - $ref: "#/ReadLater"
+      description:
+        The reading list item backing this story, if it is saved in the reading
+        list. Absent when the story is not saved.
 
 Error:
   type: object

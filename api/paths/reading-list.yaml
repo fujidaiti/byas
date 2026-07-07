@@ -1,0 +1,99 @@
+get:
+  summary: Get the reading list
+  description:
+    Returns all unarchived reading list items, most recently saved first. Web
+    clips whose content hasn't been fetched yet (or whose fetch failed) are
+    still included, with an empty `title`.
+  operationId: getReadingList
+  parameters:
+    - name: after
+      in: query
+      required: false
+      description:
+        Opaque pagination cursor. Pass the `next_cursor` from the previous
+        response to fetch the next page of items. Omit for the first page.
+      schema:
+        type: string
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [items]
+            properties:
+              items:
+                type: array
+                items:
+                  $ref: "../components/schemas.yaml#/ReadingListItem"
+              next_cursor:
+                description:
+                  Opaque cursor to fetch the next page. Absent when there are no
+                  more items.
+                type: string
+    "500":
+      $ref: "../components/responses.yaml#/InternalServerError"
+
+post:
+  summary: Save an item to the reading list
+  description:
+    Saves an item to the reading list, either a web clip (via `url`), a feed
+    entry (via `feed_entry_id`), or a web clip (via `web_clip_id`). Exactly one
+    of the three must be specified. When saving a web clip, a placeholder item
+    is appended immediately, and its content is fetched and filled in
+    asynchronously afterwards; in this case a 201 response only means the
+    placeholder was appended successfully — the clip fetch may still fail behind
+    the scenes. An optional `title` may be supplied alongside `url` (e.g. the
+    page title shared by the browser) to give the placeholder a meaningful label
+    until the fetch fills in the real one.
+  operationId: saveToReadingList
+  requestBody:
+    description:
+      The item to save. Specify exactly one of `url`, `feed_entry_id`, or
+      `web_clip_id`.
+    content:
+      application/json:
+        schema:
+          oneOf:
+            - type: object
+              additionalProperties: false
+              required: [url]
+              properties:
+                url:
+                  description: The URL of the web clip to save.
+                  type: string
+                  format: uri
+                title:
+                  description:
+                    Optional placeholder title (e.g. the page title shared by
+                    the browser). Shown until the clip is fetched; a successful
+                    fetch replaces it with the extracted title.
+                  type: string
+            - type: object
+              additionalProperties: false
+              required: [feed_entry_id]
+              properties:
+                feed_entry_id:
+                  description: The ID of the feed entry to save.
+                  type: integer
+            - type: object
+              additionalProperties: false
+              required: [web_clip_id]
+              properties:
+                web_clip_id:
+                  description: The ID of a web clip to save.
+                  type: integer
+          example:
+            url: "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents"
+  responses:
+    "201":
+      description: Created
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas.yaml#/ReadingListItem"
+    "400":
+      $ref: "../components/responses.yaml#/BadRequest"
+    "500":
+      $ref: "../components/responses.yaml#/InternalServerError"

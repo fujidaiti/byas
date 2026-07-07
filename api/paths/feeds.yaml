@@ -2,6 +2,15 @@ collection:
   get:
     summary: Get subscribed feeds
     operationId: getFeeds
+    parameters:
+      - name: after
+        in: query
+        required: false
+        description:
+          Opaque pagination cursor. Pass the `next_cursor` from the previous
+          response to fetch the next page of feeds. Omit for the first page.
+        schema:
+          type: string
     responses:
       "200":
         description: OK
@@ -15,6 +24,11 @@ collection:
                   type: array
                   items:
                     $ref: "../components/schemas.yaml#/Feed"
+                next_cursor:
+                  description:
+                    Opaque cursor to fetch the next page. Absent when there are
+                    no more feeds.
+                  type: string
             example:
               feeds:
                 - id: 1
@@ -149,6 +163,14 @@ timeline:
         required: true
         schema:
           type: integer
+      - name: after
+        in: query
+        required: false
+        description:
+          Opaque pagination cursor. Pass the `next_cursor` from the previous
+          response to fetch the next page of entries. Omit for the first page.
+        schema:
+          type: string
     responses:
       "200":
         description: OK
@@ -162,6 +184,11 @@ timeline:
                   type: array
                   items:
                     $ref: "../components/schemas.yaml#/FeedEntry"
+                next_cursor:
+                  description:
+                    Opaque cursor to fetch the next page. Absent when there are
+                    no more entries.
+                  type: string
             example:
               entries:
                 - id: 10

@@ -4,7 +4,20 @@ import 'package:flutter/widgets.dart';
 // ignore: avoid_classes_with_only_static_members
 abstract final class AppDebugKey {
   static const addFeedButton = Key('addFeedButton');
+  static const archiveSuccessSnackBar = Key('archiveSuccessSnackBar');
+  static const archivedButton = Key('archivedButton');
+  static const archivedReadingListScreen = Key('archivedReadingListScreen');
+  static const unarchiveSuccessSnackBar = Key('unarchiveSuccessSnackBar');
   static const feedDetailScreen = Key('feedDetailScreen');
+  static const feedEntryReaderArchiveButton = Key(
+    'feedEntryReaderArchiveButton',
+  );
+  static const feedEntryReaderArchivedBanner = Key(
+    'feedEntryReaderArchivedBanner',
+  );
+  static const feedEntryReaderBookmarkButton = Key(
+    'feedEntryReaderBookmarkButton',
+  );
   static const feedEntryReaderOpenOriginalButton = Key(
     'feedEntryReaderOpenOriginalButton',
   );
@@ -14,10 +27,21 @@ abstract final class AppDebugKey {
   static const feedSearchTextField = Key('feedSearchTextField');
   static const feedsNavDestination = Key('feedsNavDestination');
   static const feedsScreen = Key('feedsScreen');
-  static const storyReaderOpenOriginalButton = Key(
-    'storyReaderOpenOriginalButton',
+  static const readingListNavDestination = Key('readingListNavDestination');
+  static const readingListScreen = Key('readingListScreen');
+  static const webClipReaderScreen = Key('webClipReaderScreen');
+  static const webClipReaderArchiveButton = Key('webClipReaderArchiveButton');
+  static const webClipReaderArchivedBanner = Key('webClipReaderArchivedBanner');
+  static const webClipReaderBookmarkButton = Key('webClipReaderBookmarkButton');
+  static const webClipReaderOpenOriginalButton = Key(
+    'webClipReaderOpenOriginalButton',
   );
-  static const storyReaderScreen = Key('storyReaderScreen');
+  static const removeFromReadingListSuccessSnackBar = Key(
+    'removeFromReadingListSuccessSnackBar',
+  );
+  static const saveToReadingListSuccessSnackBar = Key(
+    'saveToReadingListSuccessSnackBar',
+  );
   static const subscribeSuccessSnackBar = Key('subscribeSuccessSnackBar');
   static const todayNavDestination = Key('todayNavDestination');
   static const todayScreen = Key('todayScreen');
@@ -25,6 +49,7 @@ abstract final class AppDebugKey {
   static Key feedCandidateTile(String title) => Key('feedCandidate:$title');
   static Key feedEntryRow(String title) => Key('feedEntry:$title');
   static Key feedRow(String title) => Key('feed:$title');
+  static Key readingListRow(String title) => Key('readingList:$title');
   static Key readerTitle(String title) => Key('readerTitle:$title');
   static Key storyCard(String title) => Key('story:$title');
 }

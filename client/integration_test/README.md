@@ -64,20 +64,14 @@ Prefer using generated models over raw Map objects for each response as well:
 
 ```dart
 // Good
-adapter.onGet('/newspapers/stories/1',
-  (server) => server.reply(
-    200,
-    api.GetStory200Response(
-      type: api.GetStory200ResponseTypeEnum.feedEntry,
-      data: storyEntry,
-    ).toJson(),
-  ),
+adapter.onGet('/feed-entries/1',
+  (server) => server.reply(200, feedEntry.toJson()),
 );
 
 // Equivalent to above, but do not abuse this pattern
 adapter.onGet(
-  '/newspapers/stories/1',
-  (server) => server.reply(200, { 'type': 'feed_entry', 'data': storyEntry.toJson() }),
+  '/feed-entries/1',
+  (server) => server.reply(200, {'id': 1, 'feed_id': 1, 'url': '...', 'title': '...'}),
 );
 ```
 
@@ -168,24 +162,19 @@ return FeedRow(
 
 ## Writing assertions
 
-### Check the current screen before acting
+### Do not wait after actions
 
-Before the first tap on any screen, assert that the expected screen is visible.
-For the initial screen after `pumpApp` (no animation, synchronous), use a plain
-`expect`:
-
-```dart
-await pumpApp($);
-expect($(AppDebugKey.todayScreen), findsOneWidget);
-await $(AppDebugKey.storyCard('Story title')).tap();
-```
-
-After a navigation tap (animation in progress), use `waitUntilVisible`:
+`pumpAndSettle` method is called by default inside all actions that can be
+performed while testing - tapping, scrolling, entering text, and so on. This
+eliminates the needs to call `waitUntilVisible` after every `tap()` to verify
+screen navigations. Instead, use the standard verification APIs from
+`package:flutter_test` such as `expect`:
 
 ```dart
 await $(AppDebugKey.feedsNavDestination).tap();
-await $(AppDebugKey.feedsScreen).waitUntilVisible();
+expect($(AppDebugKey.feedsScreen), findsOneWidget);
 await $(AppDebugKey.feedRow('Anthropic Engineering Blog')).tap();
+expect($(AppDebugKey.feedDetailScreen), findsOneWidget);
 ```
 
 ### Tap list items by parameterized key
@@ -201,38 +190,4 @@ await $(AppDebugKey.feedRow('Anthropic Engineering Blog')).tap();
 // Avoid — a text finder matches any widget on any screen with that string,
 // which can cause false passes if the same text is present in the background
 await $('Anthropic Engineering Blog').tap();
-```
-
-### Verify navigation with screen-level keys
-
-After a tap that navigates to a new screen, assert on the destination screen's
-key before making content assertions:
-
-```dart
-// In feed_entry_reader_screen.dart
-return Scaffold(
-  key: AppDebugKey.feedEntryReaderScreen,
-  ...
-);
-
-// In the test
-await $(AppDebugKey.feedEntryRow('Entry title')).tap();
-await $(AppDebugKey.feedEntryReaderScreen).waitUntilVisible(); // navigation confirmed
-await $(AppDebugKey.readerTitle('Entry title')).waitUntilVisible(); // content loaded
-```
-
-### The full pattern for each navigation step
-
-```dart
-// 1. Assert current screen is visible (expect for sync, waitUntilVisible after animation)
-expect($(AppDebugKey.sourceScreen), findsOneWidget);
-
-// 2. Tap by parameterized key (locates the widget and verifies its title)
-await $(AppDebugKey.feedRow('Label on source screen')).tap();
-
-// 3. Assert the destination screen is present (navigation confirmed)
-await $(AppDebugKey.destinationScreen).waitUntilVisible();
-
-// 4. Assert the correct entity loaded
-await $(AppDebugKey.readerTitle('Expected content on destination')).waitUntilVisible();
 ```

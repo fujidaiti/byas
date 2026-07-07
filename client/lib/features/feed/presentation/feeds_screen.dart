@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:paperdoll/core/pagination/infinite_scroll.dart';
+import 'package:paperdoll/core/pagination/load_more_footer.dart';
+import 'package:paperdoll/core/pagination/paged_state.dart';
 import 'package:paperdoll/core/router/routes.dart';
 import 'package:paperdoll/core/ui/widgets/app_divider.dart';
 import 'package:paperdoll/core/ui/widgets/async_value_view.dart';
 import 'package:paperdoll/core/ui/widgets/empty_placeholder.dart';
+import 'package:paperdoll/core/ui/widgets/scrollable_fill.dart';
 import 'package:paperdoll/debug_keys.dart';
 import 'package:paperdoll/features/feed/domain/feed.dart';
 import 'package:paperdoll/features/feed/presentation/providers/feed_providers.dart';
@@ -16,7 +20,7 @@ class FeedsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final feedsAsync = ref.watch(feedsProvider());
+    final feedsAsync = ref.watch(feedsProvider);
     return Scaffold(
       key: AppDebugKey.feedsScreen,
       appBar: AppBar(
@@ -30,11 +34,14 @@ class FeedsScreen extends ConsumerWidget {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () => ref.refresh(feedsProvider().future),
-        child: AsyncValueView<List<Feed>>(
+        onRefresh: () => ref.refresh(feedsProvider.future),
+        child: AsyncValueView<PagedState<Feed>>(
           value: feedsAsync,
-          onRetry: () => ref.invalidate(feedsProvider()),
-          data: (feeds) => _FeedsList(feeds: feeds),
+          onRetry: () => ref.invalidate(feedsProvider),
+          data: (state) => _FeedsList(
+            state: state,
+            onLoadMore: () => ref.read(feedsProvider.notifier).loadMore(),
+          ),
         ),
       ),
     );
@@ -42,33 +49,49 @@ class FeedsScreen extends ConsumerWidget {
 }
 
 class _FeedsList extends StatelessWidget {
-  const _FeedsList({required this.feeds});
+  const _FeedsList({required this.state, required this.onLoadMore});
 
-  final List<Feed> feeds;
+  final PagedState<Feed> state;
+  final VoidCallback onLoadMore;
 
   @override
   Widget build(BuildContext context) {
+    final feeds = state.items;
     if (feeds.isEmpty) {
-      return EmptyPlaceholder(
-        message: 'No feeds yet. Add one to get started.',
-        actionLabel: 'Add feed',
-        onAction: () => context.pushNamed(routeFeedSearchName),
+      return ScrollableFill(
+        child: EmptyPlaceholder(
+          message: 'No feeds yet. Add one to get started.',
+          actionLabel: 'Add feed',
+          onAction: () => context.pushNamed(routeFeedSearchName),
+        ),
       );
     }
-    return ListView.separated(
-      itemCount: feeds.length,
-      separatorBuilder: (context, index) => const AppDivider(),
-      itemBuilder: (context, index) {
-        final feed = feeds[index];
-        return FeedRow(
-          key: AppDebugKey.feedRow(feed.title),
-          feed: feed,
-          onTap: () => context.pushNamed(
-            routeFeedDetailName,
-            pathParameters: {'id': feed.id.toString()},
-          ),
-        );
-      },
+    final showFooter = state.isLoadingMore || state.loadMoreError != null;
+    return InfiniteScrollList(
+      onEndReached: onLoadMore,
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        itemCount: feeds.length + (showFooter ? 1 : 0),
+        separatorBuilder: (context, index) => const AppDivider(),
+        itemBuilder: (context, index) {
+          if (index >= feeds.length) {
+            return LoadMoreFooter(
+              isLoading: state.isLoadingMore,
+              error: state.loadMoreError,
+              onRetry: onLoadMore,
+            );
+          }
+          final feed = feeds[index];
+          return FeedRow(
+            key: AppDebugKey.feedRow(feed.title),
+            feed: feed,
+            onTap: () => context.pushNamed(
+              routeFeedDetailName,
+              pathParameters: {'id': feed.id.toString()},
+            ),
+          );
+        },
+      ),
     );
   }
 }

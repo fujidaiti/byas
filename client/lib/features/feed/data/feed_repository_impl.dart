@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:openapi/api.dart' as api;
 import 'package:paperdoll/core/network/request_runner.dart';
+import 'package:paperdoll/core/pagination/page_result.dart';
 import 'package:paperdoll/features/feed/domain/feed.dart';
 import 'package:paperdoll/features/feed/domain/feed_candidate.dart';
 import 'package:paperdoll/features/feed/domain/feed_repository.dart';
@@ -12,11 +13,17 @@ class FeedRepositoryImpl implements FeedRepository {
   final Dio _dio;
 
   @override
-  Future<List<Feed>> listFeeds({String? cursor}) {
+  Future<PageResult<Feed>> listFeeds({String? cursor}) {
     return runRequest(() async {
-      final res = await _dio.get<Map<String, dynamic>>('/feeds');
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/feeds',
+        queryParameters: cursor != null ? {'after': cursor} : null,
+      );
       final body = api.GetFeeds200Response.fromJson(res.data)!;
-      return body.feeds.map(_toFeed).toList();
+      return PageResult(
+        items: body.feeds.map(_toFeed).toList(),
+        nextCursor: body.nextCursor,
+      );
     });
   }
 
@@ -62,24 +69,33 @@ class FeedRepositoryImpl implements FeedRepository {
   }
 
   @override
-  Future<List<FeedEntry>> timeline(int id, {String? cursor}) {
+  Future<PageResult<FeedEntry>> timeline(int id, {String? cursor}) {
     return runRequest(() async {
-      final res = await _dio.get<Map<String, dynamic>>('/feeds/$id/timeline');
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/feeds/$id/timeline',
+        queryParameters: cursor != null ? {'after': cursor} : null,
+      );
       final body = api.GetFeedTimeline200Response.fromJson(res.data)!;
-      return body.entries
-          .map(
-            (e) => FeedEntry(
-              id: e.id,
-              feedId: e.feedId,
-              url: e.url,
-              title: e.title,
-              description: e.description,
-              content: e.content,
-              publishedAt: e.publishedAt,
-              snapshotAt: e.snapshotAt,
-            ),
-          )
-          .toList();
+      return PageResult(
+        items: body.entries
+            .map(
+              (e) => FeedEntry(
+                id: e.id,
+                feedId: e.feedId,
+                url: e.url,
+                title: e.title,
+                description: e.description,
+                content: e.content,
+                publishedAt: e.publishedAt,
+                snapshotAt: e.snapshotAt,
+                readingListItemId: e.readLater?.id,
+                archived: e.readLater?.archived,
+                saved: e.readLater != null,
+              ),
+            )
+            .toList(),
+        nextCursor: body.nextCursor,
+      );
     });
   }
 

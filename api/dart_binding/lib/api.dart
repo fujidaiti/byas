@@ -24,9 +24,17 @@ part 'model/feed_candidate.dart';
 part 'model/feed_entry.dart';
 part 'model/get_feed_timeline200_response.dart';
 part 'model/get_feeds200_response.dart';
-part 'model/get_story200_response.dart';
+part 'model/get_reading_list200_response.dart';
 part 'model/get_todays_newspaper200_response.dart';
+part 'model/get_web_clip200_response.dart';
+part 'model/read_later.dart';
+part 'model/reading_list_item.dart';
+part 'model/save_to_reading_list_request.dart';
+part 'model/save_to_reading_list_request_one_of.dart';
+part 'model/save_to_reading_list_request_one_of1.dart';
+part 'model/save_to_reading_list_request_one_of2.dart';
 part 'model/search_feeds200_response.dart';
+part 'model/set_reading_list_item_archived_status_request.dart';
 part 'model/story.dart';
 part 'model/subscribe_to_feed_request.dart';
 

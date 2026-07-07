@@ -8,8 +8,6 @@ paths:
     $ref: "./paths/health.yaml"
   /newspapers/today:
     $ref: "./paths/newspapers.yaml#/today"
-  /newspapers/stories/{id}:
-    $ref: "./paths/newspapers.yaml#/stories"
   /feeds:
     $ref: "./paths/feeds.yaml#/collection"
   /feeds/search:
@@ -20,6 +18,14 @@ paths:
     $ref: "./paths/feeds.yaml#/timeline"
   /feed-entries/{id}:
     $ref: "./paths/feed-entries.yaml"
+  /web-clips/{id}:
+    $ref: "./paths/web-clips.yaml"
+  /reading-list:
+    $ref: "./paths/reading-list.yaml"
+  /reading-list/archived:
+    $ref: "./paths/reading-list-archived.yaml"
+  /reading-list/{id}:
+    $ref: "./paths/reading-list-item.yaml"
 
 components:
   schemas:
@@ -29,6 +35,8 @@ components:
       $ref: "./components/schemas.yaml#/FeedCandidate"
     FeedEntry:
       $ref: "./components/schemas.yaml#/FeedEntry"
+    ReadingListItem:
+      $ref: "./components/schemas.yaml#/ReadingListItem"
     Story:
       $ref: "./components/schemas.yaml#/Story"
     Error:

@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:openapi/api.dart' as api;
 
 import 'package:paperdoll/core/network/request_runner.dart';
-import 'package:paperdoll/features/feed_entry/domain/feed_entry.dart';
 import 'package:paperdoll/features/newspaper/domain/newspaper.dart';
 import 'package:paperdoll/features/newspaper/domain/newspaper_repository.dart';
 import 'package:paperdoll/features/newspaper/domain/story.dart';
@@ -13,9 +12,12 @@ class NewspaperRepositoryImpl implements NewspaperRepository {
   final Dio _dio;
 
   @override
-  Future<Newspaper> getToday() {
+  Future<Newspaper> getToday({String? cursor}) {
     return runRequest(() async {
-      final res = await _dio.get<Map<String, dynamic>>('/newspapers/today');
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/newspapers/today',
+        queryParameters: cursor != null ? {'after': cursor} : null,
+      );
       final body = api.GetTodaysNewspaper200Response.fromJson(res.data)!;
       return Newspaper(
         id: body.id,
@@ -24,34 +26,25 @@ class NewspaperRepositoryImpl implements NewspaperRepository {
             .map(
               (s) => Story(
                 id: s.id,
+                resourceId: s.resourceId,
+                kind: _toKind(s.kind),
                 title: s.title,
                 description: s.description,
                 source: s.source_,
                 publishedAt: s.publishedAt,
+                readingListItemId: s.readLater?.id,
+                archived: s.readLater?.archived,
               ),
             )
             .toList(),
+        nextCursor: body.nextCursor,
       );
     });
   }
 
-  @override
-  Future<FeedEntry> getStory(int id) {
-    return runRequest(() async {
-      final res = await _dio.get<Map<String, dynamic>>(
-        '/newspapers/stories/$id',
-      );
-      final e = api.GetStory200Response.fromJson(res.data)!.data;
-      return FeedEntry(
-        id: e.id,
-        feedId: e.feedId,
-        url: e.url,
-        title: e.title,
-        description: e.description,
-        content: e.content,
-        publishedAt: e.publishedAt,
-        snapshotAt: e.snapshotAt,
-      );
-    });
-  }
+  StoryKind _toKind(api.StoryKindEnum kind) => switch (kind) {
+    api.StoryKindEnum.webClip => StoryKind.webClip,
+    api.StoryKindEnum.feedEntry => StoryKind.feedEntry,
+    _ => StoryKind.feedEntry,
+  };
 }

@@ -19,6 +19,7 @@ void main() {
       feedId: 1,
       url: 'https://example.com/anthropic/blog/effective-harness',
       title: 'Effective harnesses for long-running agents',
+      snapshotAt: DateTime.utc(2026),
     );
 
     adapter.onGet(
