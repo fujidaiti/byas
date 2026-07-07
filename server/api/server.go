@@ -99,6 +99,7 @@ type getTodaysNewspaperResponse struct {
 	ID          int       `json:"id"`
 	PublishedAt time.Time `json:"published_at"`
 	Stories     []stories `json:"stories"`
+	NextCursor  *string   `json:"next_cursor,omitempty"`
 }
 
 type stories struct {
@@ -113,6 +114,17 @@ type stories struct {
 }
 
 func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
+	// TODO: Design a better cursor (e.g. priority)
+	var cursor int
+	if c := r.URL.Query().Get("after"); c != "" {
+		var err error
+		cursor, err = strconv.Atoi(c)
+		if err != nil {
+			serverError(w, http.StatusBadRequest, "Malformed cursor")
+			return
+		}
+	}
+
 	ctx := r.Context()
 	res := getTodaysNewspaperResponse{}
 	err := h.db.QueryRowContext(ctx, `
@@ -136,12 +148,14 @@ func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 		SELECT id, feed_entry_id, title, description, source, published_at,
 			(SELECT id FROM reading_list_items
 				WHERE feed_entry_id = stories.feed_entry_id
-				LIMIT 1)
+				LIMIT 1) AS reading_list_id
 		FROM stories
-		WHERE newspaper_id = $1
-		ORDER BY published_at DESC;
-	`, res.ID)
+		WHERE newspaper_id = $1 AND id > $2
+		ORDER BY id ASC
+		LIMIT $3;
+	`, res.ID, cursor, paginationSize+1)
 	if err != nil {
+		fmt.Println(err)
 		serverError(
 			w, http.StatusInternalServerError,
 			fmt.Sprintf("Failed to fetch stories for the newspaper (ID=%d).", res.ID),
@@ -160,6 +174,12 @@ func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 	if err := rows.Err(); err != nil {
 		serverError(w, http.StatusInternalServerError, "Failed to parse stories.")
 		return
+	}
+
+	if len(res.Stories) > paginationSize {
+		res.Stories = res.Stories[:paginationSize]
+		last := res.Stories[len(res.Stories)-1]
+		res.NextCursor = new(strconv.Itoa(last.ID))
 	}
 
 	jres, err := json.Marshal(res)
@@ -181,7 +201,7 @@ type feedEntry struct {
 	Description *string    `json:"description,omitempty"`
 	Content     *string    `json:"content,omitempty"`
 	PublishedAt *time.Time `json:"published_at,omitempty"`
-	SnapshotAt  *time.Time `json:"snapshot_at,omitempty"`
+	SnapshotAt  time.Time  `json:"snapshot_at"`
 }
 
 type getFeedEntryResponse struct {
@@ -240,14 +260,40 @@ type feedSchema struct {
 }
 
 type getFeedsResBody struct {
-	Feeds []feedSchema `json:"feeds"`
+	Feeds      []feedSchema `json:"feeds"`
+	NextCursor *string      `json:"next_cursor,omitempty"`
 }
 
+const getFeedsSortKeyLen = 5
+
 func (h *handler) getFeeds(w http.ResponseWriter, r *http.Request) {
+	var cursor *paginationCusor[string]
+	if c := r.URL.Query().Get("after"); c != "" {
+		var err error
+		if cursor, err = decodeCursor[string](c); err != nil {
+			serverError(w, http.StatusBadRequest, "Malformed cursor")
+			return
+		}
+	}
+
 	ctx := r.Context()
 	var res getFeedsResBody
-	// TODO: Support pagination
-	rows, err := h.db.QueryContext(ctx, `SELECT id, url, site_url, icon_url, title, description FROM feeds;`)
+	var where string
+	args := []any{}
+	if cursor != nil {
+		where = "WHERE (sort_key, id) > ($1, $2)"
+		args = append(args, cursor.Key, cursor.Tiebreaker)
+	}
+	rows, err := h.db.QueryContext(ctx, fmt.Sprintf(`
+		SELECT *
+		FROM (
+			SELECT id, url, site_url, icon_url, title, description, LEFT(title, %d) AS sort_key
+			FROM feeds
+		)
+		%s
+		ORDER BY sort_key ASC, id ASC
+		LIMIT %d;
+	`, getFeedsSortKeyLen, where, paginationSize+1), args...)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		fmt.Print(err)
 		serverError(w, http.StatusInternalServerError, "Failed to fetch feeds")
@@ -256,7 +302,7 @@ func (h *handler) getFeeds(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var f feedSchema
 		var su, iu, desc sql.NullString
-		err := rows.Scan(&f.ID, &f.URL, &su, &iu, &f.Title, &desc)
+		err := rows.Scan(&f.ID, &f.URL, &su, &iu, &f.Title, &desc, new(string))
 		if err != nil {
 			fmt.Print(err)
 			serverError(w, http.StatusInternalServerError, "Failed to fetch feeds")
@@ -277,6 +323,24 @@ func (h *handler) getFeeds(w http.ResponseWriter, r *http.Request) {
 		fmt.Print(err)
 		serverError(w, http.StatusInternalServerError, "Failed to fetch feeds")
 		return
+	}
+
+	if len(res.Feeds) > paginationSize {
+		res.Feeds = res.Feeds[:paginationSize]
+		last := res.Feeds[len(res.Feeds)-1]
+		var sortKey string
+		// TODO: Use a better sort key
+		if t := last.Title; len(t) < getFeedsSortKeyLen {
+			sortKey = t
+		} else {
+			sortKey = string([]rune(t)[:getFeedsSortKeyLen])
+		}
+		c := paginationCusor[string]{Key: sortKey, Tiebreaker: last.ID}
+		if res.NextCursor, err = encodeCursor(c); err != nil {
+			fmt.Println(err)
+			serverError(w, http.StatusInternalServerError, "Something went wrong")
+			return
+		}
 	}
 
 	jres, err := json.Marshal(res)
@@ -345,7 +409,8 @@ type feedTimelineEntry struct {
 }
 
 type getFeedTimelineResBody struct {
-	Entries []feedTimelineEntry `json:"entries"`
+	Entries    []feedTimelineEntry `json:"entries"`
+	NextCursor *string             `json:"next_cursor,omitempty"`
 }
 
 func (h *handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
@@ -355,19 +420,32 @@ func (h *handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
 		serverError(w, http.StatusBadRequest, "Invalid feed id")
 		return
 	}
+	var cursor *paginationCusor[time.Time]
+	if c := r.URL.Query().Get("after"); c != "" {
+		if cursor, err = decodeCursor[time.Time](c); err != nil {
+			serverError(w, http.StatusBadRequest, "Malformed cursor")
+			return
+		}
+	}
 
 	ctx := r.Context()
-	// TODO: Support pagination
+	var where string
+	args := []any{id}
+	if cursor != nil {
+		where = "AND (COALESCE(published_at, snapshot_at), id) < ($2, $3)"
+		args = append(args, cursor.Key, cursor.Tiebreaker)
+	}
 	// TODO: Replace this correlated subquery with a LEFT JOIN once
 	//       a UNIQUE (feed_entry_id) constraint exists on reading_list_items.
-	rows, err := h.db.QueryContext(ctx, `
+	rows, err := h.db.QueryContext(ctx, fmt.Sprintf(`
 		SELECT id, feed_id, url, title, description, published_at, snapshot_at,
 			(SELECT id FROM reading_list_items
 				WHERE feed_entry_id = feed_entries.id
 				LIMIT 1)
 		FROM feed_entries
-		WHERE feed_id = $1;
-	`, id)
+		WHERE feed_id = $1 %s
+		LIMIT %d;
+	`, where, paginationSize+1), args...)
 	if err != nil {
 		fmt.Print(err)
 		serverError(w, http.StatusInternalServerError, "Failed to fetch entries")
@@ -388,6 +466,21 @@ func (h *handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
 		fmt.Print(err)
 		serverError(w, http.StatusInternalServerError, "Failed to fetch entries")
 		return
+	}
+
+	if len(res.Entries) > paginationSize {
+		res.Entries = res.Entries[:paginationSize]
+		last := res.Entries[len(res.Entries)-1]
+		sortKey := last.PublishedAt
+		if sortKey == nil {
+			sortKey = &last.SnapshotAt
+		}
+		c := paginationCusor[time.Time]{Key: *sortKey, Tiebreaker: last.ID}
+		if res.NextCursor, err = encodeCursor(c); err != nil {
+			fmt.Println(err)
+			serverError(w, http.StatusInternalServerError, "Something went wrong")
+			return
+		}
 	}
 
 	jres, err := json.Marshal(res)
