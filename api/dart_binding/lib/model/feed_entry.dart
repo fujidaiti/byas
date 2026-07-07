@@ -20,7 +20,7 @@ class FeedEntry {
     this.description,
     this.content,
     this.publishedAt,
-    this.snapshotAt,
+    required this.snapshotAt,
     this.readLater,
   });
 
@@ -56,13 +56,7 @@ class FeedEntry {
   ///
   DateTime? publishedAt;
 
-  ///
-  /// Please note: This property should have been non-nullable! Since the specification file
-  /// does not include a default value (using the "default:" property), however, the generated
-  /// source code must fall back to having a nullable type.
-  /// Consider adding a "default:" property in the specification file to hide this note.
-  ///
-  DateTime? snapshotAt;
+  DateTime snapshotAt;
 
   /// The reading list item backing this entry, if it is saved in the reading list. Absent when the entry is not saved.
   ///
@@ -97,7 +91,7 @@ class FeedEntry {
       (description == null ? 0 : description!.hashCode) +
       (content == null ? 0 : content!.hashCode) +
       (publishedAt == null ? 0 : publishedAt!.hashCode) +
-      (snapshotAt == null ? 0 : snapshotAt!.hashCode) +
+      (snapshotAt.hashCode) +
       (readLater == null ? 0 : readLater!.hashCode);
 
   @override
@@ -125,11 +119,7 @@ class FeedEntry {
     } else {
       json[r'published_at'] = null;
     }
-    if (this.snapshotAt != null) {
-      json[r'snapshot_at'] = this.snapshotAt!.toUtc().toIso8601String();
-    } else {
-      json[r'snapshot_at'] = null;
-    }
+    json[r'snapshot_at'] = this.snapshotAt.toUtc().toIso8601String();
     if (this.readLater != null) {
       json[r'read_later'] = this.readLater;
     } else {
@@ -165,6 +155,10 @@ class FeedEntry {
             'Required key "FeedEntry[title]" is missing from JSON.');
         assert(json[r'title'] != null,
             'Required key "FeedEntry[title]" has a null value in JSON.');
+        assert(json.containsKey(r'snapshot_at'),
+            'Required key "FeedEntry[snapshot_at]" is missing from JSON.');
+        assert(json[r'snapshot_at'] != null,
+            'Required key "FeedEntry[snapshot_at]" has a null value in JSON.');
         return true;
       }());
 
@@ -176,7 +170,7 @@ class FeedEntry {
         description: mapValueOfType<String>(json, r'description'),
         content: mapValueOfType<String>(json, r'content'),
         publishedAt: mapDateTime(json, r'published_at', r''),
-        snapshotAt: mapDateTime(json, r'snapshot_at', r''),
+        snapshotAt: mapDateTime(json, r'snapshot_at', r'')!,
         readLater: ReadLater.fromJson(json[r'read_later']),
       );
     }
@@ -238,5 +232,6 @@ class FeedEntry {
     'feed_id',
     'url',
     'title',
+    'snapshot_at',
   };
 }

@@ -14,27 +14,44 @@ class GetFeedTimeline200Response {
   /// Returns a new [GetFeedTimeline200Response] instance.
   GetFeedTimeline200Response({
     this.entries = const [],
+    this.nextCursor,
   });
 
   List<FeedEntry> entries;
+
+  /// Opaque cursor to fetch the next page. Absent when there are no more entries.
+  ///
+  /// Please note: This property should have been non-nullable! Since the specification file
+  /// does not include a default value (using the "default:" property), however, the generated
+  /// source code must fall back to having a nullable type.
+  /// Consider adding a "default:" property in the specification file to hide this note.
+  ///
+  String? nextCursor;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is GetFeedTimeline200Response &&
-          _deepEquality.equals(other.entries, entries);
+          _deepEquality.equals(other.entries, entries) &&
+          other.nextCursor == nextCursor;
 
   @override
   int get hashCode =>
       // ignore: unnecessary_parenthesis
-      (entries.hashCode);
+      (entries.hashCode) + (nextCursor == null ? 0 : nextCursor!.hashCode);
 
   @override
-  String toString() => 'GetFeedTimeline200Response[entries=$entries]';
+  String toString() =>
+      'GetFeedTimeline200Response[entries=$entries, nextCursor=$nextCursor]';
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
     json[r'entries'] = this.entries;
+    if (this.nextCursor != null) {
+      json[r'next_cursor'] = this.nextCursor;
+    } else {
+      json[r'next_cursor'] = null;
+    }
     return json;
   }
 
@@ -58,6 +75,7 @@ class GetFeedTimeline200Response {
 
       return GetFeedTimeline200Response(
         entries: FeedEntry.listFromJson(json[r'entries']),
+        nextCursor: mapValueOfType<String>(json, r'next_cursor'),
       );
     }
     return null;

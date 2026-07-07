@@ -38,6 +38,7 @@ void main() {
           feedId: 1,
           url: 'https://cursor.ai/blog/1',
           title: 'Demystifying evals for AI agents',
+          snapshotAt: DateTime.utc(2026),
         ).toJson(),
       ),
     );
