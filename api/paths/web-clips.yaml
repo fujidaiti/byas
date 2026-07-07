@@ -27,11 +27,12 @@ get:
                 type: string
               content:
                 type: string
-              reading_list_item_id:
+              read_later:
+                allOf:
+                  - $ref: "../components/schemas.yaml#/ReadLater"
                 description:
-                  The id of the reading list item backing this clip, if it is
-                  saved in the reading list. Absent when not saved.
-                type: integer
+                  The reading list item backing this clip, if it is saved in the
+                  reading list. Absent when not saved.
           example:
             id: 1
             url: "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents"

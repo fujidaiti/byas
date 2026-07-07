@@ -249,7 +249,7 @@ void main() {
       title: entryTitle,
       content:
           '<article><p>A good harness keeps the agent on track.</p></article>',
-      readingListItemId: null, // This entry is not yet saved
+      readLater: null, // This entry is not yet saved
     );
 
     adapter.onGet(

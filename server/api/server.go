@@ -101,15 +101,22 @@ type getTodaysNewspaperResponse struct {
 	Stories     []stories `json:"stories"`
 }
 
+// readLater describes an item's presence in the reading list. It is nil (and
+// omitted from responses) when the item is not saved.
+type readLater struct {
+	ID       int  `json:"id"`
+	Archived bool `json:"archived"`
+}
+
 type stories struct {
-	ID                int        `json:"id"`
-	ResourceID        int        `json:"resource_id"`
-	Kind              string     `json:"kind"`
-	Title             string     `json:"title"`
-	Description       *string    `json:"description,omitempty"`
-	Source            *string    `json:"source,omitempty"`
-	PublishedAt       *time.Time `json:"published_at,omitempty"`
-	ReadingListItemID *int       `json:"reading_list_item_id,omitempty"`
+	ID          int        `json:"id"`
+	ResourceID  int        `json:"resource_id"`
+	Kind        string     `json:"kind"`
+	Title       string     `json:"title"`
+	Description *string    `json:"description,omitempty"`
+	Source      *string    `json:"source,omitempty"`
+	PublishedAt *time.Time `json:"published_at,omitempty"`
+	ReadLater   *readLater `json:"read_later,omitempty"`
 }
 
 func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
@@ -136,6 +143,9 @@ func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 		SELECT id, feed_entry_id, title, description, source, published_at,
 			(SELECT id FROM reading_list_items
 				WHERE feed_entry_id = stories.feed_entry_id
+				LIMIT 1),
+			(SELECT archived FROM reading_list_items
+				WHERE feed_entry_id = stories.feed_entry_id
 				LIMIT 1)
 		FROM stories
 		WHERE newspaper_id = $1
@@ -150,10 +160,15 @@ func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 	}
 	for rows.Next() {
 		a := stories{Kind: "feed_entry"}
-		err := rows.Scan(&a.ID, &a.ResourceID, &a.Title, &a.Description, &a.Source, &a.PublishedAt, &a.ReadingListItemID)
+		var rlID *int
+		var rlArchived *bool
+		err := rows.Scan(&a.ID, &a.ResourceID, &a.Title, &a.Description, &a.Source, &a.PublishedAt, &rlID, &rlArchived)
 		if err != nil {
 			serverError(w, http.StatusInternalServerError, "Failed to parse a story.")
 			return
+		}
+		if rlID != nil {
+			a.ReadLater = &readLater{ID: *rlID, Archived: rlArchived != nil && *rlArchived}
 		}
 		res.Stories = append(res.Stories, a)
 	}
@@ -186,7 +201,7 @@ type feedEntry struct {
 
 type getFeedEntryResponse struct {
 	feedEntry
-	ReadingListItemID *int `json:"reading_list_item_id,omitempty"`
+	ReadLater *readLater `json:"read_later,omitempty"`
 }
 
 func (h *handler) getFeedEntry(w http.ResponseWriter, r *http.Request) {
@@ -199,20 +214,28 @@ func (h *handler) getFeedEntry(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	res := getFeedEntryResponse{}
+	var rlID *int
+	var rlArchived *bool
 	err = h.db.QueryRowContext(ctx, `
 		SELECT id, feed_id, url, title, description, content, snapshot_at, published_at,
 			(SELECT id FROM reading_list_items
 				WHERE feed_entry_id = feed_entries.id
+				LIMIT 1),
+			(SELECT archived FROM reading_list_items
+				WHERE feed_entry_id = feed_entries.id
 				LIMIT 1)
 		FROM feed_entries
 		WHERE id = $1;
-	`, id).Scan(&res.ID, &res.FeedID, &res.URL, &res.Title, &res.Description, &res.Content, &res.SnapshotAt, &res.PublishedAt, &res.ReadingListItemID)
+	`, id).Scan(&res.ID, &res.FeedID, &res.URL, &res.Title, &res.Description, &res.Content, &res.SnapshotAt, &res.PublishedAt, &rlID, &rlArchived)
 	if errors.Is(err, sql.ErrNoRows) {
 		serverError(w, http.StatusNotFound, "Entry not found.")
 		return
 	} else if err != nil {
 		serverError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to fetch entry by ID=%d", id))
 		return
+	}
+	if rlID != nil {
+		res.ReadLater = &readLater{ID: *rlID, Archived: rlArchived != nil && *rlArchived}
 	}
 
 	jres, err := json.Marshal(res)
@@ -341,7 +364,7 @@ func (h *handler) getFeed(w http.ResponseWriter, r *http.Request) {
 
 type feedTimelineEntry struct {
 	feedEntry
-	ReadingListItemID *int `json:"reading_list_item_id,omitempty"`
+	ReadLater *readLater `json:"read_later,omitempty"`
 }
 
 type getFeedTimelineResBody struct {
@@ -364,6 +387,9 @@ func (h *handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
 		SELECT id, feed_id, url, title, description, published_at, snapshot_at,
 			(SELECT id FROM reading_list_items
 				WHERE feed_entry_id = feed_entries.id
+				LIMIT 1),
+			(SELECT archived FROM reading_list_items
+				WHERE feed_entry_id = feed_entries.id
 				LIMIT 1)
 		FROM feed_entries
 		WHERE feed_id = $1;
@@ -376,11 +402,16 @@ func (h *handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
 	res := getFeedTimelineResBody{Entries: []feedTimelineEntry{}}
 	for rows.Next() {
 		var e feedTimelineEntry
-		err := rows.Scan(&e.ID, &e.FeedID, &e.URL, &e.Title, &e.Description, &e.PublishedAt, &e.SnapshotAt, &e.ReadingListItemID)
+		var rlID *int
+		var rlArchived *bool
+		err := rows.Scan(&e.ID, &e.FeedID, &e.URL, &e.Title, &e.Description, &e.PublishedAt, &e.SnapshotAt, &rlID, &rlArchived)
 		if err != nil {
 			fmt.Print(err)
 			serverError(w, http.StatusInternalServerError, "Failed to fetch entry")
 			return
+		}
+		if rlID != nil {
+			e.ReadLater = &readLater{ID: *rlID, Archived: rlArchived != nil && *rlArchived}
 		}
 		res.Entries = append(res.Entries, e)
 	}
@@ -686,10 +717,10 @@ type getWebClipResBody struct {
 	Description *string `json:"description,omitempty"`
 	Content     *string `json:"content,omitempty"`
 
-	// ReadingListItemID is the id of the reading list item backing this clip,
-	// if it is saved in the reading list (regardless of archive status). Nil
+	// ReadLater describes the reading list item backing this clip, if it is
+	// saved in the reading list (regardless of archive status). Nil (and omitted)
 	// when the clip is not saved.
-	ReadingListItemID *int `json:"reading_list_item_id,omitempty"`
+	ReadLater *readLater `json:"read_later,omitempty"`
 }
 
 func (h *handler) getWebClip(w http.ResponseWriter, r *http.Request) {
@@ -702,14 +733,19 @@ func (h *handler) getWebClip(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	var res getWebClipResBody
+	var rlID *int
+	var rlArchived *bool
 	err = h.db.QueryRowContext(ctx, `
 		SELECT id, url, title, description, content,
 			(SELECT id FROM reading_list_items
 				WHERE web_clip_id = web_clips.id
+				LIMIT 1),
+			(SELECT archived FROM reading_list_items
+				WHERE web_clip_id = web_clips.id
 				LIMIT 1)
 		FROM web_clips
 		WHERE id = $1;
-	`, id).Scan(&res.ID, &res.URL, &res.Title, &res.Description, &res.Content, &res.ReadingListItemID)
+	`, id).Scan(&res.ID, &res.URL, &res.Title, &res.Description, &res.Content, &rlID, &rlArchived)
 	if errors.Is(err, sql.ErrNoRows) {
 		serverError(w, http.StatusNotFound, "Web clip not found.")
 		return
@@ -717,6 +753,9 @@ func (h *handler) getWebClip(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 		serverError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to fetch web clip by ID=%d", id))
 		return
+	}
+	if rlID != nil {
+		res.ReadLater = &readLater{ID: *rlID, Archived: rlArchived != nil && *rlArchived}
 	}
 
 	jres, err := json.Marshal(res)
