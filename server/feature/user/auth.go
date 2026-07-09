@@ -8,28 +8,49 @@ import (
 	"database/sql"
 	"errors"
 	"net/mail"
+	"regexp"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
-// TODO: Tweak the bcrypt cost
-const bcryptCost = 12
 const tokenExpiresInDays = 30
 
 var (
 	ErrDeviceKindEmpty = errors.New("device kind is empty")
 	ErrEmailInvalid    = errors.New("email has invalid format")
 	ErrEmailTaken      = errors.New("email already exists")
-	ErrPasswordTooLong = errors.New("password length exceeds 72 bytes")
 	ErrAuthFailed      = errors.New("email or password is incorrect")
 	ErrTokenInvalid    = errors.New("token is invalid or has been expired")
 )
 
 type Credentials struct {
 	Email      string
-	Password   string
+	Password   Password
 	DeviceKind string
+}
+
+type Password struct{ value string }
+
+// Printable ASCII characters only; 15-64 characters
+var pswdRegex = regexp.MustCompile(`^[\x20-\x7E]{15,64}$`)
+
+func ValidatePassword(p string) *Password {
+	if !pswdRegex.MatchString(p) {
+		return nil
+	}
+	return &Password{p}
+}
+
+// TODO: Tweak the bcrypt cost
+const bcryptCost = 12
+
+func (p *Password) hash() ([]byte, error) {
+	return bcrypt.GenerateFromPassword([]byte(p.value), bcryptCost)
+}
+
+func (p *Password) equals(hash []byte) bool {
+	return bcrypt.CompareHashAndPassword(hash, []byte(p.value)) == nil
 }
 
 func SignUp(ctx context.Context, db *sql.DB, crd Credentials) ([]byte, error) {
@@ -40,10 +61,9 @@ func SignUp(ctx context.Context, db *sql.DB, crd Credentials) ([]byte, error) {
 	if err != nil || email.Address != crd.Email {
 		return nil, ErrEmailInvalid
 	}
-	// TODO: Validate email and return an error if invalid
-	hash, err := bcrypt.GenerateFromPassword([]byte(crd.Password), bcryptCost)
+	hash, err := crd.Password.hash()
 	if err != nil {
-		return nil, ErrPasswordTooLong
+		return nil, err
 	}
 	var id int
 	err = db.QueryRowContext(ctx, `
@@ -76,7 +96,7 @@ func SignIn(ctx context.Context, db *sql.DB, crd Credentials) ([]byte, error) {
 	case err != nil:
 		return nil, err
 	}
-	if err := bcrypt.CompareHashAndPassword(dbHash, []byte(crd.Password)); err != nil {
+	if !crd.Password.equals(dbHash) {
 		return nil, ErrAuthFailed
 	}
 	return issueToken(ctx, db, id, crd.DeviceKind)

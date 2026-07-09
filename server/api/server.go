@@ -1015,18 +1015,20 @@ func (h *handler) signUp(w http.ResponseWriter, r *http.Request) {
 		serverError(w, http.StatusBadRequest, "Malformed request body")
 		return
 	}
+	pswd := user.ValidatePassword(req.Password)
+	if pswd == nil {
+		serverError(w, http.StatusBadRequest, "Password has invalid format")
+		return
+	}
 
 	token, err := user.SignUp(r.Context(), h.db, user.Credentials{
 		Email:      req.Email,
-		Password:   req.Password,
+		Password:   *pswd,
 		DeviceKind: req.DeviceKind,
 	})
 	switch {
 	case errors.Is(err, user.ErrEmailInvalid):
 		serverError(w, http.StatusBadRequest, "Email has invalid format")
-		return
-	case errors.Is(err, user.ErrPasswordTooLong):
-		serverError(w, http.StatusBadRequest, "Password is too long")
 		return
 	case errors.Is(err, user.ErrDeviceKindEmpty):
 		serverError(w, http.StatusBadRequest, "Device kind is empty")
@@ -1070,10 +1072,15 @@ func (h *handler) signIn(w http.ResponseWriter, r *http.Request) {
 		serverError(w, http.StatusBadRequest, "Malformed request body")
 		return
 	}
+	pswd := user.ValidatePassword(req.Password)
+	if pswd == nil {
+		serverError(w, http.StatusUnauthorized, "Email or password is incorrect")
+		return
+	}
 
 	token, err := user.SignIn(r.Context(), h.db, user.Credentials{
 		Email:      req.Email,
-		Password:   req.Password,
+		Password:   *pswd,
 		DeviceKind: req.DeviceKind,
 	})
 	switch {
@@ -1081,7 +1088,7 @@ func (h *handler) signIn(w http.ResponseWriter, r *http.Request) {
 		serverError(w, http.StatusBadRequest, "Device kind is empty")
 		return
 	case errors.Is(err, user.ErrAuthFailed):
-		serverError(w, http.StatusBadRequest, "Email or password is incorrect")
+		serverError(w, http.StatusUnauthorized, "Email or password is incorrect")
 		return
 	case err != nil:
 		fmt.Println(err)
