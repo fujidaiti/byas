@@ -1,3 +1,4 @@
+// TODO: Garbage-collect expired tokens
 package user
 
 import (
@@ -64,7 +65,7 @@ func SignIn(ctx context.Context, db *sql.DB, crd Credentials) ([]byte, error) {
 	if crd.DeviceKind == "" {
 		return nil, ErrDeviceKindEmpty
 	}
-	var dbHash string
+	var dbHash []byte
 	var id int
 	err := db.QueryRowContext(ctx, `
 		SELECT id, password_hash FROM users WHERE email = $1;
@@ -75,7 +76,7 @@ func SignIn(ctx context.Context, db *sql.DB, crd Credentials) ([]byte, error) {
 	case err != nil:
 		return nil, err
 	}
-	if err := bcrypt.CompareHashAndPassword([]byte(dbHash), []byte(crd.Password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword(dbHash, []byte(crd.Password)); err != nil {
 		return nil, ErrAuthFailed
 	}
 	return issueToken(ctx, db, id, crd.DeviceKind)
