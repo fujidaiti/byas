@@ -16,6 +16,7 @@ import (
 
 	"github.com/fujidaiti/paperdoll/feature/feed"
 	"github.com/fujidaiti/paperdoll/feature/readinglist"
+	"github.com/fujidaiti/paperdoll/feature/user"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -54,6 +55,8 @@ func StartServer(ctx context.Context) {
 	mux.HandleFunc("GET /reading-list/archived", h.getArchivedReadingList)
 	mux.HandleFunc("DELETE /reading-list/{id}", h.deleteReadingListItem)
 	mux.HandleFunc("PATCH /reading-list/{id}", h.setReadingListItemArchivedStatus)
+	mux.HandleFunc("POST /signup", h.signUp)
+	mux.HandleFunc("POST /signin", h.signIn)
 
 	srv := http.Server{
 		Addr:    ":8080",
@@ -993,6 +996,107 @@ func (h *handler) setReadingListItemArchivedStatus(w http.ResponseWriter, r *htt
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusNoContent)
 	_, _ = w.Write(jres)
+}
+
+type signUpReqBody struct {
+	Email      string `json:"email"`
+	Password   string `json:"password"`
+	DeviceKind string `json:"device_kind"`
+}
+
+type signUpResBody struct {
+	Token string `json:"token"`
+}
+
+func (h *handler) signUp(w http.ResponseWriter, r *http.Request) {
+	var req signUpReqBody
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		serverError(w, http.StatusBadRequest, "Malformed request body")
+		return
+	}
+
+	token, err := user.SignUp(r.Context(), h.db, user.Credentials{
+		Email:      req.Email,
+		Password:   req.Password,
+		DeviceKind: req.DeviceKind,
+	})
+	switch {
+	case errors.Is(err, user.ErrEmailInvalid):
+		serverError(w, http.StatusBadRequest, "Email has invalid format")
+		return
+	case errors.Is(err, user.ErrPasswordTooLong):
+		serverError(w, http.StatusBadRequest, "Password is too long")
+		return
+	case errors.Is(err, user.ErrDeviceKindEmpty):
+		serverError(w, http.StatusBadRequest, "Device kind is empty")
+		return
+	case err != nil:
+		fmt.Println(err)
+		serverError(w, http.StatusInternalServerError, "Something went wrong")
+		return
+	}
+
+	// TODO: DRY JSON response creation
+	jres, err := json.Marshal(signUpResBody{
+		Token: base64.RawURLEncoding.EncodeToString(token),
+	})
+	if err != nil {
+		serverError(w, http.StatusInternalServerError, "Failed to construct a JSON response")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	w.Write(jres)
+}
+
+type signInReqBody struct {
+	Email      string `json:"email"`
+	Password   string `json:"password"`
+	DeviceKind string `json:"device_kind"`
+}
+
+type signInResBody struct {
+	Token string `json:"token"`
+}
+
+func (h *handler) signIn(w http.ResponseWriter, r *http.Request) {
+	var req signInReqBody
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		serverError(w, http.StatusBadRequest, "Malformed request body")
+		return
+	}
+
+	token, err := user.SignIn(r.Context(), h.db, user.Credentials{
+		Email:      req.Email,
+		Password:   req.Password,
+		DeviceKind: req.DeviceKind,
+	})
+	switch {
+	case errors.Is(err, user.ErrDeviceKindEmpty):
+		serverError(w, http.StatusBadRequest, "Device kind is empty")
+		return
+	case errors.Is(err, user.ErrAuthFailed):
+		serverError(w, http.StatusBadRequest, "Email or password is incorrect")
+		return
+	case err != nil:
+		fmt.Println(err)
+		serverError(w, http.StatusInternalServerError, "Something went wrong")
+		return
+	}
+
+	// TODO: DRY JSON response creation
+	jres, err := json.Marshal(signInResBody{
+		Token: base64.RawURLEncoding.EncodeToString(token),
+	})
+	if err != nil {
+		serverError(w, http.StatusInternalServerError, "Failed to construct a JSON response")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(jres)
 }
 
 func serverError(w http.ResponseWriter, statusCode int, msg string) {
