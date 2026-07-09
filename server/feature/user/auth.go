@@ -16,21 +16,25 @@ import (
 const bcryptCost = 12
 const tokenExpiresInDays = 30
 
+var (
+	ErrDeviceKindEmpty = errors.New("device kind is empty")
+	ErrEmailInvalid    = errors.New("email has invalid format")
+	ErrEmailTaken      = errors.New("email already exists")
+	ErrPasswordTooLong = errors.New("password length exceeds 72 bytes")
+	ErrAuthFailed      = errors.New("email or password is incorrect")
+	ErrTokenInvalid    = errors.New("token is invalid or has been expired")
+)
+
 type Credentials struct {
 	Email      string
 	Password   string
 	DeviceKind string
 }
 
-var (
-	ErrDeviceKindEmpty = errors.New("device kind is empty")
-	ErrEmailInvalid    = errors.New("email has invalid format")
-	ErrPasswordTooLong = errors.New("password length exceeds 72 bytes")
-	ErrAuthFailed      = errors.New("email or password is incorrect")
-	ErrTokenInvalid    = errors.New("token is invalid or has been expired")
-)
-
 func SignUp(ctx context.Context, db *sql.DB, crd Credentials) ([]byte, error) {
+	if crd.DeviceKind == "" {
+		return nil, ErrDeviceKindEmpty
+	}
 	email, err := mail.ParseAddress(crd.Email)
 	if err != nil || email.Address != crd.Email {
 		return nil, ErrEmailInvalid
@@ -47,13 +51,19 @@ func SignUp(ctx context.Context, db *sql.DB, crd Credentials) ([]byte, error) {
 		ON CONFLICT (email) DO NOTHING
 		RETURNING id;
 	`, email.Address, hash).Scan(&id)
-	if err != nil {
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return nil, ErrEmailTaken
+	case err != nil:
 		return nil, err
 	}
 	return issueToken(ctx, db, id, crd.DeviceKind)
 }
 
 func SignIn(ctx context.Context, db *sql.DB, crd Credentials) ([]byte, error) {
+	if crd.DeviceKind == "" {
+		return nil, ErrDeviceKindEmpty
+	}
 	var dbHash string
 	var id int
 	err := db.QueryRowContext(ctx, `
@@ -72,9 +82,6 @@ func SignIn(ctx context.Context, db *sql.DB, crd Credentials) ([]byte, error) {
 }
 
 func issueToken(ctx context.Context, db *sql.DB, id int, device string) ([]byte, error) {
-	if device == "" {
-		return nil, ErrDeviceKindEmpty
-	}
 	token := make([]byte, 32)
 	if _, err := rand.Read(token); err != nil {
 		return nil, err

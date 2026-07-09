@@ -1031,6 +1031,9 @@ func (h *handler) signUp(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, user.ErrDeviceKindEmpty):
 		serverError(w, http.StatusBadRequest, "Device kind is empty")
 		return
+	case errors.Is(err, user.ErrEmailTaken):
+		serverError(w, http.StatusConflict, "Email already exists")
+		return
 	case err != nil:
 		fmt.Println(err)
 		serverError(w, http.StatusInternalServerError, "Something went wrong")
