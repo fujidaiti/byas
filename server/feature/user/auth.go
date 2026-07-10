@@ -20,38 +20,22 @@ var (
 	ErrDeviceKindEmpty = errors.New("device kind is empty")
 	ErrEmailInvalid    = errors.New("email has invalid format")
 	ErrEmailTaken      = errors.New("email already exists")
+	ErrPswdInvalid     = errors.New("password has invalid format")
 	ErrAuthFailed      = errors.New("email or password is incorrect")
 	ErrTokenInvalid    = errors.New("token is invalid or has been expired")
 )
 
 type Credentials struct {
 	Email      string
-	Password   Password
+	Password   string
 	DeviceKind string
 }
-
-type Password struct{ value string }
 
 // Printable ASCII characters only; 15-64 characters
 var pswdRegex = regexp.MustCompile(`^[\x20-\x7E]{15,64}$`)
 
-func ValidatePassword(p string) *Password {
-	if !pswdRegex.MatchString(p) {
-		return nil
-	}
-	return &Password{p}
-}
-
 // TODO: Tweak the bcrypt cost
 const bcryptCost = 12
-
-func (p *Password) hash() ([]byte, error) {
-	return bcrypt.GenerateFromPassword([]byte(p.value), bcryptCost)
-}
-
-func (p *Password) equals(hash []byte) bool {
-	return bcrypt.CompareHashAndPassword(hash, []byte(p.value)) == nil
-}
 
 func SignUp(ctx context.Context, db *sql.DB, crd Credentials) ([]byte, error) {
 	if crd.DeviceKind == "" {
@@ -61,7 +45,10 @@ func SignUp(ctx context.Context, db *sql.DB, crd Credentials) ([]byte, error) {
 	if err != nil || email.Address != crd.Email {
 		return nil, ErrEmailInvalid
 	}
-	hash, err := crd.Password.hash()
+	if !pswdRegex.MatchString(crd.Password) {
+		return nil, ErrPswdInvalid
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(crd.Password), bcryptCost)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +83,7 @@ func SignIn(ctx context.Context, db *sql.DB, crd Credentials) ([]byte, error) {
 	case err != nil:
 		return nil, err
 	}
-	if !crd.Password.equals(dbHash) {
+	if bcrypt.CompareHashAndPassword(dbHash, []byte(crd.Password)) != nil {
 		return nil, ErrAuthFailed
 	}
 	return issueToken(ctx, db, id, crd.DeviceKind)

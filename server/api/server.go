@@ -1015,15 +1015,10 @@ func (h *handler) signUp(w http.ResponseWriter, r *http.Request) {
 		serverError(w, http.StatusBadRequest, "Malformed request body")
 		return
 	}
-	pswd := user.ValidatePassword(req.Password)
-	if pswd == nil {
-		serverError(w, http.StatusBadRequest, "Password has invalid format")
-		return
-	}
 
 	token, err := user.SignUp(r.Context(), h.db, user.Credentials{
 		Email:      req.Email,
-		Password:   *pswd,
+		Password:   req.Password,
 		DeviceKind: req.DeviceKind,
 	})
 	switch {
@@ -1035,6 +1030,9 @@ func (h *handler) signUp(w http.ResponseWriter, r *http.Request) {
 		return
 	case errors.Is(err, user.ErrEmailTaken):
 		serverError(w, http.StatusConflict, "Email already exists")
+		return
+	case errors.Is(err, user.ErrPswdInvalid):
+		serverError(w, http.StatusBadRequest, "Password has invalid format")
 		return
 	case err != nil:
 		fmt.Println(err)
@@ -1072,15 +1070,10 @@ func (h *handler) signIn(w http.ResponseWriter, r *http.Request) {
 		serverError(w, http.StatusBadRequest, "Malformed request body")
 		return
 	}
-	pswd := user.ValidatePassword(req.Password)
-	if pswd == nil {
-		serverError(w, http.StatusUnauthorized, "Email or password is incorrect")
-		return
-	}
 
 	token, err := user.SignIn(r.Context(), h.db, user.Credentials{
 		Email:      req.Email,
-		Password:   *pswd,
+		Password:   req.Password,
 		DeviceKind: req.DeviceKind,
 	})
 	switch {
