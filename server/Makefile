@@ -1,15 +1,9 @@
 include .env
 export
 
-.PHONY: db-seed
-db-seed:
-	psql -d $(DB_NAME) -f db/seed.sql
-
-.PHONY: db-reset
-db-reset:
-	dropdb --if-exists $(DB_NAME)
-	createdb $(DB_NAME)
-	$(MAKE) db-seed
+.PHONY: db-migrate
+db-migrate:
+	go run ./cmd/app/main.go migrate up
 
 .PHONY: dev-poll
 dev-poll:
