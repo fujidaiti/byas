@@ -3,18 +3,15 @@ package main
 import (
 	"context"
 	"database/sql"
-	"embed"
 	"fmt"
 	"os"
 	"os/signal"
 
 	"github.com/fujidaiti/paperdoll/api"
+	"github.com/fujidaiti/paperdoll/db/migration"
 	"github.com/fujidaiti/paperdoll/worker"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
-
-//go:embed db/migration/*.sql
-var embedMigrations embed.FS
 
 func main() {
 	if len(os.Args) < 2 {
@@ -30,7 +27,11 @@ func main() {
 		schedule()
 
 	case "migrate":
-		migrate()
+		if len(os.Args) < 3 {
+			fmt.Fprintln(os.Stderr, "Specify a goose command (e.g., up).")
+			os.Exit(1)
+		}
+		migrate(os.Args[2], os.Args[3:])
 
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", os.Args[1])
@@ -50,12 +51,18 @@ func schedule() {
 	worker.StartScheduler(ctx)
 }
 
-func migrate() {
+func migrate(cmd string, args []string) {
 	db, err := setUpDB()
 	if err != nil {
 		panic(err)
 	}
 	defer db.Close()
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
+	err = migration.Run(ctx, db, cmd, args)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func setUpDB() (*sql.DB, error) {
