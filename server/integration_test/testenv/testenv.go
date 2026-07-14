@@ -3,6 +3,7 @@ package testenv
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"testing"
 	"time"
@@ -17,15 +18,23 @@ import (
 var container *postgres.PostgresContainer
 var db *sql.DB
 
+// Run is a wrapper around the body of top-level test functions that requires a sql.DB handle.
+// The database is automatically cleanued up after the test finishes.
 func Run(t *testing.T, f func(db *sql.DB)) {
 	t.Helper()
-	t.Cleanup(func() { container.Restore(t.Context()) })
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		defer cancel()
+		container.Restore(ctx)
+	})
 	f(db)
 }
 
+// RunTests runs all top-level test functions and returns an exit code.
+// Intended to be used in TestMain, only once.
 func RunTests(m *testing.M) int {
 	if container != nil || db != nil {
-		panic("Do not call RunTests twice")
+		return exitAs("Do not call RunTests twice")
 	}
 	ctx := context.Background()
 	defer func() {
@@ -46,6 +55,7 @@ func RunTests(m *testing.M) int {
 	var err error
 	container, err = postgres.Run(ctx,
 		"postgres:18-alpine",
+		postgres.WithSQLDriver("pgx"),
 		postgres.WithDatabase("test_db"),
 		postgres.WithUsername("postgres"),
 		postgres.WithPassword("postgres"),
@@ -55,32 +65,50 @@ func RunTests(m *testing.M) int {
 		),
 	)
 	if err != nil {
-		log.Printf("Failed to launch test container: %v\n", err)
-		return 1
+		return exitAs("Failed to launch test container: %v\n", err)
 	}
 	dsn, err := container.ConnectionString(ctx, "sslmode=disable")
 	if err != nil {
-		log.Printf("Failed to construct the DSN: %v\n", err)
-		return 1
+		return exitAs("Failed to construct the DSN: %v\n", err)
 	}
-	db, err = sql.Open("pgx", dsn)
+	err = openDB(dsn)
 	if err != nil {
-		log.Printf("Failed to connect to %s: %v\n", dsn, err)
-		return 1
-	}
-	err = db.Ping()
-	if err != nil {
-		log.Printf("Failed to ping: %v\n", err)
-		return 1
+		return exitAs("Failed to open the DB for migration: %v\n", err)
 	}
 	err = migration.Up(ctx, db)
 	if err != nil {
-		log.Printf("Failed to migrate DB: %v\n", err)
-		return 1
+		return exitAs("Failed to migrate DB: %v\n", err)
+	}
+	// container.Snapshot requires all DB connections to be closed.
+	if err := db.Close(); err != nil {
+		return exitAs("Failed to close DB before taking a snapshot: %v\n", err)
 	}
 	err = container.Snapshot(ctx)
 	if err != nil {
-		log.Printf("Failed to take a snaphost of DB: %v\n", err)
+		return exitAs("Failed to take a DB snapshot: %v\n", err)
+	}
+	err = openDB(dsn)
+	if err != nil {
+		return exitAs("Failed to reopen the DB: %v\n", err)
 	}
 	return m.Run()
+}
+
+func exitAs(format string, v ...any) int {
+	log.Printf(format, v...)
+	return 1
+}
+
+// openDB modifies the global db variable. Errors should be handled on the call site.
+func openDB(dsn string) error {
+	var err error
+	db, err = sql.Open("pgx", dsn)
+	if err != nil {
+		return fmt.Errorf("failed to connect to %s: %v", dsn, err)
+	}
+	err = db.Ping()
+	if err != nil {
+		return fmt.Errorf("failed to ping: %v", err)
+	}
+	return nil
 }
