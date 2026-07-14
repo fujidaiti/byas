@@ -73,7 +73,11 @@ func (j *job) assembleAndPublish(ctx context.Context) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer tx.Rollback()
+	defer func() {
+		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
+			fmt.Println(err)
+		}
+	}()
 
 	res, err := tx.ExecContext(ctx, `
 		UPDATE stories

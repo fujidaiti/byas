@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"slices"
 	"time"
 )
@@ -30,7 +31,11 @@ func getSchedules(ctx context.Context, db *sql.DB, t time.Time) ([]time.Time, er
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
 
 	year, month, day := t.Date()
 	midnight := time.Date(year, month, day, 0, 0, 0, 0, time.Local)
@@ -55,7 +60,7 @@ func FindEditorialInterval(ctx context.Context, db *sql.DB, t time.Time) (Editor
 		return EditorialInterval{}, err
 	}
 	if len(ss) == 0 {
-		return EditorialInterval{}, errors.New("No schedule is registered.")
+		return EditorialInterval{}, errors.New("no schedule is registered")
 	}
 	slices.SortFunc(ss, time.Time.Compare)
 	return findEditorialInterval(t, ss), nil

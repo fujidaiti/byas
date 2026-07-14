@@ -33,7 +33,11 @@ func poll() {
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
 
 	jobs, err := feed.CollectJobs(ctx, db)
 	if err != nil {

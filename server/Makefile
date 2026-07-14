@@ -16,3 +16,11 @@ dev-serve:
 .PHONY: build-linux-amd64
 build-linux-amd64:
 	GOOS=linux GOARCH=amd64 go build -o build/paperdoll-linux-amd64 ./cmd/app/main.go
+
+.PHONY: fmt
+fmt:
+	golangci-lint fmt ./...
+
+.PHONY: lint
+lint:
+	golangci-lint run ./...

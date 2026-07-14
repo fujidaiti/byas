@@ -93,7 +93,7 @@ type handler struct {
 }
 
 func (h *handler) getHealth(w http.ResponseWriter, _ *http.Request) {
-	w.Write([]byte("Feeling good!"))
+	_, _ = w.Write([]byte("Feeling good!"))
 }
 
 type getTodaysNewspaperResponse struct {
@@ -206,7 +206,7 @@ func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(jres)
+	_, _ = w.Write(jres)
 }
 
 type feedEntry struct {
@@ -267,7 +267,7 @@ func (h *handler) getFeedEntry(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(jres)
+	_, _ = w.Write(jres)
 }
 
 type feedAttrsSchema struct {
@@ -375,7 +375,7 @@ func (h *handler) getFeeds(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(jres)
+	_, _ = w.Write(jres)
 }
 
 type getFeedResBody struct {
@@ -424,7 +424,7 @@ func (h *handler) getFeed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(jres)
+	_, _ = w.Write(jres)
 }
 
 type feedTimelineEntry struct {
@@ -525,7 +525,7 @@ func (h *handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(jres)
+	_, _ = w.Write(jres)
 }
 
 type searchFeedsResBody struct {
@@ -563,7 +563,7 @@ func (h *handler) searchFeeds(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(jres)
+	_, _ = w.Write(jres)
 }
 
 type subscribeToFeedReqBody struct {
@@ -616,7 +616,7 @@ func (h *handler) subscribeToFeed(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(jres)
+	_, _ = w.Write(jres)
 }
 
 type saveToReadingListReqBody struct {
@@ -712,7 +712,7 @@ func (h *handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	w.Write(jres)
+	_, _ = w.Write(jres)
 }
 
 type getReadingListResBody struct {
@@ -769,7 +769,11 @@ func (h *handler) writeReadingList(w http.ResponseWriter, r *http.Request, archi
 		serverError(w, http.StatusInternalServerError, "Failed to fetch reading list")
 		return
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
 	res := getReadingListResBody{Items: []readingListItem{}}
 	for rows.Next() {
 		var li readingListItem
@@ -828,7 +832,7 @@ func (h *handler) writeReadingList(w http.ResponseWriter, r *http.Request, archi
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(jres)
+	_, _ = w.Write(jres)
 }
 
 type getWebClipResBody struct {
@@ -886,7 +890,7 @@ func (h *handler) getWebClip(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(jres)
+	_, _ = w.Write(jres)
 }
 
 func (h *handler) deleteReadingListItem(w http.ResponseWriter, r *http.Request) {
@@ -913,7 +917,7 @@ func (h *handler) deleteReadingListItem(w http.ResponseWriter, r *http.Request) 
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusNoContent)
-	w.Write(jres)
+	_, _ = w.Write(jres)
 }
 
 type setReadingListItemArchivedStatusReqBody struct {
@@ -946,7 +950,7 @@ func (h *handler) setReadingListItemArchivedStatus(w http.ResponseWriter, r *htt
 	jres, _ := json.Marshal(map[string]string{})
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusNoContent)
-	w.Write(jres)
+	_, _ = w.Write(jres)
 }
 
 func serverError(w http.ResponseWriter, statusCode int, msg string) {
@@ -958,7 +962,7 @@ func serverError(w http.ResponseWriter, statusCode int, msg string) {
 	} else {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(statusCode)
-		w.Write(res)
+		_, _ = w.Write(res)
 	}
 }
 

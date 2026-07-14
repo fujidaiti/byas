@@ -83,9 +83,13 @@ func fetchFeed(ctx context.Context, fu url.URL) (FeedAttrs, error) {
 	if err != nil {
 		return FeedAttrs{}, err
 	}
-	defer res.Body.Close()
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
 	if res.StatusCode != http.StatusOK {
-		return FeedAttrs{}, fmt.Errorf("Failed to fetch feed: %s", fu.String())
+		return FeedAttrs{}, fmt.Errorf("failed to fetch feed: %s", fu.String())
 	}
 	// TODO: Limit body size
 	raw, err := gofeed.NewParser().Parse(res.Body)

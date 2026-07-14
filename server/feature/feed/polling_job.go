@@ -56,9 +56,13 @@ func (j *job) Do(ctx context.Context) error {
 		return err
 	}
 	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("Couldn't fetch feed (id=%d)\n", feed.id)
+		return fmt.Errorf("couldn't fetch feed (id=%d)", feed.id)
 	}
-	defer res.Body.Close()
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
 
 	fp := gofeed.NewParser()
 	raw, err := fp.Parse(res.Body)
@@ -66,7 +70,7 @@ func (j *job) Do(ctx context.Context) error {
 		return err
 	}
 	if len(raw.Items) == 0 {
-		return fmt.Errorf("Feed %d has no items.\n", feed.id)
+		return fmt.Errorf("feed %d has no items", feed.id)
 	}
 
 	fmt.Printf("Got %d entries from %s\n", len(raw.Items), feed.url)
@@ -92,7 +96,11 @@ func (j *job) Do(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
 
 	var newEntries []entryRecord
 	for rows.Next() {
@@ -152,7 +160,11 @@ func CollectJobs(ctx context.Context, db *sql.DB) ([]job, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
 
 	var jobs []job
 	for rows.Next() {
@@ -251,11 +263,15 @@ func fetchContent(ctx context.Context, entry entryRecord, db *sql.DB) error {
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("HTTP GET failed with status code %d", res.StatusCode)
 	}
-	defer res.Body.Close()
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
 
 	buf := bluemonday.UGCPolicy().SanitizeReader(res.Body)
 	if buf.Len() == 0 {
-		return fmt.Errorf("The body is empty.")
+		return fmt.Errorf("the body is empty")
 	}
 
 	baseUrl := new(*entryUrl)
@@ -277,7 +293,7 @@ func fetchContent(ctx context.Context, entry entryRecord, db *sql.DB) error {
 		return err
 	}
 	if buf.Len() == 0 {
-		return fmt.Errorf("Failed to extract content.")
+		return fmt.Errorf("failed to extract content")
 	}
 	content := fmt.Sprintf(contentTemplate, buf)
 
@@ -287,7 +303,7 @@ func fetchContent(ctx context.Context, entry entryRecord, db *sql.DB) error {
 		WHERE id = $3;
 	`, content, time.Now(), entry.id)
 	if err != nil {
-		return fmt.Errorf("Failed to fetch content.")
+		return fmt.Errorf("failed to fetch content")
 	}
 
 	return nil
