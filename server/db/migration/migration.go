@@ -19,8 +19,3 @@ func Run(ctx context.Context, db *sql.DB, cmd string, args []string) error {
 	}
 	return goose.RunContext(ctx, cmd, db, ".", args...)
 }
-
-// Up runs goose's up command.
-func Up(ctx context.Context, db *sql.DB) error {
-	return Run(ctx, db, "up", nil)
-}

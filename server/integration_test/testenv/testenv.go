@@ -75,7 +75,7 @@ func RunTests(m *testing.M) int {
 	if err != nil {
 		return exitAs("Failed to open the DB for migration: %v\n", err)
 	}
-	err = migration.Up(ctx, db)
+	err = migration.Run(ctx, db, "up", nil)
 	if err != nil {
 		return exitAs("Failed to migrate DB: %v\n", err)
 	}
