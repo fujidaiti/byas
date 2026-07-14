@@ -9,7 +9,19 @@ import (
 
 	"github.com/fujidaiti/paperdoll/feature/newspaper"
 	"github.com/fujidaiti/paperdoll/integration_test/testenv"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
+
+type storyRow struct {
+	ID          int64
+	FeedEntryID int64
+	NewspaperID *int64
+	Title       string
+	Description *string
+	PublishedAt *time.Time
+	Source      string
+}
 
 func TestSubmitStories(t *testing.T) {
 	testenv.Run(t, func(db *sql.DB) {
@@ -41,9 +53,6 @@ func TestSubmitStories(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		var id, feID, npID *int
-		var title, desc, src *string
-		var pubDate *time.Time
 		rows, err := db.QueryContext(t.Context(), `
 			SELECT id, feed_entry_id, newspaper_id, title, description, source, published_at
 			FROM stories;
@@ -55,36 +64,22 @@ func TestSubmitStories(t *testing.T) {
 		if !rows.Next() {
 			t.Fatal("no story is saved")
 		}
-		err = rows.Scan(&id, &feID, &npID, &title, &desc, &src, &pubDate)
+		var got storyRow
+		err = rows.Scan(&got.ID, &got.FeedEntryID, &got.NewspaperID, &got.Title, &got.Description, &got.Source, &got.PublishedAt)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if id == nil {
-			t.Error("Expected a non-nil ID, but got nil")
+
+		want := storyRow{
+			FeedEntryID: int64(entryID),
+			Title:       story.Title,
+			Source:      story.Source,
 		}
-		if feID == nil {
-			t.Errorf("Expected to have a feed_entry_id of %d, but got nil", entryID)
-		} else if *feID != entryID {
-			t.Errorf("Expected to have a feed_entry_id of %d, but got %d", entryID, *feID)
+		if diff := cmp.Diff(want, got, cmpopts.IgnoreFields(storyRow{}, "ID")); diff != "" {
+			t.Errorf("unexpected story (-want +got):\n%s", diff)
 		}
-		if npID != nil {
-			t.Errorf("Expected a nil newspaper_id, but got %d", *npID)
-		}
-		if title == nil {
-			t.Errorf("Expected a title of %q, but got nil", story.Title)
-		} else if *title != story.Title {
-			t.Errorf("Expected a title of %q, but got %q", story.Title, *title)
-		}
-		if desc != nil {
-			t.Errorf("Expected a nil description, but got %q", *desc)
-		}
-		if src == nil {
-			t.Errorf("Expected a source of %q, but got nil", story.Source)
-		} else if *src != story.Source {
-			t.Errorf("Expected a source of %q, but got %q", story.Source, *src)
-		}
-		if pubDate != nil {
-			t.Errorf("Expected a nil published_at, but got %v", *pubDate)
+		if got.ID == 0 {
+			t.Error("expected a non-zero ID")
 		}
 	})
 }
