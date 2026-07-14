@@ -56,9 +56,13 @@ func (j *job) Do(ctx context.Context) error {
 		return err
 	}
 	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("Couldn't fetch feed (id=%d)\n", feed.id)
+		return fmt.Errorf("couldn't fetch feed (id=%d)", feed.id)
 	}
-	defer res.Body.Close()
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
 
 	fp := gofeed.NewParser()
 	raw, err := fp.Parse(res.Body)
@@ -66,7 +70,7 @@ func (j *job) Do(ctx context.Context) error {
 		return err
 	}
 	if len(raw.Items) == 0 {
-		return fmt.Errorf("Feed %d has no items.\n", feed.id)
+		return fmt.Errorf("feed %d has no items", feed.id)
 	}
 
 	fmt.Printf("Got %d entries from %s\n", len(raw.Items), feed.url)
@@ -78,9 +82,14 @@ func (j *job) Do(ctx context.Context) error {
 	snapshotAt := time.Now()
 	for i, item := range raw.Items {
 		j := i * ncols
-		vals = append(vals, fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d, $%d)", j+1, j+2, j+3, j+4, j+5, j+6, j+7))
+		vals = append(
+			vals,
+			fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d, $%d)", j+1, j+2, j+3, j+4, j+5, j+6, j+7),
+		)
 		e := normalizeEntry(item, feed.id)
-		args = append(args, e.dedupKey, e.feedId, e.url, e.title, e.description, snapshotAt, e.publishedAt)
+		args = append(
+			args, e.dedupKey, e.feedId, e.url, e.title, e.description, snapshotAt, e.publishedAt,
+		)
 	}
 	sql := fmt.Sprintf(`
 		INSERT INTO feed_entries (dedup_key, feed_id, url, title, description, snapshot_at, published_at)
@@ -92,12 +101,24 @@ func (j *job) Do(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
 
 	var newEntries []entryRecord
 	for rows.Next() {
 		e := entryRecord{}
-		err := rows.Scan(&e.id, &e.dedupKey, &e.feedId, &e.url, &e.title, &e.description, &e.publishedAt)
+		err := rows.Scan(
+			&e.id,
+			&e.dedupKey,
+			&e.feedId,
+			&e.url,
+			&e.title,
+			&e.description,
+			&e.publishedAt,
+		)
 		if err != nil {
 			// TODO: Make this case fail-soft instead of exiting.
 			return err
@@ -152,7 +173,11 @@ func CollectJobs(ctx context.Context, db *sql.DB) ([]job, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
 
 	var jobs []job
 	for rows.Next() {
@@ -251,11 +276,15 @@ func fetchContent(ctx context.Context, entry entryRecord, db *sql.DB) error {
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("HTTP GET failed with status code %d", res.StatusCode)
 	}
-	defer res.Body.Close()
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
 
 	buf := bluemonday.UGCPolicy().SanitizeReader(res.Body)
 	if buf.Len() == 0 {
-		return fmt.Errorf("The body is empty.")
+		return fmt.Errorf("the body is empty")
 	}
 
 	baseUrl := new(*entryUrl)
@@ -277,7 +306,7 @@ func fetchContent(ctx context.Context, entry entryRecord, db *sql.DB) error {
 		return err
 	}
 	if buf.Len() == 0 {
-		return fmt.Errorf("Failed to extract content.")
+		return fmt.Errorf("failed to extract content")
 	}
 	content := fmt.Sprintf(contentTemplate, buf)
 
@@ -287,7 +316,7 @@ func fetchContent(ctx context.Context, entry entryRecord, db *sql.DB) error {
 		WHERE id = $3;
 	`, content, time.Now(), entry.id)
 	if err != nil {
-		return fmt.Errorf("Failed to fetch content.")
+		return fmt.Errorf("failed to fetch content")
 	}
 
 	return nil

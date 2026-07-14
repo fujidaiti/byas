@@ -5,14 +5,14 @@ set -euo pipefail
 go_files=$(git diff --cached --name-only --diff-filter=ACM -- '*.go')
 
 if [ -n "$go_files" ]; then
-  goimports -w $go_files
+  (cd server && golangci-lint fmt ./...)
   git add -- $go_files
 
-  # Build and vet the server module to catch errors before committing.
+  # Test and lint the server module to catch errors before committing.
   (
     cd server
     go test ./...
-    go vet ./...
+    golangci-lint run ./...
   )
 fi
 
