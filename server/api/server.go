@@ -247,7 +247,10 @@ func (h *handler) getFeedEntry(w http.ResponseWriter, r *http.Request) {
 				LIMIT 1)
 		FROM feed_entries
 		WHERE id = $1;
-	`, id).Scan(&res.ID, &res.FeedID, &res.URL, &res.Title, &res.Description, &res.Content, &res.SnapshotAt, &res.PublishedAt, &rlID, &rlArchived)
+	`, id).Scan(
+		&res.ID, &res.FeedID, &res.URL, &res.Title, &res.Description, &res.Content,
+		&res.SnapshotAt, &res.PublishedAt, &rlID, &rlArchived,
+	)
 	if errors.Is(err, sql.ErrNoRows) {
 		serverError(w, http.StatusNotFound, "Entry not found.")
 		return
@@ -485,7 +488,9 @@ func (h *handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
 		var e feedTimelineEntry
 		var rlID *int
 		var rlArchived *bool
-		err := rows.Scan(&e.ID, &e.FeedID, &e.URL, &e.Title, &e.Description, &e.PublishedAt, &e.SnapshotAt, &rlID, &rlArchived)
+		err := rows.Scan(
+			&e.ID, &e.FeedID, &e.URL, &e.Title, &e.Description, &e.PublishedAt, &e.SnapshotAt, &rlID, &rlArchived,
+		)
 		if err != nil {
 			fmt.Print(err)
 			serverError(w, http.StatusInternalServerError, "Failed to fetch entry")
@@ -787,7 +792,10 @@ func (h *handler) writeReadingList(w http.ResponseWriter, r *http.Request, archi
 		switch li.Kind {
 		case "web_clip":
 			if wcID == nil {
-				fmt.Println("Malformed data: a reading list item of kind 'web_clip' is expected to have a web clip ID, but it doesn't.")
+				fmt.Println(
+					"Malformed data: a reading list item of kind 'web_clip' " +
+						"is expected to have a web clip ID, but it doesn't.",
+				)
 				serverError(w, http.StatusInternalServerError, "Failed to fetch reading list item")
 				return
 			}
@@ -795,7 +803,10 @@ func (h *handler) writeReadingList(w http.ResponseWriter, r *http.Request, archi
 
 		case "feed_entry":
 			if feID == nil {
-				fmt.Println("Malformed data: a reading list item of kind 'feed_entry' is expected to have a feed entry ID, but it doesn't.")
+				fmt.Println(
+					"Malformed data: a reading list item of kind 'feed_entry' " +
+						"is expected to have a feed entry ID, but it doesn't.",
+				)
 				serverError(w, http.StatusInternalServerError, "Failed to fetch reading list item")
 				return
 			}
