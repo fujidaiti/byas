@@ -31,7 +31,10 @@ func CollectJobs(ctx context.Context, db *sql.DB) ([]job, error) {
 	if errors.Is(err, sql.ErrNoRows) {
 		// TODO: Handle the case where a record exists but the newspaper was not
 		// assembled due to a server outage.
-		fmt.Printf("The newspaper for %s already exists or is being assembled. Skipping.\n", pubDate)
+		fmt.Printf(
+			"The newspaper for %s already exists or is being assembled. Skipping.\n",
+			pubDate,
+		)
 		return []job{}, nil
 	} else if err != nil {
 		return nil, err

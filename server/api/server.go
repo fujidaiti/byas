@@ -178,7 +178,14 @@ func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 		var rlID *int
 		var rlArchived *bool
 		err := rows.Scan(
-			&a.ID, &a.ResourceID, &a.Title, &a.Description, &a.Source, &a.PublishedAt, &rlID, &rlArchived,
+			&a.ID,
+			&a.ResourceID,
+			&a.Title,
+			&a.Description,
+			&a.Source,
+			&a.PublishedAt,
+			&rlID,
+			&rlArchived,
 		)
 		if err != nil {
 			serverError(w, http.StatusInternalServerError, "Failed to parse a story.")
@@ -257,7 +264,11 @@ func (h *handler) getFeedEntry(w http.ResponseWriter, r *http.Request) {
 		serverError(w, http.StatusNotFound, "Entry not found.")
 		return
 	} else if err != nil {
-		serverError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to fetch entry by ID=%d", id))
+		serverError(
+			w,
+			http.StatusInternalServerError,
+			fmt.Sprintf("Failed to fetch entry by ID=%d", id),
+		)
 		return
 	}
 	if rlID != nil {

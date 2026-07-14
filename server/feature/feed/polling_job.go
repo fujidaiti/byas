@@ -83,7 +83,8 @@ func (j *job) Do(ctx context.Context) error {
 	for i, item := range raw.Items {
 		j := i * ncols
 		vals = append(
-			vals, fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d, $%d)", j+1, j+2, j+3, j+4, j+5, j+6, j+7),
+			vals,
+			fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d, $%d)", j+1, j+2, j+3, j+4, j+5, j+6, j+7),
 		)
 		e := normalizeEntry(item, feed.id)
 		args = append(
@@ -109,7 +110,15 @@ func (j *job) Do(ctx context.Context) error {
 	var newEntries []entryRecord
 	for rows.Next() {
 		e := entryRecord{}
-		err := rows.Scan(&e.id, &e.dedupKey, &e.feedId, &e.url, &e.title, &e.description, &e.publishedAt)
+		err := rows.Scan(
+			&e.id,
+			&e.dedupKey,
+			&e.feedId,
+			&e.url,
+			&e.title,
+			&e.description,
+			&e.publishedAt,
+		)
 		if err != nil {
 			// TODO: Make this case fail-soft instead of exiting.
 			return err
