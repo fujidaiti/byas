@@ -29,8 +29,12 @@ func CollectJobs(ctx context.Context, db *sql.DB) ([]job, error) {
 		RETURNING id;
 	`, pubDate).Scan(&newspaperID)
 	if errors.Is(err, sql.ErrNoRows) {
-		// TODO: Handle the case where a record exists but the newspaper was not assembled due to a server outage.
-		fmt.Printf("The newspaper for %s already exists or is being assembled. Skipping.\n", pubDate)
+		// TODO: Handle the case where a record exists but the newspaper was not
+		// assembled due to a server outage.
+		fmt.Printf(
+			"The newspaper for %s already exists or is being assembled. Skipping.\n",
+			pubDate,
+		)
 		return []job{}, nil
 	} else if err != nil {
 		return nil, err
@@ -73,7 +77,11 @@ func (j *job) assembleAndPublish(ctx context.Context) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer tx.Rollback()
+	defer func() {
+		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
+			fmt.Println(err)
+		}
+	}()
 
 	res, err := tx.ExecContext(ctx, `
 		UPDATE stories

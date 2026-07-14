@@ -16,7 +16,7 @@ import (
 func StartScheduler(ctx context.Context) {
 	dsn := os.Getenv("DB_DSN")
 	if len(dsn) == 0 {
-		panic("DB_DSN is requried.")
+		panic("DB_DSN is required.")
 	}
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {

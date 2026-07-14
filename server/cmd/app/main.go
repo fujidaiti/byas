@@ -56,7 +56,11 @@ func migrate(cmd string, args []string) {
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 	err = migration.Run(ctx, db, cmd, args)
@@ -68,7 +72,7 @@ func migrate(cmd string, args []string) {
 func setUpDB() (*sql.DB, error) {
 	dsn := os.Getenv("DB_DSN")
 	if len(dsn) == 0 {
-		return nil, fmt.Errorf("DB_DSN is requried")
+		return nil, fmt.Errorf("DB_DSN is required")
 	}
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {

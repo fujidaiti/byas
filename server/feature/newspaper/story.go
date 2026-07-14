@@ -24,7 +24,9 @@ type Story struct {
 	PublishedAt time.Time
 }
 
-func DraftStory(title, description, source string, feedEntryID int, publishedAt time.Time) (Story, error) {
+func DraftStory(
+	title, description, source string, feedEntryID int, publishedAt time.Time,
+) (Story, error) {
 	if title == "" {
 		return Story{}, fmt.Errorf("title cannot be empty")
 	}

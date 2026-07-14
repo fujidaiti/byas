@@ -22,7 +22,7 @@ import (
 func StartServer(ctx context.Context) {
 	dsn := os.Getenv("DB_DSN")
 	if len(dsn) == 0 {
-		panic("DB_DSN is requried.")
+		panic("DB_DSN is required.")
 	}
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
@@ -93,7 +93,7 @@ type handler struct {
 }
 
 func (h *handler) getHealth(w http.ResponseWriter, _ *http.Request) {
-	w.Write([]byte("Feeling good!"))
+	_, _ = w.Write([]byte("Feeling good!"))
 }
 
 type getTodaysNewspaperResponse struct {
@@ -173,11 +173,25 @@ func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 		)
 		return
 	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
 	for rows.Next() {
 		a := stories{Kind: "feed_entry"}
 		var rlID *int
 		var rlArchived *bool
-		err := rows.Scan(&a.ID, &a.ResourceID, &a.Title, &a.Description, &a.Source, &a.PublishedAt, &rlID, &rlArchived)
+		err := rows.Scan(
+			&a.ID,
+			&a.ResourceID,
+			&a.Title,
+			&a.Description,
+			&a.Source,
+			&a.PublishedAt,
+			&rlID,
+			&rlArchived,
+		)
 		if err != nil {
 			serverError(w, http.StatusInternalServerError, "Failed to parse a story.")
 			return
@@ -206,7 +220,7 @@ func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(jres)
+	_, _ = w.Write(jres)
 }
 
 type feedEntry struct {
@@ -247,12 +261,19 @@ func (h *handler) getFeedEntry(w http.ResponseWriter, r *http.Request) {
 				LIMIT 1)
 		FROM feed_entries
 		WHERE id = $1;
-	`, id).Scan(&res.ID, &res.FeedID, &res.URL, &res.Title, &res.Description, &res.Content, &res.SnapshotAt, &res.PublishedAt, &rlID, &rlArchived)
+	`, id).Scan(
+		&res.ID, &res.FeedID, &res.URL, &res.Title, &res.Description, &res.Content,
+		&res.SnapshotAt, &res.PublishedAt, &rlID, &rlArchived,
+	)
 	if errors.Is(err, sql.ErrNoRows) {
 		serverError(w, http.StatusNotFound, "Entry not found.")
 		return
 	} else if err != nil {
-		serverError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to fetch entry by ID=%d", id))
+		serverError(
+			w,
+			http.StatusInternalServerError,
+			fmt.Sprintf("Failed to fetch entry by ID=%d", id),
+		)
 		return
 	}
 	if rlID != nil {
@@ -267,7 +288,7 @@ func (h *handler) getFeedEntry(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(jres)
+	_, _ = w.Write(jres)
 }
 
 type feedAttrsSchema struct {
@@ -323,6 +344,11 @@ func (h *handler) getFeeds(w http.ResponseWriter, r *http.Request) {
 		serverError(w, http.StatusInternalServerError, "Failed to fetch feeds")
 		return
 	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
 	for rows.Next() {
 		var f feedSchema
 		var su, iu, desc sql.NullString
@@ -375,7 +401,7 @@ func (h *handler) getFeeds(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(jres)
+	_, _ = w.Write(jres)
 }
 
 type getFeedResBody struct {
@@ -424,7 +450,7 @@ func (h *handler) getFeed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(jres)
+	_, _ = w.Write(jres)
 }
 
 type feedTimelineEntry struct {
@@ -480,12 +506,20 @@ func (h *handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
 		serverError(w, http.StatusInternalServerError, "Failed to fetch entries")
 		return
 	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
 	res := getFeedTimelineResBody{Entries: []feedTimelineEntry{}}
 	for rows.Next() {
 		var e feedTimelineEntry
 		var rlID *int
 		var rlArchived *bool
-		err := rows.Scan(&e.ID, &e.FeedID, &e.URL, &e.Title, &e.Description, &e.PublishedAt, &e.SnapshotAt, &rlID, &rlArchived)
+		err := rows.Scan(
+			&e.ID, &e.FeedID, &e.URL, &e.Title, &e.Description,
+			&e.PublishedAt, &e.SnapshotAt, &rlID, &rlArchived,
+		)
 		if err != nil {
 			fmt.Print(err)
 			serverError(w, http.StatusInternalServerError, "Failed to fetch entry")
@@ -525,7 +559,7 @@ func (h *handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(jres)
+	_, _ = w.Write(jres)
 }
 
 type searchFeedsResBody struct {
@@ -563,7 +597,7 @@ func (h *handler) searchFeeds(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(jres)
+	_, _ = w.Write(jres)
 }
 
 type subscribeToFeedReqBody struct {
@@ -616,7 +650,7 @@ func (h *handler) subscribeToFeed(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(jres)
+	_, _ = w.Write(jres)
 }
 
 type saveToReadingListReqBody struct {
@@ -712,7 +746,7 @@ func (h *handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	w.Write(jres)
+	_, _ = w.Write(jres)
 }
 
 type getReadingListResBody struct {
@@ -769,7 +803,11 @@ func (h *handler) writeReadingList(w http.ResponseWriter, r *http.Request, archi
 		serverError(w, http.StatusInternalServerError, "Failed to fetch reading list")
 		return
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
 	res := getReadingListResBody{Items: []readingListItem{}}
 	for rows.Next() {
 		var li readingListItem
@@ -783,7 +821,10 @@ func (h *handler) writeReadingList(w http.ResponseWriter, r *http.Request, archi
 		switch li.Kind {
 		case "web_clip":
 			if wcID == nil {
-				fmt.Println("Malformed data: a reading list item of kind 'web_clip' is expected to have a web clip ID, but it doesn't.")
+				fmt.Println(
+					"Malformed data: a reading list item of kind 'web_clip' " +
+						"is expected to have a web clip ID, but it doesn't.",
+				)
 				serverError(w, http.StatusInternalServerError, "Failed to fetch reading list item")
 				return
 			}
@@ -791,7 +832,10 @@ func (h *handler) writeReadingList(w http.ResponseWriter, r *http.Request, archi
 
 		case "feed_entry":
 			if feID == nil {
-				fmt.Println("Malformed data: a reading list item of kind 'feed_entry' is expected to have a feed entry ID, but it doesn't.")
+				fmt.Println(
+					"Malformed data: a reading list item of kind 'feed_entry' " +
+						"is expected to have a feed entry ID, but it doesn't.",
+				)
 				serverError(w, http.StatusInternalServerError, "Failed to fetch reading list item")
 				return
 			}
@@ -828,7 +872,7 @@ func (h *handler) writeReadingList(w http.ResponseWriter, r *http.Request, archi
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(jres)
+	_, _ = w.Write(jres)
 }
 
 type getWebClipResBody struct {
@@ -872,7 +916,9 @@ func (h *handler) getWebClip(w http.ResponseWriter, r *http.Request) {
 		return
 	} else if err != nil {
 		fmt.Println(err)
-		serverError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to fetch web clip by ID=%d", id))
+		serverError(
+			w, http.StatusInternalServerError, fmt.Sprintf("Failed to fetch web clip by ID=%d", id),
+		)
 		return
 	}
 	if rlID != nil {
@@ -886,7 +932,7 @@ func (h *handler) getWebClip(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(jres)
+	_, _ = w.Write(jres)
 }
 
 func (h *handler) deleteReadingListItem(w http.ResponseWriter, r *http.Request) {
@@ -913,7 +959,7 @@ func (h *handler) deleteReadingListItem(w http.ResponseWriter, r *http.Request) 
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusNoContent)
-	w.Write(jres)
+	_, _ = w.Write(jres)
 }
 
 type setReadingListItemArchivedStatusReqBody struct {
@@ -946,7 +992,7 @@ func (h *handler) setReadingListItemArchivedStatus(w http.ResponseWriter, r *htt
 	jres, _ := json.Marshal(map[string]string{})
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusNoContent)
-	w.Write(jres)
+	_, _ = w.Write(jres)
 }
 
 func serverError(w http.ResponseWriter, statusCode int, msg string) {
@@ -958,7 +1004,7 @@ func serverError(w http.ResponseWriter, statusCode int, msg string) {
 	} else {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(statusCode)
-		w.Write(res)
+		_, _ = w.Write(res)
 	}
 }
 

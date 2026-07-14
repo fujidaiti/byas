@@ -102,7 +102,8 @@ func SaveWebClipByID(ctx context.Context, db *sql.DB, id int) (SavedItem, error)
 // Reports nil if succeeds.
 //
 // Note that this function immediately returns after creating a placeholder reading list item.
-// It then tries fetching the clip itself asynchronously, and fills the placeholders with actual metadata.
+// It then tries fetching the clip itself asynchronously, and fills the
+// placeholders with actual metadata.
 func SaveWebClip(ctx context.Context, db *sql.DB, u url.URL, title string) (SavedItem, error) {
 	// TODO: Cleanup URL
 	// TODO: Validate URL (schema, host)
@@ -111,7 +112,11 @@ func SaveWebClip(ctx context.Context, db *sql.DB, u url.URL, title string) (Save
 	if err != nil {
 		return it, err
 	}
-	defer tx.Rollback()
+	defer func() {
+		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
+			fmt.Println(err)
+		}
+	}()
 	var clipID int
 	err = tx.QueryRowContext(ctx, `
 		INSERT INTO web_clips (url)
@@ -174,14 +179,18 @@ func fetchWebClip(ctx context.Context, db *sql.DB, rID, clipID int, u url.URL) e
 	if err != nil {
 		return err
 	}
-	defer res.Body.Close()
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("HTTP GET failed with status code %d", res.StatusCode)
 	}
 
 	buf := bluemonday.UGCPolicy().AllowElements("head", "title").SanitizeReader(res.Body)
 	if buf.Len() == 0 {
-		return fmt.Errorf("The body is empty.")
+		return fmt.Errorf("the body is empty")
 	}
 
 	baseUrl := new(u)
@@ -203,7 +212,7 @@ func fetchWebClip(ctx context.Context, db *sql.DB, rID, clipID int, u url.URL) e
 		return err
 	}
 	if buf.Len() == 0 {
-		return fmt.Errorf("Failed to extract content.")
+		return fmt.Errorf("failed to extract content")
 	}
 	content := fmt.Sprintf(contentTemplate, buf)
 
@@ -211,7 +220,11 @@ func fetchWebClip(ctx context.Context, db *sql.DB, rID, clipID int, u url.URL) e
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
+			fmt.Println(err)
+		}
+	}()
 	// Only overwrite the title when the fetch actually extracted one; otherwise
 	// keep the existing (placeholder) title rather than clobbering it with ''.
 	if t := article.Title(); t != "" {
