@@ -65,7 +65,15 @@ func TestSubmitStories(t *testing.T) {
 			t.Fatal("no story is saved")
 		}
 		var got storyRow
-		err = rows.Scan(&got.ID, &got.FeedEntryID, &got.NewspaperID, &got.Title, &got.Description, &got.Source, &got.PublishedAt)
+		err = rows.Scan(
+			&got.ID,
+			&got.FeedEntryID,
+			&got.NewspaperID,
+			&got.Title,
+			&got.Description,
+			&got.Source,
+			&got.PublishedAt,
+		)
 		if err != nil {
 			t.Fatal(err)
 		}
