@@ -102,7 +102,8 @@ func SaveWebClipByID(ctx context.Context, db *sql.DB, id int) (SavedItem, error)
 // Reports nil if succeeds.
 //
 // Note that this function immediately returns after creating a placeholder reading list item.
-// It then tries fetching the clip itself asynchronously, and fills the placeholders with actual metadata.
+// It then tries fetching the clip itself asynchronously, and fills the
+// placeholders with actual metadata.
 func SaveWebClip(ctx context.Context, db *sql.DB, u url.URL, title string) (SavedItem, error) {
 	// TODO: Cleanup URL
 	// TODO: Validate URL (schema, host)

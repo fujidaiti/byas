@@ -177,7 +177,9 @@ func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 		a := stories{Kind: "feed_entry"}
 		var rlID *int
 		var rlArchived *bool
-		err := rows.Scan(&a.ID, &a.ResourceID, &a.Title, &a.Description, &a.Source, &a.PublishedAt, &rlID, &rlArchived)
+		err := rows.Scan(
+			&a.ID, &a.ResourceID, &a.Title, &a.Description, &a.Source, &a.PublishedAt, &rlID, &rlArchived,
+		)
 		if err != nil {
 			serverError(w, http.StatusInternalServerError, "Failed to parse a story.")
 			return
@@ -489,7 +491,8 @@ func (h *handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
 		var rlID *int
 		var rlArchived *bool
 		err := rows.Scan(
-			&e.ID, &e.FeedID, &e.URL, &e.Title, &e.Description, &e.PublishedAt, &e.SnapshotAt, &rlID, &rlArchived,
+			&e.ID, &e.FeedID, &e.URL, &e.Title, &e.Description,
+			&e.PublishedAt, &e.SnapshotAt, &rlID, &rlArchived,
 		)
 		if err != nil {
 			fmt.Print(err)
@@ -887,7 +890,9 @@ func (h *handler) getWebClip(w http.ResponseWriter, r *http.Request) {
 		return
 	} else if err != nil {
 		fmt.Println(err)
-		serverError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to fetch web clip by ID=%d", id))
+		serverError(
+			w, http.StatusInternalServerError, fmt.Sprintf("Failed to fetch web clip by ID=%d", id),
+		)
 		return
 	}
 	if rlID != nil {

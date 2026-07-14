@@ -82,9 +82,13 @@ func (j *job) Do(ctx context.Context) error {
 	snapshotAt := time.Now()
 	for i, item := range raw.Items {
 		j := i * ncols
-		vals = append(vals, fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d, $%d)", j+1, j+2, j+3, j+4, j+5, j+6, j+7))
+		vals = append(
+			vals, fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d, $%d)", j+1, j+2, j+3, j+4, j+5, j+6, j+7),
+		)
 		e := normalizeEntry(item, feed.id)
-		args = append(args, e.dedupKey, e.feedId, e.url, e.title, e.description, snapshotAt, e.publishedAt)
+		args = append(
+			args, e.dedupKey, e.feedId, e.url, e.title, e.description, snapshotAt, e.publishedAt,
+		)
 	}
 	sql := fmt.Sprintf(`
 		INSERT INTO feed_entries (dedup_key, feed_id, url, title, description, snapshot_at, published_at)

@@ -54,7 +54,9 @@ func getSchedules(ctx context.Context, db *sql.DB, t time.Time) ([]time.Time, er
 	return schedules, nil
 }
 
-func FindEditorialInterval(ctx context.Context, db *sql.DB, t time.Time) (EditorialInterval, error) {
+func FindEditorialInterval(
+	ctx context.Context, db *sql.DB, t time.Time,
+) (EditorialInterval, error) {
 	ss, err := getSchedules(ctx, db, t)
 	if err != nil {
 		return EditorialInterval{}, err
