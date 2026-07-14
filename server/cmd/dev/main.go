@@ -58,7 +58,7 @@ func poll() {
 func setUpDB() (*sql.DB, error) {
 	dsn := os.Getenv("DB_DSN")
 	if len(dsn) == 0 {
-		return nil, fmt.Errorf("DB_DSN is requried")
+		return nil, fmt.Errorf("DB_DSN is required")
 	}
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {

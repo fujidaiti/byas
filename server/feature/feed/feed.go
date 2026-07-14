@@ -58,7 +58,7 @@ func Subscribe(ctx context.Context, db *sql.DB, fu url.URL) (Feed, error) {
 	return f, nil
 }
 
-// SearchFeeds searchs subscriptable feeds by the given query.
+// SearchFeeds searches subscriptable feeds by the given query.
 func SearchFeeds(ctx context.Context, query string) ([]FeedAttrs, error) {
 	// TODO: Accept arbitrary keywards as a query
 	// TODO: Validate and cleanup the url (check schema, remove tracking params, etc.)

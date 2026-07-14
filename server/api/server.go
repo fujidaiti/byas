@@ -22,7 +22,7 @@ import (
 func StartServer(ctx context.Context) {
 	dsn := os.Getenv("DB_DSN")
 	if len(dsn) == 0 {
-		panic("DB_DSN is requried.")
+		panic("DB_DSN is required.")
 	}
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
@@ -173,6 +173,11 @@ func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 		)
 		return
 	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
 	for rows.Next() {
 		a := stories{Kind: "feed_entry"}
 		var rlID *int
@@ -339,6 +344,11 @@ func (h *handler) getFeeds(w http.ResponseWriter, r *http.Request) {
 		serverError(w, http.StatusInternalServerError, "Failed to fetch feeds")
 		return
 	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
 	for rows.Next() {
 		var f feedSchema
 		var su, iu, desc sql.NullString
@@ -496,6 +506,11 @@ func (h *handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
 		serverError(w, http.StatusInternalServerError, "Failed to fetch entries")
 		return
 	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
 	res := getFeedTimelineResBody{Entries: []feedTimelineEntry{}}
 	for rows.Next() {
 		var e feedTimelineEntry

@@ -3,6 +3,11 @@ version: "2"
 linters:
   enable:
     - lll
+    - sqlclosecheck
+    - rowserrcheck
+    - bodyclose
+    - errorlint
+    - misspell
   settings:
     lll:
       line-length: 100
