@@ -25,7 +25,9 @@ func Run(t *testing.T, f func(db *sql.DB)) {
 	t.Cleanup(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer cancel()
-		container.Restore(ctx)
+		if err := container.Restore(ctx); err != nil {
+			log.Printf("Failed to restore DB snapshot: %v\n", err)
+		}
 	})
 	f(db)
 }
@@ -104,11 +106,11 @@ func openDB(dsn string) error {
 	var err error
 	db, err = sql.Open("pgx", dsn)
 	if err != nil {
-		return fmt.Errorf("failed to connect to %s: %v", dsn, err)
+		return fmt.Errorf("failed to connect to %s: %w", dsn, err)
 	}
 	err = db.Ping()
 	if err != nil {
-		return fmt.Errorf("failed to ping: %v", err)
+		return fmt.Errorf("failed to ping: %w", err)
 	}
 	return nil
 }
