@@ -11,6 +11,8 @@ import (
 	"github.com/fujidaiti/paperdoll/feature/user"
 	"github.com/fujidaiti/paperdoll/integration_test/testenv"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type userRecord struct {
@@ -80,12 +82,21 @@ func TestAuth_SignUp(t *testing.T) {
 			t.Fatalf("failed to fetch created user: %v", err)
 		}
 		want2 := userRecord{
-			ID:           1,
-			Email:        "test@example.com",
-			PasswordHash: []byte("testhash"),
+			ID:    1,
+			Email: "test@example.com",
 		}
-		if diff := cmp.Diff(want2, got2); diff != "" {
+		if diff := cmp.Diff(
+			want2,
+			got2,
+			cmpopts.IgnoreFields(userRecord{}, "PasswordHash"),
+		); diff != "" {
 			t.Errorf("unexpected user record (-want, +got):\n%s", diff)
+		}
+		if err := bcrypt.CompareHashAndPassword(
+			got2.PasswordHash,
+			[]byte("Test$Password+123"),
+		); err != nil {
+			t.Errorf("saved hash doesn't match input password: %v", err)
 		}
 
 		var got3 authTokenRecord
