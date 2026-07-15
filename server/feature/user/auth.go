@@ -25,6 +25,8 @@ var (
 	ErrTokenInvalid    = errors.New("token is invalid or has been expired")
 )
 
+type UserID = int
+
 type Credentials struct {
 	Email      string
 	Password   string
@@ -66,7 +68,7 @@ func (s *Service) SignUp(ctx context.Context, crd Credentials) (string, error) {
 	case err != nil:
 		return "", err
 	}
-	return s.issueToken(ctx, id, crd.DeviceKind)
+	return s.IssueAuthToken(ctx, id, crd.DeviceKind)
 }
 
 func (s *Service) SignIn(ctx context.Context, crd Credentials) (string, error) {
@@ -87,10 +89,31 @@ func (s *Service) SignIn(ctx context.Context, crd Credentials) (string, error) {
 	if bcrypt.CompareHashAndPassword(dbHash, []byte(crd.Password)) != nil {
 		return "", ErrAuthFailed
 	}
-	return s.issueToken(ctx, id, crd.DeviceKind)
+	return s.IssueAuthToken(ctx, id, crd.DeviceKind)
 }
 
-func (s *Service) issueToken(ctx context.Context, id int, device string) (string, error) {
+func (s *Service) CreateUserAccount(ctx context.Context, email, password string) (UserID, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcryptCost)
+	if err != nil {
+		return 0, err
+	}
+	var id int
+	err = s.DB.QueryRowContext(ctx, `
+		INSERT INTO users (email, password_hash)
+		VALUES ($1, $2)
+		ON CONFLICT (email) DO NOTHING
+		RETURNING id;
+	`, email, hash).Scan(&id)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return 0, ErrEmailTaken
+	case err != nil:
+		return 0, err
+	}
+	return id, nil
+}
+
+func (s *Service) IssueAuthToken(ctx context.Context, id UserID, device string) (string, error) {
 	token := make([]byte, 32)
 	_, err := rand.Read(token)
 	if err != nil {
