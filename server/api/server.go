@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"crypto/rand"
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
@@ -43,9 +42,8 @@ func StartServer(ctx context.Context) {
 	h := &Handler{
 		DB: db,
 		UserService: user.Service{
-			DB:         db,
-			Now:        func() time.Time { return time.Now() },
-			SecureRand: rand.Reader,
+			DB:  db,
+			Now: func() time.Time { return time.Now() },
 		},
 	}
 

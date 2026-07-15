@@ -4,7 +4,9 @@ package integration_test
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"net/http/httptest"
 	"testing"
@@ -33,32 +35,14 @@ type authTokenRecord struct {
 }
 
 func TestAuth_SignUp(t *testing.T) {
-	// Random 32 bytes
-	wantRawToken := []byte{
-		0xDA, 0x6B, 0x94, 0xF1, 0x7F, 0x4C, 0xD8, 0xD4,
-		0xEB, 0xED, 0xE8, 0x4A, 0x6F, 0xFB, 0x3E, 0x5B,
-		0x37, 0xDF, 0xEE, 0x3F, 0xD9, 0x9E, 0x32, 0xC5,
-		0x26, 0x48, 0xE6, 0x31, 0xCB, 0x1C, 0x20, 0x6A,
-	}
-	// SHA256-hashed wantRawToken
-	wantTokenHash := []byte{
-		0x2E, 0x6E, 0x42, 0x73, 0x93, 0x9C, 0xF3, 0xB2,
-		0xF2, 0xF1, 0x64, 0x3A, 0xCF, 0x49, 0xE8, 0x4F,
-		0xC8, 0xF8, 0xF7, 0xAB, 0x00, 0x65, 0xB4, 0xC4,
-		0x18, 0x73, 0x94, 0xF7, 0xA6, 0x33, 0x7B, 0x51,
-	}
-	// Base64URL-encoded wantRawToken without padding
-	wantToken := "2muU8X9M2NTr7ehKb_s-Wzff7j_ZnjLFJkjmMcscIGo"
+	now := time.Date(2026, time.July, 15, 12, 0, 0, 0, time.UTC)
 
 	testenv.Run(t, func(db *sql.DB) {
 		h := api.Handler{
 			DB: db,
 			UserService: user.Service{
-				DB:         db,
-				SecureRand: bytes.NewReader(wantRawToken),
-				Now: func() time.Time {
-					return time.Date(2026, time.July, 15, 12, 0, 0, 0, time.UTC)
-				},
+				DB:  db,
+				Now: func() time.Time { return now },
 			},
 		}
 		rBody := api.SignUpReqBody{
@@ -76,8 +60,11 @@ func TestAuth_SignUp(t *testing.T) {
 		if err := json.NewDecoder(rec.Body).Decode(&got1); err != nil {
 			t.Fatalf("failed to decode response body: %v", err)
 		}
-		if diff := cmp.Diff(wantToken, got1.Token); diff != "" {
-			t.Errorf("unexpected returned token (-want, +got):\n%s", diff)
+		rawToken := make([]byte, len(got1.Token))
+		if n, err := base64.RawURLEncoding.Decode(rawToken, []byte(got1.Token)); err != nil {
+			t.Errorf("returned token must be a valid Base64URL with no padding,　but got: %s", got1.Token)
+		} else if n != 32 {
+			t.Errorf("decoded token must be 32 bytes, but it has %d bytes", n)
 		}
 
 		var got2 userRecord
@@ -91,39 +78,35 @@ func TestAuth_SignUp(t *testing.T) {
 			ID:    1,
 			Email: rBody.Email,
 		}
-		if diff := cmp.Diff(
-			want2,
-			got2,
-			cmpopts.IgnoreFields(userRecord{}, "PasswordHash"),
-		); diff != "" {
-			t.Errorf("unexpected user record (-want, +got):\n%s", diff)
+		if d := cmp.Diff(want2, got2, cmpopts.IgnoreFields(userRecord{}, "PasswordHash")); d != "" {
+			t.Errorf("unexpected user record:\n%s", d)
 		}
 		if err := bcrypt.CompareHashAndPassword(
 			got2.PasswordHash,
 			[]byte(rBody.Password),
 		); err != nil {
-			t.Errorf(
-				"a bcrypt hash should be saved instead of the real password, but it looks like not: %v",
-				err,
-			)
+			t.Errorf("a bcrypt hash should be saved instead of the real password, but it looks like not: %v", err)
 		}
 
 		var got3 authTokenRecord
 		err = db.QueryRowContext(t.Context(), `
-			SELECT id, user_id, device_kind, token_hash, expires_at FROM auth_tokens WHERE user_id = 1;
-		`).Scan(&got3.ID, &got3.UserId, &got3.DeviceKind, &got3.TokenHash, &got3.ExpiresAt)
+			SELECT id, user_id, device_kind, token_hash, expires_at FROM auth_tokens WHERE user_id = $1;
+		`, want2.ID).Scan(&got3.ID, &got3.UserId, &got3.DeviceKind, &got3.TokenHash, &got3.ExpiresAt)
 		if err != nil {
 			t.Fatalf("failed to fetch issued token: %v", err)
 		}
-		want3 := authTokenRecord{
-			ID:         1,
-			UserId:     1,
-			DeviceKind: rBody.DeviceKind,
-			TokenHash:  wantTokenHash,
-			ExpiresAt:  time.Date(2026, time.August, 14, 12, 0, 0, 0, time.UTC),
+		want3 := authTokenRecord{ID: 1, UserId: 1, DeviceKind: rBody.DeviceKind}
+		if d := cmp.Diff(want3, got3, cmpopts.IgnoreFields(authTokenRecord{}, "TokenHash", "ExpiresAt")); d != "" {
+			t.Errorf("unexpected token record:\n%s", d)
 		}
-		if diff := cmp.Diff(want3, got3); diff != "" {
-			t.Errorf("unexpected token record (-want, +got):\n%s", diff)
+		if d := got3.ExpiresAt.Sub(now); d != 30*24*time.Hour {
+			t.Errorf("token should expires in 30 days, but actual TTL is %g hour(s)", d.Hours())
+		}
+		if bytes.Equal(got3.TokenHash, rawToken) {
+			t.Error("raw token must not be stored in DB")
+		}
+		if d := cmp.Diff(got3.TokenHash, new(sha256.Sum256(rawToken))[:]); d != "" {
+			t.Errorf("token must be SHA256-hashed in DB; actual diff:\n%s", d)
 		}
 	})
 }

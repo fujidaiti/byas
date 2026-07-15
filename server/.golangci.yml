@@ -10,7 +10,7 @@ linters:
     - misspell
   settings:
     lll:
-      line-length: 100
+      line-length: 120
 
 formatters:
   enable:
@@ -19,4 +19,4 @@ formatters:
     - golines
   settings:
     golines:
-      max-len: 100
+      max-len: 120

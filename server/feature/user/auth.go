@@ -3,11 +3,11 @@ package user
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
 	"errors"
-	"io"
 	"net/mail"
 	"regexp"
 
@@ -92,7 +92,7 @@ func (s *Service) SignIn(ctx context.Context, crd Credentials) (string, error) {
 
 func (s *Service) issueToken(ctx context.Context, id int, device string) (string, error) {
 	token := make([]byte, 32)
-	_, err := io.ReadFull(s.SecureRand, token)
+	_, err := rand.Read(token)
 	if err != nil {
 		return "", err
 	}
