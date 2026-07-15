@@ -1050,7 +1050,7 @@ func (h *handler) signUp(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	w.Write(jres)
+	_, _ = w.Write(jres)
 }
 
 type signInReqBody struct {
@@ -1099,7 +1099,7 @@ func (h *handler) signIn(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(jres)
+	_, _ = w.Write(jres)
 }
 
 func serverError(w http.ResponseWriter, statusCode int, msg string) {
