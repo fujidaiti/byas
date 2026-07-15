@@ -1050,9 +1050,7 @@ func (h *handler) signUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: DRY JSON response creation
-	jres, err := json.Marshal(signUpResBody{
-		Token: base64.RawURLEncoding.EncodeToString(token),
-	})
+	jres, err := json.Marshal(signUpResBody{Token: token})
 	if err != nil {
 		serverError(w, http.StatusInternalServerError, "Failed to construct a JSON response")
 		return
@@ -1099,9 +1097,7 @@ func (h *handler) signIn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: DRY JSON response creation
-	jres, err := json.Marshal(signInResBody{
-		Token: base64.RawURLEncoding.EncodeToString(token),
-	})
+	jres, err := json.Marshal(signInResBody{Token: token})
 	if err != nil {
 		serverError(w, http.StatusInternalServerError, "Failed to construct a JSON response")
 		return

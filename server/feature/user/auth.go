@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"database/sql"
+	"encoding/base64"
 	"errors"
 	"net/mail"
 	"regexp"
@@ -37,20 +38,20 @@ var pswdRegex = regexp.MustCompile(`^[\x20-\x7E]{15,64}$`)
 const bcryptCost = 12
 
 // SignUp creates a fresh user account for the given email and issue a new authentication token.
-func (s *Service) SignUp(ctx context.Context, crd Credentials) ([]byte, error) {
+func (s *Service) SignUp(ctx context.Context, crd Credentials) (string, error) {
 	if crd.DeviceKind == "" {
-		return nil, ErrDeviceKindEmpty
+		return "", ErrDeviceKindEmpty
 	}
 	email, err := mail.ParseAddress(crd.Email)
 	if err != nil || email.Address != crd.Email {
-		return nil, ErrEmailInvalid
+		return "", ErrEmailInvalid
 	}
 	if !pswdRegex.MatchString(crd.Password) {
-		return nil, ErrPswdInvalid
+		return "", ErrPswdInvalid
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(crd.Password), bcryptCost)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	var id int
 	err = s.DB.QueryRowContext(ctx, `
@@ -61,16 +62,16 @@ func (s *Service) SignUp(ctx context.Context, crd Credentials) ([]byte, error) {
 	`, email.Address, hash).Scan(&id)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
-		return nil, ErrEmailTaken
+		return "", ErrEmailTaken
 	case err != nil:
-		return nil, err
+		return "", err
 	}
 	return s.issueToken(ctx, id, crd.DeviceKind)
 }
 
-func (s *Service) SignIn(ctx context.Context, crd Credentials) ([]byte, error) {
+func (s *Service) SignIn(ctx context.Context, crd Credentials) (string, error) {
 	if crd.DeviceKind == "" {
-		return nil, ErrDeviceKindEmpty
+		return "", ErrDeviceKindEmpty
 	}
 	var dbHash []byte
 	var id int
@@ -79,20 +80,20 @@ func (s *Service) SignIn(ctx context.Context, crd Credentials) ([]byte, error) {
 	`, crd.Email).Scan(&id, &dbHash)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
-		return nil, ErrAuthFailed
+		return "", ErrAuthFailed
 	case err != nil:
-		return nil, err
+		return "", err
 	}
 	if bcrypt.CompareHashAndPassword(dbHash, []byte(crd.Password)) != nil {
-		return nil, ErrAuthFailed
+		return "", ErrAuthFailed
 	}
 	return s.issueToken(ctx, id, crd.DeviceKind)
 }
 
-func (s *Service) issueToken(ctx context.Context, id int, device string) ([]byte, error) {
+func (s *Service) issueToken(ctx context.Context, id int, device string) (string, error) {
 	token := make([]byte, 32)
 	if _, err := s.ReadSecureRand(token); err != nil {
-		return nil, err
+		return "", err
 	}
 	hashed := hashToken(token)
 	expr := time.Now().AddDate(0, 0, tokenExpiresInDays)
@@ -101,9 +102,9 @@ func (s *Service) issueToken(ctx context.Context, id int, device string) ([]byte
 		VALUES ($1, $2, $3, $4);
 	`, id, device, hashed, expr)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	return token, nil
+	return base64.RawURLEncoding.EncodeToString(token), nil
 }
 
 func hashToken(raw []byte) []byte {
