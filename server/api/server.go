@@ -40,9 +40,9 @@ func StartServer(ctx context.Context) {
 		panic(err)
 	}
 
-	h := &handler{
-		db: db,
-		userService: user.Service{
+	h := &Handler{
+		DB: db,
+		UserService: user.Service{
 			DB:         db,
 			Now:        func() time.Time { return time.Now() },
 			SecureRand: rand.Reader,
@@ -63,7 +63,7 @@ func StartServer(ctx context.Context) {
 	mux.HandleFunc("GET /reading-list/archived", h.getArchivedReadingList)
 	mux.HandleFunc("DELETE /reading-list/{id}", h.deleteReadingListItem)
 	mux.HandleFunc("PATCH /reading-list/{id}", h.setReadingListItemArchivedStatus)
-	mux.HandleFunc("POST /signup", h.signUp)
+	mux.HandleFunc("POST /signup", h.SignUp)
 	mux.HandleFunc("POST /signin", h.signIn)
 
 	srv := http.Server{
@@ -99,12 +99,12 @@ func StartServer(ctx context.Context) {
 	}
 }
 
-type handler struct {
-	db          *sql.DB
-	userService user.Service
+type Handler struct {
+	DB          *sql.DB
+	UserService user.Service
 }
 
-func (h *handler) getHealth(w http.ResponseWriter, _ *http.Request) {
+func (h *Handler) getHealth(w http.ResponseWriter, _ *http.Request) {
 	_, _ = w.Write([]byte("Feeling good!"))
 }
 
@@ -133,7 +133,7 @@ type stories struct {
 	ReadLater   *readLater `json:"read_later,omitempty"`
 }
 
-func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 	// TODO: Design a better cursor (e.g. priority)
 	var cursor int
 	if c := r.URL.Query().Get("after"); c != "" {
@@ -147,7 +147,7 @@ func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	res := getTodaysNewspaperResponse{}
-	err := h.db.QueryRowContext(ctx, `
+	err := h.DB.QueryRowContext(ctx, `
 		SELECT id, published_at
 		FROM newspapers
 		ORDER BY published_at DESC
@@ -164,7 +164,7 @@ func (h *handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 	// TODO: Replace the correlated subquery with a LEFT JOIN on
 	// reading_list_items once reading_list_items.feed_entry_id is unique. The
 	// subquery + LIMIT 1 is a workaround for the currently non-unique column.
-	rows, err := h.db.QueryContext(ctx, `
+	rows, err := h.DB.QueryContext(ctx, `
 		SELECT id, feed_entry_id, title, description, source, published_at,
 			(SELECT id FROM reading_list_items
 				WHERE feed_entry_id = stories.feed_entry_id
@@ -251,7 +251,7 @@ type getFeedEntryResponse struct {
 	ReadLater *readLater `json:"read_later,omitempty"`
 }
 
-func (h *handler) getFeedEntry(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) getFeedEntry(w http.ResponseWriter, r *http.Request) {
 	rawId := r.PathValue("id")
 	id, err := strconv.Atoi(rawId)
 	if err != nil {
@@ -263,7 +263,7 @@ func (h *handler) getFeedEntry(w http.ResponseWriter, r *http.Request) {
 	res := getFeedEntryResponse{}
 	var rlID *int
 	var rlArchived *bool
-	err = h.db.QueryRowContext(ctx, `
+	err = h.DB.QueryRowContext(ctx, `
 		SELECT id, feed_id, url, title, description, content, snapshot_at, published_at,
 			(SELECT id FROM reading_list_items
 				WHERE feed_entry_id = feed_entries.id
@@ -323,7 +323,7 @@ type getFeedsResBody struct {
 
 const getFeedsSortKeyLen = 5
 
-func (h *handler) getFeeds(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) getFeeds(w http.ResponseWriter, r *http.Request) {
 	var cursor *paginationCusor[string]
 	if c := r.URL.Query().Get("after"); c != "" {
 		var err error
@@ -341,7 +341,7 @@ func (h *handler) getFeeds(w http.ResponseWriter, r *http.Request) {
 		where = "WHERE (sort_key, id) > ($1, $2)"
 		args = append(args, cursor.Key, cursor.Tiebreaker)
 	}
-	rows, err := h.db.QueryContext(ctx, fmt.Sprintf(`
+	rows, err := h.DB.QueryContext(ctx, fmt.Sprintf(`
 		SELECT *
 		FROM (
 			SELECT id, url, site_url, icon_url, title, description, LEFT(title, %d) AS sort_key
@@ -420,7 +420,7 @@ type getFeedResBody struct {
 	feedSchema
 }
 
-func (h *handler) getFeed(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) getFeed(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		fmt.Print(err)
@@ -431,7 +431,7 @@ func (h *handler) getFeed(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var res getFeedResBody
 	var su, iu, desc sql.NullString
-	err = h.db.QueryRowContext(ctx, `
+	err = h.DB.QueryRowContext(ctx, `
 		SELECT id, url, site_url, icon_url, title, description
 		FROM feeds
 		WHERE id = $1;
@@ -475,7 +475,7 @@ type getFeedTimelineResBody struct {
 	NextCursor *string             `json:"next_cursor,omitempty"`
 }
 
-func (h *handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		fmt.Print(err)
@@ -500,7 +500,7 @@ func (h *handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
 	// TODO: Replace this correlated subquery with a LEFT JOIN once
 	//       a UNIQUE (feed_entry_id) constraint exists on reading_list_items.
 	// TODO: Store sort keys in DB and create an index
-	rows, err := h.db.QueryContext(ctx, fmt.Sprintf(`
+	rows, err := h.DB.QueryContext(ctx, fmt.Sprintf(`
 		SELECT id, feed_id, url, title, description, published_at, snapshot_at,
 			(SELECT id FROM reading_list_items
 				WHERE feed_entry_id = feed_entries.id
@@ -578,7 +578,7 @@ type searchFeedsResBody struct {
 	Feeds []feedAttrsSchema `json:"feeds"`
 }
 
-func (h *handler) searchFeeds(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) searchFeeds(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
 	fs, err := feed.SearchFeeds(r.Context(), q)
 	if err != nil {
@@ -620,7 +620,7 @@ type subscribeToFeedResBody struct {
 	feedSchema
 }
 
-func (h *handler) subscribeToFeed(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) subscribeToFeed(w http.ResponseWriter, r *http.Request) {
 	var b subscribeToFeedReqBody
 	// TODO: Limit request body size (http.MaxBytesReader)
 	err := json.NewDecoder(r.Body).Decode(&b)
@@ -636,7 +636,7 @@ func (h *handler) subscribeToFeed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	fd, err := feed.Subscribe(ctx, h.db, *u)
+	fd, err := feed.Subscribe(ctx, h.DB, *u)
 	if err != nil {
 		fmt.Print(err)
 		serverError(w, http.StatusInternalServerError, "Failed to subscribe to feed")
@@ -676,7 +676,7 @@ type saveToReadingListReqBody struct {
 	WebClipID   *int `json:"web_clip_id"`
 }
 
-func (h *handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 	var b saveToReadingListReqBody
 	// TODO: Limit request body size (http.MaxBytesReader)
 	err := json.NewDecoder(r.Body).Decode(&b)
@@ -715,7 +715,7 @@ func (h *handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 		if b.Title != nil {
 			title = *b.Title
 		}
-		saved, err = readinglist.SaveWebClip(ctx, h.db, *u, title)
+		saved, err = readinglist.SaveWebClip(ctx, h.DB, *u, title)
 		if err != nil {
 			fmt.Println(err)
 			serverError(w, http.StatusInternalServerError, "Failed to save clip")
@@ -725,7 +725,7 @@ func (h *handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 	case b.FeedEntryID != nil:
 		// TODO: Return 404 instead of 500 when the given ID doesn't exist
 		var err error
-		saved, err = readinglist.SaveFeedEntry(ctx, h.db, *b.FeedEntryID)
+		saved, err = readinglist.SaveFeedEntry(ctx, h.DB, *b.FeedEntryID)
 		if err != nil {
 			fmt.Println(err)
 			serverError(w, http.StatusInternalServerError, "Failed to save feed entry")
@@ -735,7 +735,7 @@ func (h *handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 	case b.WebClipID != nil:
 		// TODO: Return 404 instead of 500 when the given ID doesn't exist
 		var err error
-		saved, err = readinglist.SaveWebClipByID(ctx, h.db, *b.WebClipID)
+		saved, err = readinglist.SaveWebClipByID(ctx, h.DB, *b.WebClipID)
 		if err != nil {
 			fmt.Println(err)
 			serverError(w, http.StatusInternalServerError, "Failed to save web clip")
@@ -775,18 +775,18 @@ type readingListItem struct {
 	SavedAt     time.Time `json:"saved_at"`
 }
 
-func (h *handler) getReadingList(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) getReadingList(w http.ResponseWriter, r *http.Request) {
 	h.writeReadingList(w, r, false)
 }
 
 // getArchivedReadingList returns the archived reading list items, newest first.
-func (h *handler) getArchivedReadingList(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) getArchivedReadingList(w http.ResponseWriter, r *http.Request) {
 	h.writeReadingList(w, r, true)
 }
 
 // writeReadingList fetches the reading list items filtered by archive status,
 // paginated newest-first, and writes them as the JSON response.
-func (h *handler) writeReadingList(w http.ResponseWriter, r *http.Request, archived bool) {
+func (h *Handler) writeReadingList(w http.ResponseWriter, r *http.Request, archived bool) {
 	var cursor *paginationCusor[time.Time]
 	if c := r.URL.Query().Get("after"); c != "" {
 		var err error
@@ -803,7 +803,7 @@ func (h *handler) writeReadingList(w http.ResponseWriter, r *http.Request, archi
 		args = append(args, cursor.Key, cursor.Tiebreaker)
 		where = "AND (saved_at, id) < ($2, $3)"
 	}
-	rows, err := h.db.QueryContext(ctx, fmt.Sprintf(`
+	rows, err := h.DB.QueryContext(ctx, fmt.Sprintf(`
 		SELECT id, kind, title, description, saved_at, web_clip_id, feed_entry_id
 		FROM reading_list_items
 		WHERE archived = $1 %s
@@ -900,7 +900,7 @@ type getWebClipResBody struct {
 	ReadLater *readLater `json:"read_later,omitempty"`
 }
 
-func (h *handler) getWebClip(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) getWebClip(w http.ResponseWriter, r *http.Request) {
 	rawId := r.PathValue("id")
 	id, err := strconv.Atoi(rawId)
 	if err != nil {
@@ -912,7 +912,7 @@ func (h *handler) getWebClip(w http.ResponseWriter, r *http.Request) {
 	var res getWebClipResBody
 	var rlID *int
 	var rlArchived *bool
-	err = h.db.QueryRowContext(ctx, `
+	err = h.DB.QueryRowContext(ctx, `
 		SELECT id, url, title, description, content,
 			(SELECT id FROM reading_list_items
 				WHERE web_clip_id = web_clips.id
@@ -947,13 +947,13 @@ func (h *handler) getWebClip(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(jres)
 }
 
-func (h *handler) deleteReadingListItem(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) deleteReadingListItem(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		serverError(w, http.StatusBadRequest, "Malformed ID")
 		return
 	}
-	ok, err := readinglist.DeleteItem(r.Context(), h.db, id)
+	ok, err := readinglist.DeleteItem(r.Context(), h.DB, id)
 	if err != nil {
 		fmt.Println(err)
 		serverError(w, http.StatusInternalServerError, "Something went wrong.")
@@ -978,7 +978,7 @@ type setReadingListItemArchivedStatusReqBody struct {
 	Archived *bool `json:"archived"`
 }
 
-func (h *handler) setReadingListItemArchivedStatus(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) setReadingListItemArchivedStatus(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		serverError(w, http.StatusBadRequest, "Invalid ID")
@@ -991,9 +991,9 @@ func (h *handler) setReadingListItemArchivedStatus(w http.ResponseWriter, r *htt
 		return
 	}
 	if *b.Archived {
-		err = readinglist.ArchiveItem(r.Context(), h.db, id)
+		err = readinglist.ArchiveItem(r.Context(), h.DB, id)
 	} else {
-		err = readinglist.UnarchiveItem(r.Context(), h.db, id)
+		err = readinglist.UnarchiveItem(r.Context(), h.DB, id)
 	}
 	if err != nil {
 		fmt.Println(err)
@@ -1017,7 +1017,7 @@ type signUpResBody struct {
 	Token string `json:"token"`
 }
 
-func (h *handler) signUp(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
 	var req signUpReqBody
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -1025,7 +1025,7 @@ func (h *handler) signUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.userService.SignUp(r.Context(), user.Credentials{
+	token, err := h.UserService.SignUp(r.Context(), user.Credentials{
 		Email:      req.Email,
 		Password:   req.Password,
 		DeviceKind: req.DeviceKind,
@@ -1070,7 +1070,7 @@ type signInResBody struct {
 	Token string `json:"token"`
 }
 
-func (h *handler) signIn(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) signIn(w http.ResponseWriter, r *http.Request) {
 	var req signInReqBody
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -1078,7 +1078,7 @@ func (h *handler) signIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.userService.SignIn(r.Context(), user.Credentials{
+	token, err := h.UserService.SignIn(r.Context(), user.Credentials{
 		Email:      req.Email,
 		Password:   req.Password,
 		DeviceKind: req.DeviceKind,
