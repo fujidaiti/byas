@@ -10,7 +10,6 @@ import (
 	"io"
 	"net/mail"
 	"regexp"
-	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -98,7 +97,7 @@ func (s *Service) issueToken(ctx context.Context, id int, device string) (string
 		return "", err
 	}
 	hashed := hashToken(token)
-	expr := time.Now().AddDate(0, 0, tokenExpiresInDays)
+	expr := s.Now().AddDate(0, 0, tokenExpiresInDays)
 	_, err = s.DB.ExecContext(ctx, `
 		INSERT INTO auth_tokens (user_id, device_kind, token_hash, expires_at)
 		VALUES ($1, $2, $3, $4);

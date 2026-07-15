@@ -50,8 +50,10 @@ func TestAuth_SignUp(t *testing.T) {
 	testenv.Run(t, func(db *sql.DB) {
 		s := user.Service{
 			DB:         db,
-			Now:        func() time.Time { return time.Now() },
 			SecureRand: bytes.NewReader(wantRawToken),
+			Now: func() time.Time {
+				return time.Date(2026, time.July, 15, 12, 0, 0, 0, time.UTC)
+			},
 		}
 
 		got1, err := s.SignUp(t.Context(), user.Credentials{
@@ -110,7 +112,7 @@ func TestAuth_SignUp(t *testing.T) {
 			UserId:     1,
 			DeviceKind: "TestDevice/1.0.0",
 			TokenHash:  wantTokenHash,
-			ExpiresAt:  time.Now(),
+			ExpiresAt:  time.Date(2026, time.August, 14, 12, 0, 0, 0, time.UTC),
 		}
 		if diff := cmp.Diff(want3, got3); diff != "" {
 			t.Errorf("unexpected token record (-want, +got):\n%s", diff)
