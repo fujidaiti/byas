@@ -5,9 +5,12 @@ package integration_test
 import (
 	"bytes"
 	"database/sql"
+	"encoding/json"
+	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/fujidaiti/paperdoll/api"
 	"github.com/fujidaiti/paperdoll/feature/user"
 	"github.com/fujidaiti/paperdoll/integration_test/testenv"
 	"github.com/google/go-cmp/cmp"
@@ -48,38 +51,45 @@ func TestAuth_SignUp(t *testing.T) {
 	wantToken := "2muU8X9M2NTr7ehKb_s-Wzff7j_ZnjLFJkjmMcscIGo"
 
 	testenv.Run(t, func(db *sql.DB) {
-		s := user.Service{
-			DB:         db,
-			SecureRand: bytes.NewReader(wantRawToken),
-			Now: func() time.Time {
-				return time.Date(2026, time.July, 15, 12, 0, 0, 0, time.UTC)
+		h := api.Handler{
+			DB: db,
+			UserService: user.Service{
+				DB:         db,
+				SecureRand: bytes.NewReader(wantRawToken),
+				Now: func() time.Time {
+					return time.Date(2026, time.July, 15, 12, 0, 0, 0, time.UTC)
+				},
 			},
 		}
-
-		got1, err := s.SignUp(t.Context(), user.Credentials{
+		rBody := api.SignUpReqBody{
 			Email:      "test@example.com",
 			Password:   "Test$Password+123",
 			DeviceKind: "TestDevice/1.0.0",
-		})
-		if err != nil {
-			t.Fatalf("failed to sign-up: %v", err)
 		}
-		if diff := cmp.Diff(wantToken, got1); diff != "" {
+		jBody, _ := json.Marshal(rBody)
+		req := httptest.NewRequest("POST", "/signup", bytes.NewReader(jBody))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+		api.NewRouter(&h).ServeHTTP(rec, req)
+
+		var got1 api.SignUpResBody
+		if err := json.NewDecoder(rec.Body).Decode(&got1); err != nil {
+			t.Fatalf("failed to decode response body: %v", err)
+		}
+		if diff := cmp.Diff(wantToken, got1.Token); diff != "" {
 			t.Errorf("unexpected returned token (-want, +got):\n%s", diff)
 		}
 
 		var got2 userRecord
-		err = db.QueryRowContext(t.Context(), `
-			SELECT id, email, password_hash
-			FROM users
-			WHERE email = 'test@example.com';
-		`).Scan(&got2.ID, &got2.Email, &got2.PasswordHash)
+		err := db.QueryRowContext(t.Context(), `
+			SELECT id, email, password_hash FROM users WHERE email = $1;
+		`, rBody.Email).Scan(&got2.ID, &got2.Email, &got2.PasswordHash)
 		if err != nil {
 			t.Fatalf("failed to fetch created user: %v", err)
 		}
 		want2 := userRecord{
 			ID:    1,
-			Email: "test@example.com",
+			Email: rBody.Email,
 		}
 		if diff := cmp.Diff(
 			want2,
@@ -90,7 +100,7 @@ func TestAuth_SignUp(t *testing.T) {
 		}
 		if err := bcrypt.CompareHashAndPassword(
 			got2.PasswordHash,
-			[]byte("Test$Password+123"),
+			[]byte(rBody.Password),
 		); err != nil {
 			t.Errorf(
 				"a bcrypt hash should be saved instead of the real password, but it looks like not: %v",
@@ -100,9 +110,7 @@ func TestAuth_SignUp(t *testing.T) {
 
 		var got3 authTokenRecord
 		err = db.QueryRowContext(t.Context(), `
-			SELECT id, user_id, device_kind, token_hash, expires_at
-			FROM auth_tokens
-			WHERE user_id = 1;
+			SELECT id, user_id, device_kind, token_hash, expires_at FROM auth_tokens WHERE user_id = 1;
 		`).Scan(&got3.ID, &got3.UserId, &got3.DeviceKind, &got3.TokenHash, &got3.ExpiresAt)
 		if err != nil {
 			t.Fatalf("failed to fetch issued token: %v", err)
@@ -110,7 +118,7 @@ func TestAuth_SignUp(t *testing.T) {
 		want3 := authTokenRecord{
 			ID:         1,
 			UserId:     1,
-			DeviceKind: "TestDevice/1.0.0",
+			DeviceKind: rBody.DeviceKind,
 			TokenHash:  wantTokenHash,
 			ExpiresAt:  time.Date(2026, time.August, 14, 12, 0, 0, 0, time.UTC),
 		}

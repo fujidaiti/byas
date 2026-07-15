@@ -48,27 +48,10 @@ func StartServer(ctx context.Context) {
 			SecureRand: rand.Reader,
 		},
 	}
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /health", h.getHealth)
-	mux.HandleFunc("GET /newspapers/today", h.getTodaysNewspaper)
-	mux.HandleFunc("GET /feeds", h.getFeeds)
-	mux.HandleFunc("PUT /feeds", h.subscribeToFeed)
-	mux.HandleFunc("GET /feeds/search", h.searchFeeds)
-	mux.HandleFunc("GET /feeds/{id}", h.getFeed)
-	mux.HandleFunc("GET /feeds/{id}/timeline", h.getFeedTimeline)
-	mux.HandleFunc("GET /feed-entries/{id}", h.getFeedEntry)
-	mux.HandleFunc("GET /web-clips/{id}", h.getWebClip)
-	mux.HandleFunc("POST /reading-list", h.saveToReadingList)
-	mux.HandleFunc("GET /reading-list", h.getReadingList)
-	mux.HandleFunc("GET /reading-list/archived", h.getArchivedReadingList)
-	mux.HandleFunc("DELETE /reading-list/{id}", h.deleteReadingListItem)
-	mux.HandleFunc("PATCH /reading-list/{id}", h.setReadingListItemArchivedStatus)
-	mux.HandleFunc("POST /signup", h.SignUp)
-	mux.HandleFunc("POST /signin", h.signIn)
 
 	srv := http.Server{
 		Addr:    ":8080",
-		Handler: mux,
+		Handler: NewRouter(h),
 		// Slowloris attack prevention
 		ReadHeaderTimeout: 5 * time.Second,
 		BaseContext:       func(_ net.Listener) context.Context { return ctx },
@@ -97,6 +80,27 @@ func StartServer(ctx context.Context) {
 	case err := <-c:
 		fmt.Println(err)
 	}
+}
+
+func NewRouter(h *Handler) http.Handler {
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /health", h.getHealth)
+	mux.HandleFunc("GET /newspapers/today", h.getTodaysNewspaper)
+	mux.HandleFunc("GET /feeds", h.getFeeds)
+	mux.HandleFunc("PUT /feeds", h.subscribeToFeed)
+	mux.HandleFunc("GET /feeds/search", h.searchFeeds)
+	mux.HandleFunc("GET /feeds/{id}", h.getFeed)
+	mux.HandleFunc("GET /feeds/{id}/timeline", h.getFeedTimeline)
+	mux.HandleFunc("GET /feed-entries/{id}", h.getFeedEntry)
+	mux.HandleFunc("GET /web-clips/{id}", h.getWebClip)
+	mux.HandleFunc("POST /reading-list", h.saveToReadingList)
+	mux.HandleFunc("GET /reading-list", h.getReadingList)
+	mux.HandleFunc("GET /reading-list/archived", h.getArchivedReadingList)
+	mux.HandleFunc("DELETE /reading-list/{id}", h.deleteReadingListItem)
+	mux.HandleFunc("PATCH /reading-list/{id}", h.setReadingListItemArchivedStatus)
+	mux.HandleFunc("POST /signup", h.SignUp)
+	mux.HandleFunc("POST /signin", h.signIn)
+	return mux
 }
 
 type Handler struct {
@@ -1007,18 +1011,18 @@ func (h *Handler) setReadingListItemArchivedStatus(w http.ResponseWriter, r *htt
 	_, _ = w.Write(jres)
 }
 
-type signUpReqBody struct {
+type SignUpReqBody struct {
 	Email      string `json:"email"`
 	Password   string `json:"password"`
 	DeviceKind string `json:"device_kind"`
 }
 
-type signUpResBody struct {
+type SignUpResBody struct {
 	Token string `json:"token"`
 }
 
 func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
-	var req signUpReqBody
+	var req SignUpReqBody
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		serverError(w, http.StatusBadRequest, "Malformed request body")
@@ -1050,7 +1054,7 @@ func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: DRY JSON response creation
-	jres, err := json.Marshal(signUpResBody{Token: token})
+	jres, err := json.Marshal(SignUpResBody{Token: token})
 	if err != nil {
 		serverError(w, http.StatusInternalServerError, "Failed to construct a JSON response")
 		return
