@@ -23,10 +23,19 @@ var db *sql.DB
 func Run(t *testing.T, f func(db *sql.DB)) {
 	t.Helper()
 	t.Cleanup(func() {
+		// container.Restore force-kills open connections to the db, so a later
+		// test could be handed a dead pooled connection and fail. Close/reopen
+		// the pool around it so every test starts with a known-good connection.
+		if err := db.Close(); err != nil {
+			log.Printf("Failed to close DB before restore: %v\n", err)
+		}
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer cancel()
 		if err := container.Restore(ctx); err != nil {
 			log.Printf("Failed to restore DB snapshot: %v\n", err)
+		}
+		if err := openDB(ctx); err != nil {
+			log.Printf("Failed to reopen DB after restore: %v\n", err)
 		}
 	})
 	f(db)
@@ -69,11 +78,7 @@ func RunTests(m *testing.M) int {
 	if err != nil {
 		return exitAs("Failed to launch test container: %v\n", err)
 	}
-	dsn, err := container.ConnectionString(ctx, "sslmode=disable")
-	if err != nil {
-		return exitAs("Failed to construct the DSN: %v\n", err)
-	}
-	err = openDB(dsn)
+	err = openDB(ctx)
 	if err != nil {
 		return exitAs("Failed to open the DB for migration: %v\n", err)
 	}
@@ -89,7 +94,7 @@ func RunTests(m *testing.M) int {
 	if err != nil {
 		return exitAs("Failed to take a DB snapshot: %v\n", err)
 	}
-	err = openDB(dsn)
+	err = openDB(ctx)
 	if err != nil {
 		return exitAs("Failed to reopen the DB: %v\n", err)
 	}
@@ -102,8 +107,11 @@ func exitAs(format string, v ...any) int {
 }
 
 // openDB modifies the global db variable. Errors should be handled on the call site.
-func openDB(dsn string) error {
-	var err error
+func openDB(ctx context.Context) error {
+	dsn, err := container.ConnectionString(ctx, "sslmode=disable")
+	if err != nil {
+		return fmt.Errorf("failed to construct the DSN: %w", err)
+	}
 	db, err = sql.Open("pgx", dsn)
 	if err != nil {
 		return fmt.Errorf("failed to connect to %s: %w", dsn, err)
