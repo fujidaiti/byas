@@ -3,7 +3,6 @@ package user
 
 import (
 	"context"
-	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
 	"errors"
@@ -38,7 +37,7 @@ var pswdRegex = regexp.MustCompile(`^[\x20-\x7E]{15,64}$`)
 const bcryptCost = 12
 
 // SignUp creates a fresh user account for the given email and issue a new authentication token.
-func SignUp(ctx context.Context, db *sql.DB, crd Credentials) ([]byte, error) {
+func (s *Service) SignUp(ctx context.Context, crd Credentials) ([]byte, error) {
 	if crd.DeviceKind == "" {
 		return nil, ErrDeviceKindEmpty
 	}
@@ -54,7 +53,7 @@ func SignUp(ctx context.Context, db *sql.DB, crd Credentials) ([]byte, error) {
 		return nil, err
 	}
 	var id int
-	err = db.QueryRowContext(ctx, `
+	err = s.DB.QueryRowContext(ctx, `
 		INSERT INTO users (email, password_hash)
 		VALUES ($1, $2)
 		ON CONFLICT (email) DO NOTHING
@@ -66,16 +65,16 @@ func SignUp(ctx context.Context, db *sql.DB, crd Credentials) ([]byte, error) {
 	case err != nil:
 		return nil, err
 	}
-	return issueToken(ctx, db, id, crd.DeviceKind)
+	return s.issueToken(ctx, id, crd.DeviceKind)
 }
 
-func SignIn(ctx context.Context, db *sql.DB, crd Credentials) ([]byte, error) {
+func (s *Service) SignIn(ctx context.Context, crd Credentials) ([]byte, error) {
 	if crd.DeviceKind == "" {
 		return nil, ErrDeviceKindEmpty
 	}
 	var dbHash []byte
 	var id int
-	err := db.QueryRowContext(ctx, `
+	err := s.DB.QueryRowContext(ctx, `
 		SELECT id, password_hash FROM users WHERE email = $1;
 	`, crd.Email).Scan(&id, &dbHash)
 	switch {
@@ -87,17 +86,17 @@ func SignIn(ctx context.Context, db *sql.DB, crd Credentials) ([]byte, error) {
 	if bcrypt.CompareHashAndPassword(dbHash, []byte(crd.Password)) != nil {
 		return nil, ErrAuthFailed
 	}
-	return issueToken(ctx, db, id, crd.DeviceKind)
+	return s.issueToken(ctx, id, crd.DeviceKind)
 }
 
-func issueToken(ctx context.Context, db *sql.DB, id int, device string) ([]byte, error) {
+func (s *Service) issueToken(ctx context.Context, id int, device string) ([]byte, error) {
 	token := make([]byte, 32)
-	if _, err := rand.Read(token); err != nil {
+	if _, err := s.ReadSecureRand(token); err != nil {
 		return nil, err
 	}
 	hashed := hashToken(token)
 	expr := time.Now().AddDate(0, 0, tokenExpiresInDays)
-	_, err := db.ExecContext(ctx, `
+	_, err := s.DB.ExecContext(ctx, `
 		INSERT INTO auth_tokens (user_id, device_kind, token_hash, expires_at)
 		VALUES ($1, $2, $3, $4);
 	`, id, device, hashed, expr)

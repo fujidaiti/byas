@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
@@ -39,7 +40,14 @@ func StartServer(ctx context.Context) {
 		panic(err)
 	}
 
-	h := &handler{db}
+	h := &handler{
+		db: db,
+		userService: user.Service{
+			DB:             db,
+			Now:            func() time.Time { return time.Now() },
+			ReadSecureRand: func(b []byte) (int, error) { return rand.Read(b) },
+		},
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", h.getHealth)
 	mux.HandleFunc("GET /newspapers/today", h.getTodaysNewspaper)
@@ -92,7 +100,8 @@ func StartServer(ctx context.Context) {
 }
 
 type handler struct {
-	db *sql.DB
+	db          *sql.DB
+	userService user.Service
 }
 
 func (h *handler) getHealth(w http.ResponseWriter, _ *http.Request) {
@@ -1016,7 +1025,7 @@ func (h *handler) signUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := user.SignUp(r.Context(), h.db, user.Credentials{
+	token, err := h.userService.SignUp(r.Context(), user.Credentials{
 		Email:      req.Email,
 		Password:   req.Password,
 		DeviceKind: req.DeviceKind,
@@ -1071,7 +1080,7 @@ func (h *handler) signIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := user.SignIn(r.Context(), h.db, user.Credentials{
+	token, err := h.userService.SignIn(r.Context(), user.Credentials{
 		Email:      req.Email,
 		Password:   req.Password,
 		DeviceKind: req.DeviceKind,

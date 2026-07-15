@@ -28,7 +28,22 @@ type authTokenRecord struct {
 
 func TestAuth_SignUp(t *testing.T) {
 	testenv.Run(t, func(db *sql.DB) {
-		gotT, err := user.SignUp(t.Context(), db, user.Credentials{
+		s := user.Service{
+			DB:  db,
+			Now: func() time.Time { return time.Now() },
+			ReadSecureRand: func(b []byte) (int, error) {
+				for i := range len(b) {
+					if i%2 == 0 {
+						b[i] = 0x00
+					} else {
+						b[i] = 0xFF
+					}
+				}
+				return len(b), nil
+			},
+		}
+
+		gotT, err := s.SignUp(t.Context(), user.Credentials{
 			Email:      "test@example.com",
 			Password:   "Test$Password+123",
 			DeviceKind: "TestDevice/1.0.0",
@@ -36,6 +51,17 @@ func TestAuth_SignUp(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to sign-up: %v", err)
 		}
+		// random 32 bytes
+		wantT := []byte{
+			0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF,
+			0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF,
+			0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF,
+			0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF,
+		}
+		if diff := cmp.Diff(wantT, gotT); diff != "" {
+			t.Errorf("unexpected returned token (-want, +got):\n%s", diff)
+		}
+
 		var gotU userRecord
 		err = db.QueryRowContext(t.Context(), `
 			SELECT id, email, password_hash
@@ -73,11 +99,5 @@ func TestAuth_SignUp(t *testing.T) {
 		if diff := cmp.Diff(wantA, gotA); diff != "" {
 			t.Errorf("unexpected token record (-want, +got):\n%s", diff)
 		}
-
-		wantT := []byte("11111111111111111111111111111111")
-		if got, want := len(gotT), len(wantT); got != want {
-			t.Errorf("returned token should be %d bytes, but got %d bytes", want, got)
-		}
-
 	})
 }
