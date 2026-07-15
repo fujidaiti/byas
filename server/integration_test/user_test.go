@@ -48,7 +48,7 @@ func TestAuth_SignUp(t *testing.T) {
 		rBody := api.SignUpReqBody{
 			Email:      "test@example.com",
 			Password:   "Test$Password+123",
-			DeviceKind: "TestDevice/1.0.0",
+			DeviceKind: "Pixel9a/Android16",
 		}
 		jBody, _ := json.Marshal(rBody)
 		req := httptest.NewRequest("POST", "/signup", bytes.NewReader(jBody))
@@ -60,15 +60,16 @@ func TestAuth_SignUp(t *testing.T) {
 		if err := json.NewDecoder(rec.Body).Decode(&got1); err != nil {
 			t.Fatalf("failed to decode response body: %v", err)
 		}
-		rawToken := make([]byte, len(got1.Token))
-		if n, err := base64.RawURLEncoding.Decode(rawToken, []byte(got1.Token)); err != nil {
+		rawToken, err := base64.RawURLEncoding.DecodeString(got1.Token)
+		if err != nil {
 			t.Errorf("returned token must be a valid Base64URL with no padding,　but got: %s", got1.Token)
-		} else if n != 32 {
-			t.Errorf("decoded token must be 32 bytes, but it has %d bytes", n)
+		}
+		if l := len(rawToken); l != 32 {
+			t.Errorf("raw token must be 32 bytes, but got %d bytes", l)
 		}
 
 		var got2 userRecord
-		err := db.QueryRowContext(t.Context(), `
+		err = db.QueryRowContext(t.Context(), `
 			SELECT id, email, password_hash FROM users WHERE email = $1;
 		`, rBody.Email).Scan(&got2.ID, &got2.Email, &got2.PasswordHash)
 		if err != nil {
