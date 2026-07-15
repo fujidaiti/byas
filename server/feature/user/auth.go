@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"errors"
+	"io"
 	"net/mail"
 	"regexp"
 	"time"
@@ -92,12 +93,13 @@ func (s *Service) SignIn(ctx context.Context, crd Credentials) (string, error) {
 
 func (s *Service) issueToken(ctx context.Context, id int, device string) (string, error) {
 	token := make([]byte, 32)
-	if _, err := s.ReadSecureRand(token); err != nil {
+	_, err := io.ReadFull(s.SecureRand, token)
+	if err != nil {
 		return "", err
 	}
 	hashed := hashToken(token)
 	expr := time.Now().AddDate(0, 0, tokenExpiresInDays)
-	_, err := s.DB.ExecContext(ctx, `
+	_, err = s.DB.ExecContext(ctx, `
 		INSERT INTO auth_tokens (user_id, device_kind, token_hash, expires_at)
 		VALUES ($1, $2, $3, $4);
 	`, id, device, hashed, expr)

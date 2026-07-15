@@ -43,9 +43,9 @@ func StartServer(ctx context.Context) {
 	h := &handler{
 		db: db,
 		userService: user.Service{
-			DB:             db,
-			Now:            func() time.Time { return time.Now() },
-			ReadSecureRand: func(b []byte) (int, error) { return rand.Read(b) },
+			DB:         db,
+			Now:        func() time.Time { return time.Now() },
+			SecureRand: rand.Reader,
 		},
 	}
 	mux := http.NewServeMux()

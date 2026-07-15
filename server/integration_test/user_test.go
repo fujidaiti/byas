@@ -3,8 +3,8 @@
 package integration_test
 
 import (
+	"bytes"
 	"database/sql"
-	"fmt"
 	"testing"
 	"time"
 
@@ -49,15 +49,9 @@ func TestAuth_SignUp(t *testing.T) {
 
 	testenv.Run(t, func(db *sql.DB) {
 		s := user.Service{
-			DB:  db,
-			Now: func() time.Time { return time.Now() },
-			ReadSecureRand: func(b []byte) (int, error) {
-				if len(b) <= len(wantRawToken) {
-					copy(b, wantRawToken[:len(b)])
-					return len(b), nil
-				}
-				return 0, fmt.Errorf("required too many random bytes")
-			},
+			DB:         db,
+			Now:        func() time.Time { return time.Now() },
+			SecureRand: bytes.NewReader(wantRawToken),
 		}
 
 		got1, err := s.SignUp(t.Context(), user.Credentials{
@@ -97,7 +91,7 @@ func TestAuth_SignUp(t *testing.T) {
 			[]byte("Test$Password+123"),
 		); err != nil {
 			t.Errorf(
-				"a bcrypt hash should be saved on behalf of the real password, but it looks like not: %v",
+				"a bcrypt hash should be saved instead of the real password, but it looks like not: %v",
 				err,
 			)
 		}
