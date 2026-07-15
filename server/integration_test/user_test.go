@@ -96,7 +96,10 @@ func TestAuth_SignUp(t *testing.T) {
 			got2.PasswordHash,
 			[]byte("Test$Password+123"),
 		); err != nil {
-			t.Errorf("saved hash doesn't match input password: %v", err)
+			t.Errorf(
+				"a bcrypt hash should be saved on behalf of the real password, but it looks like not: %v",
+				err,
+			)
 		}
 
 		var got3 authTokenRecord
