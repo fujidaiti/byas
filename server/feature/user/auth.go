@@ -37,6 +37,7 @@ var pswdRegex = regexp.MustCompile(`^[\x20-\x7E]{15,64}$`)
 // TODO: Tweak the bcrypt cost
 const bcryptCost = 12
 
+// SignUp creates a fresh user account for the given email and issue a new authentication token.
 func SignUp(ctx context.Context, db *sql.DB, crd Credentials) ([]byte, error) {
 	if crd.DeviceKind == "" {
 		return nil, ErrDeviceKindEmpty
