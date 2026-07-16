@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/fujidaiti/paperdoll/integration_test/testenv"
 )
@@ -40,4 +41,13 @@ func scanRows[T any](ctx context.Context, query string, args []any, scan func(*s
 		return nil, fmt.Errorf("failed to scan rows: %w\nquery: %s", err, query)
 	}
 	return dsts, nil
+}
+
+// mustTimeUTC parses s into a [time.Time]. The accepted format is "yyyy-MM-dd hh:mm:ss".
+func mustTimeUTC(s string) time.Time {
+	t, err := time.ParseInLocation(time.DateTime, s, time.UTC)
+	if err != nil {
+		panic(err)
+	}
+	return t
 }

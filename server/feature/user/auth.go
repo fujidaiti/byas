@@ -51,21 +51,8 @@ func (s *Service) SignUp(ctx context.Context, crd Credentials) (string, error) {
 	if !pswdRegex.MatchString(crd.Password) {
 		return "", ErrPswdInvalid
 	}
-	hash, err := bcrypt.GenerateFromPassword([]byte(crd.Password), bcryptCost)
+	id, err := s.CreateUserAccount(ctx, email.Address, crd.Password)
 	if err != nil {
-		return "", err
-	}
-	var id int
-	err = s.DB.QueryRowContext(ctx, `
-		INSERT INTO users (email, password_hash)
-		VALUES ($1, $2)
-		ON CONFLICT (email) DO NOTHING
-		RETURNING id;
-	`, email.Address, hash).Scan(&id)
-	switch {
-	case errors.Is(err, sql.ErrNoRows):
-		return "", ErrEmailTaken
-	case err != nil:
 		return "", err
 	}
 	return s.IssueAuthToken(ctx, id, crd.DeviceKind)

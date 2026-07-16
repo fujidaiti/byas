@@ -170,8 +170,6 @@ func TestAuth_CreateUserAccount_EmailUniquness(t *testing.T) {
 
 func TestAuth_IssueAuthToken(t *testing.T) {
 	t.Cleanup(testenv.ResetDB)
-	s := user.Service{DB: testenv.DB}
-
 	type User struct {
 		email, password string
 		id              user.UserID
@@ -181,25 +179,14 @@ func TestAuth_IssueAuthToken(t *testing.T) {
 		"alice": {
 			email:      "alice@example.com",
 			password:   "alice#pass1234",
-			signedUpAt: time.Date(2026, time.June, 1, 9, 15, 0, 0, time.UTC),
+			signedUpAt: mustTimeUTC("2026-07-01 09:15:00"),
 		},
 		"bob": {
 			email:      "bob@forest.com",
 			password:   "bob#pass987",
-			signedUpAt: time.Date(2026, time.July, 10, 14, 40, 0, 0, time.UTC),
+			signedUpAt: mustTimeUTC("2026-07-10 14:40:05"),
 		},
 	}
-
-	// Seed users
-	for _, u := range users {
-		s.Now = func() time.Time { return u.signedUpAt }
-		var err error
-		u.id, err = s.CreateUserAccount(t.Context(), u.email, u.password)
-		if err != nil {
-			t.Fatalf("failed to seed user (%s): %v", u.email, err)
-		}
-	}
-
 	test := []struct {
 		name       string
 		user       *User
@@ -210,26 +197,37 @@ func TestAuth_IssueAuthToken(t *testing.T) {
 			name:       "alice's first session",
 			user:       users["alice"],
 			deviceKind: "Pixel9a/Android17",
-			signedInAt: time.Date(2026, time.June, 1, 9, 16, 30, 0, time.UTC),
+			signedInAt: mustTimeUTC("2026-07-01 09:15:30"),
 		},
 		{
 			name:       "bob's first session",
 			user:       users["bob"],
 			deviceKind: "GalaxyS26/Android16",
-			signedInAt: time.Date(2026, time.June, 3, 19, 20, 0, 0, time.UTC),
+			signedInAt: mustTimeUTC("2026-07-10 14:45:18"),
 		},
 		{
 			name:       "alice's second session",
 			user:       users["alice"],
 			deviceKind: "Pixel9a/Android17",
-			signedInAt: time.Date(2026, time.June, 10, 7, 45, 0, 0, time.UTC),
+			signedInAt: mustTimeUTC("2026-07-08 07:45:00"),
 		},
 		{
 			name:       "alice's third session from different device",
 			user:       users["alice"],
 			deviceKind: "iPhone17/iOS26",
-			signedInAt: time.Date(2026, time.July, 14, 21, 5, 0, 0, time.UTC),
+			signedInAt: mustTimeUTC("2026-07-14 21:05:40"),
 		},
+	}
+
+	s := user.Service{DB: testenv.DB}
+	// Seed users
+	for _, u := range users {
+		s.Now = func() time.Time { return u.signedUpAt }
+		var err error
+		u.id, err = s.CreateUserAccount(t.Context(), u.email, u.password)
+		if err != nil {
+			t.Fatalf("failed to seed user (%s): %v", u.email, err)
+		}
 	}
 
 	var tokens []string
