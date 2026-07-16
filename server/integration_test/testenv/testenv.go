@@ -139,14 +139,3 @@ func resetDB() {
 		log.Printf("Failed to reopen DB after restore: %v\n", err)
 	}
 }
-
-func IsDistinct[T comparable](v []T) bool {
-	seen := make(map[T]struct{}, len(v))
-	for _, x := range v {
-		if _, exists := seen[x]; exists {
-			return false
-		}
-		seen[x] = struct{}{}
-	}
-	return true
-}

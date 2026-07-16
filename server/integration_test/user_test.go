@@ -98,8 +98,8 @@ func TestAuth_CreateUserAccount(t *testing.T) {
 	if len(passwordHashes) != len(test) {
 		t.Fatal("some of subtests have failed")
 	}
-	if !testenv.IsDistinct(passwordHashes) {
-		t.Errorf("")
+	if !isDistinct(passwordHashes) {
+		t.Errorf("password hashes must be uniqueue for each user even if raw passwords are identical")
 	}
 }
 
