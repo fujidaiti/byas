@@ -10,6 +10,7 @@ import (
 	"errors"
 	"net/mail"
 	"regexp"
+	"unicode"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -40,7 +41,22 @@ func ValidatePassword(p string) (ValidPassword, error) {
 	if !pswdRegex.MatchString(p) {
 		return ValidPassword{}, ErrPswdInvalid
 	}
-	return ValidPassword{value: p}, nil
+	return ValidPassword{p}, nil
+}
+
+type ValidEmail struct{ value string }
+
+func ValidateEmail(addr string) (ValidEmail, error) {
+	for i := 0; i < len(addr); i++ {
+		if addr[i] > unicode.MaxASCII {
+			return ValidEmail{}, ErrEmailInvalid
+		}
+	}
+	r, err := mail.ParseAddress(addr)
+	if err != nil || r.Address != addr {
+		return ValidEmail{}, ErrEmailInvalid
+	}
+	return ValidEmail{r.Address}, nil
 }
 
 // SignUp creates a fresh user account for the given email and issue a new authentication token.
@@ -48,15 +64,15 @@ func (s *Service) SignUp(ctx context.Context, crd Credentials) (string, error) {
 	if crd.DeviceKind == "" {
 		return "", ErrDeviceKindEmpty
 	}
-	email, err := mail.ParseAddress(crd.Email)
-	if err != nil || email.Address != crd.Email {
-		return "", ErrEmailInvalid
+	email, err := ValidateEmail(crd.Email)
+	if err != nil {
+		return "", err
 	}
 	pswd, err := ValidatePassword(crd.Password)
 	if err != nil {
 		return "", err
 	}
-	id, err := s.CreateUserAccount(ctx, email.Address, pswd.value)
+	id, err := s.CreateUserAccount(ctx, email.value, pswd.value)
 	if err != nil {
 		return "", err
 	}

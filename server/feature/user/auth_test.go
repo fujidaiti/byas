@@ -2,6 +2,7 @@ package user_test
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -10,87 +11,28 @@ import (
 
 func TestValidatePassword(t *testing.T) {
 	tests := []struct {
-		name, p string
+		p       string
 		wantErr bool
 	}{
-		{
-			name:    "empty string",
-			p:       "",
-			wantErr: true,
-		},
-		{
-			name:    "14 chars is too short",
-			p:       strings.Repeat("a", 14),
-			wantErr: true,
-		},
-		{
-			name:    "15 chars is the minimum valid length",
-			p:       strings.Repeat("a", 15),
-			wantErr: false,
-		},
-		{
-			name:    "64 chars is the maximum valid length",
-			p:       strings.Repeat("a", 64),
-			wantErr: false,
-		},
-		{
-			name:    "65 chars is too long",
-			p:       strings.Repeat("a", 65),
-			wantErr: true,
-		},
-		{
-			name:    "mixed printable ASCII",
-			p:       `Ab1!@#$%^&*()_+`,
-			wantErr: false,
-		},
-		{
-			name:    "leading and trailing spaces are printable",
-			p:       "  password123  ",
-			wantErr: false,
-		},
-		{
-			name:    "space (0x20) is the lowest valid char",
-			p:       strings.Repeat(" ", 15),
-			wantErr: false,
-		},
-		{
-			name:    "tilde (0x7E) is the highest valid char",
-			p:       strings.Repeat("~", 15),
-			wantErr: false,
-		},
-		{
-			name:    "unit separator (0x1F) is just below the valid range",
-			p:       strings.Repeat("\x1f", 15) + "a",
-			wantErr: true,
-		},
-		{
-			name:    "DEL (0x7F) is just above the valid range",
-			p:       strings.Repeat("a", 14) + "\x7f",
-			wantErr: true,
-		},
-		{
-			name:    "newline is a non-printable control char",
-			p:       strings.Repeat("a", 14) + "\n",
-			wantErr: true,
-		},
-		{
-			name:    "tab is a non-printable control char",
-			p:       strings.Repeat("a", 14) + "\t",
-			wantErr: true,
-		},
-		{
-			name:    "null byte is a non-printable control char",
-			p:       strings.Repeat("a", 14) + "\x00",
-			wantErr: true,
-		},
-		{
-			name:    "non-ASCII unicode rune is rejected",
-			p:       strings.Repeat("a", 14) + "é",
-			wantErr: true,
-		},
+		{p: "", wantErr: true},
+		{p: strings.Repeat("a", 14), wantErr: true},
+		{p: strings.Repeat("a", 15), wantErr: false},
+		{p: strings.Repeat("a", 64), wantErr: false},
+		{p: strings.Repeat("a", 65), wantErr: true},
+		{p: `Ab1!@#$%^&*()_+`, wantErr: false},
+		{p: "  password123  ", wantErr: false},
+		{p: strings.Repeat(" ", 15), wantErr: false},
+		{p: strings.Repeat("~", 15), wantErr: false},
+		{p: strings.Repeat("\x1f", 15) + "a", wantErr: true},
+		{p: strings.Repeat("a", 14) + "\x7f", wantErr: true},
+		{p: strings.Repeat("a", 14) + "\n", wantErr: true},
+		{p: strings.Repeat("a", 14) + "\t", wantErr: true},
+		{p: strings.Repeat("a", 14) + "\x00", wantErr: true},
+		{p: strings.Repeat("a", 14) + "é", wantErr: true},
+		{p: strings.Repeat("パスワード", 4), wantErr: true},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(fmt.Sprintf(`"%s"`, tt.p), func(t *testing.T) {
 			got, err := user.ValidatePassword(tt.p)
 			if tt.wantErr {
 				if !errors.Is(err, user.ErrPswdInvalid) {
@@ -101,6 +43,51 @@ func TestValidatePassword(t *testing.T) {
 				}
 			} else if err != nil {
 				t.Fatalf("f(%q) unexpected error: %v", tt.p, err)
+			}
+		})
+	}
+}
+
+func TestValidateEmail(t *testing.T) {
+	tests := []struct {
+		addr    string
+		wantErr bool
+	}{
+		{addr: "", wantErr: true},
+		{addr: "user", wantErr: true},
+		{addr: "@", wantErr: true},
+		{addr: "user@example.com", wantErr: false},
+		{addr: "USER@EXAMPLE.CO.JP", wantErr: false},
+		{addr: "user+tag@example.com", wantErr: false},
+		{addr: "first.middle.last@example.com", wantErr: false},
+		{addr: "user@localhost", wantErr: false},
+		{addr: "userexample.com", wantErr: true},
+		{addr: "@example.com", wantErr: true},
+		{addr: "user@", wantErr: true},
+		{addr: "user@@example.com", wantErr: true},
+		{addr: "user name@example.com", wantErr: true},
+		{addr: "user@exa mple.com", wantErr: true},
+		{addr: "Name <user@example.com>", wantErr: true},
+		{addr: " user@example.com", wantErr: true},
+		{addr: "user@example.com ", wantErr: true},
+		{addr: "üser@example.com", wantErr: true},
+		{addr: "user@ｅｘａｍｐｌｅ.ｃｏ.ｊｐ", wantErr: true},
+		{addr: "user@度メイン.co.jp", wantErr: true},
+		{addr: "日本語@example.com", wantErr: true},
+		{addr: "😀@example.com", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf(`"%s"`, tt.addr), func(t *testing.T) {
+			got, err := user.ValidateEmail(tt.addr)
+			if tt.wantErr {
+				if !errors.Is(err, user.ErrEmailInvalid) {
+					t.Fatalf("f(%q) error = %v, want %v", tt.addr, err, user.ErrEmailInvalid)
+				}
+				if got != (user.ValidEmail{}) {
+					t.Errorf("f(%q) = %+v, want zero value on error", tt.addr, got)
+				}
+			} else if err != nil {
+				t.Fatalf("f(%q) unexpected error: %v", tt.addr, err)
 			}
 		})
 	}
