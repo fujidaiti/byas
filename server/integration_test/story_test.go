@@ -60,7 +60,9 @@ func TestSubmitStories(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 	if !rows.Next() {
 		t.Fatal("no story is saved")
 	}
@@ -75,6 +77,9 @@ func TestSubmitStories(t *testing.T) {
 		&got.PublishedAt,
 	)
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err := rows.Err(); err != nil {
 		t.Fatal(err)
 	}
 

@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"net/http/httptest"
 	"testing"
 	"time"
@@ -142,7 +143,7 @@ func TestAuth_CreateUserAccount_EmailUniquness(t *testing.T) {
 			if gotID != tt.wantID {
 				t.Errorf("want ID=%d, got ID=%d", tt.wantID, gotID)
 			}
-			if gotErr != tt.wantErr {
+			if !errors.Is(gotErr, tt.wantErr) {
 				t.Errorf("want an error '%v', got '%v'", tt.wantErr, gotErr)
 			}
 
