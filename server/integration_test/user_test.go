@@ -37,10 +37,8 @@ func TestAuth_CreateUserAccount(t *testing.T) {
 	t.Cleanup(testenv.ResetDB)
 
 	test := []struct {
-		name       string
-		email      string
-		password   string
-		wantRecord userRecord
+		name, email, password string
+		wantRecord            userRecord
 	}{
 		{
 			name:       "success",
@@ -56,7 +54,7 @@ func TestAuth_CreateUserAccount(t *testing.T) {
 		},
 	}
 
-	var passwordHashes []string
+	var pswdHashes []string
 	for _, tt := range test {
 		t.Run(tt.name, func(t *testing.T) {
 			s := user.Service{
@@ -93,14 +91,11 @@ func TestAuth_CreateUserAccount(t *testing.T) {
 				t.Errorf("a bcrypt hash should be stored instead of the real password: %v", err)
 			}
 
-			passwordHashes = append(passwordHashes, string(gotUser.PasswordHash))
+			pswdHashes = append(pswdHashes, string(gotUser.PasswordHash))
 		})
 	}
 
-	if len(passwordHashes) != len(test) {
-		t.Fatal("some of subtests have failed")
-	}
-	if !isDistinct(passwordHashes) {
+	if len(pswdHashes) != len(test) || !isDistinct(pswdHashes) {
 		t.Errorf("password hashes must be uniqueue for each user even if raw passwords are identical")
 	}
 }
@@ -109,23 +104,30 @@ func TestAuth_CreateUserAccount_EmailUniquness(t *testing.T) {
 	t.Cleanup(testenv.ResetDB)
 
 	test := []struct {
-		name     string
-		email    string
-		password string
-		wantErr  error
-		wantID   int
+		name, email, password string
+		wantErr               error
+		wantID                int
 	}{
 		{
-			name: "success", email: "testUser@gmail.com", password: "testPassword1",
-			wantErr: nil, wantID: 1,
+			name:     "success",
+			email:    "testUser@gmail.com",
+			password: "testPassword1",
+			wantErr:  nil,
+			wantID:   1,
 		},
 		{
-			name: "same email", email: "testUser@gmail.com", password: "testPassword2",
-			wantErr: user.ErrEmailTaken, wantID: 0,
+			name:     "same email",
+			email:    "testUser@gmail.com",
+			password: "testPassword2",
+			wantErr:  user.ErrEmailTaken,
+			wantID:   0,
 		},
 		{
-			name: "same email and password", email: "testUser@gmail.com", password: "testPassword1",
-			wantErr: user.ErrEmailTaken, wantID: 0,
+			name:     "same email and password",
+			email:    "testUser@gmail.com",
+			password: "testPassword1",
+			wantErr:  user.ErrEmailTaken,
+			wantID:   0,
 		},
 	}
 
@@ -145,7 +147,7 @@ func TestAuth_CreateUserAccount_EmailUniquness(t *testing.T) {
 
 			var gotUsers []userRecord
 			rows, err := testenv.DB.QueryContext(t.Context(), `
-				SELECT id, email, password_hash FROM users where;
+				SELECT id, email, password_hash FROM users;
 			`)
 			if err != nil {
 				t.Fatalf("failed to fetch users: %v", err)
@@ -164,9 +166,9 @@ func TestAuth_CreateUserAccount_EmailUniquness(t *testing.T) {
 			if n := len(gotUsers); n != 1 {
 				t.Fatalf("exactly one user must be registered, got %d users", n)
 			}
-			if got := gotUsers[0]; got.ID != gotID || got.Email != tt.email ||
-				bcrypt.CompareHashAndPassword(got.PasswordHash, []byte(tt.password)) != nil {
-				t.Errorf("only the first user must be registered, got=%v", got)
+			if got, want := gotUsers[0], test[0]; got.ID != want.wantID || got.Email != want.email ||
+				bcrypt.CompareHashAndPassword(got.PasswordHash, []byte(want.password)) != nil {
+				t.Errorf("only the first user must be registered:\ngot=%v\nwant=%v", got, want)
 			}
 		})
 	}
