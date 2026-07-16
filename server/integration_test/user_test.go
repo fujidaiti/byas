@@ -181,12 +181,12 @@ func TestAuth_IssueAuthToken(t *testing.T) {
 		"alice": {
 			email:      "alice@example.com",
 			password:   "alice#pass1234",
-			signedUpAt: time.Date(2026, time.July, 15, 12, 0, 0, 0, time.UTC),
+			signedUpAt: time.Date(2026, time.June, 1, 9, 15, 0, 0, time.UTC),
 		},
 		"bob": {
 			email:      "bob@forest.com",
 			password:   "bob#pass987",
-			signedUpAt: time.Date(2026, time.July, 15, 12, 0, 0, 0, time.UTC),
+			signedUpAt: time.Date(2026, time.July, 10, 14, 40, 0, 0, time.UTC),
 		},
 	}
 
@@ -207,22 +207,28 @@ func TestAuth_IssueAuthToken(t *testing.T) {
 		signedInAt time.Time
 	}{
 		{
-			name:       "alice first session",
+			name:       "alice's first session",
 			user:       users["alice"],
 			deviceKind: "Pixel9a/Android17",
-			signedInAt: time.Date(2026, time.July, 17, 8, 30, 0, 0, time.UTC),
+			signedInAt: time.Date(2026, time.June, 1, 9, 16, 30, 0, time.UTC),
 		},
 		{
-			name:       "alice second session",
+			name:       "bob's first session",
+			user:       users["bob"],
+			deviceKind: "GalaxyS26/Android16",
+			signedInAt: time.Date(2026, time.June, 3, 19, 20, 0, 0, time.UTC),
+		},
+		{
+			name:       "alice's second session",
 			user:       users["alice"],
 			deviceKind: "Pixel9a/Android17",
-			signedInAt: time.Date(2026, time.July, 15, 12, 0, 0, 0, time.UTC),
+			signedInAt: time.Date(2026, time.June, 10, 7, 45, 0, 0, time.UTC),
 		},
 		{
-			name:       "alice third session from different device",
+			name:       "alice's third session from different device",
 			user:       users["alice"],
 			deviceKind: "iPhone17/iOS26",
-			signedInAt: time.Date(2026, time.July, 15, 12, 0, 0, 0, time.UTC),
+			signedInAt: time.Date(2026, time.July, 14, 21, 5, 0, 0, time.UTC),
 		},
 	}
 
@@ -246,7 +252,8 @@ func TestAuth_IssueAuthToken(t *testing.T) {
 
 			var gotRec authTokenRecord
 			err = testenv.DB.QueryRowContext(t.Context(), `
-				SELECT device_kind, token_hash, expires_at FROM auth_tokens WHERE user_id = $1;
+				SELECT device_kind, token_hash, expires_at FROM auth_tokens
+				WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1;
 			`, tt.user.id).Scan(&gotRec.DeviceKind, &gotRec.TokenHash, &gotRec.ExpiresAt)
 			if err != nil {
 				t.Fatalf("new token record must be created: %v", err)
@@ -257,7 +264,7 @@ func TestAuth_IssueAuthToken(t *testing.T) {
 			}
 
 			if d := gotRec.ExpiresAt.Sub(tt.signedInAt); d != 30*24*time.Hour {
-				t.Errorf("token should expires in 30 days, actual TTL is %g hour(s)", d.Hours())
+				t.Errorf("token should expires in 30 days, actual TTL is %g day(s)", d.Hours()/24)
 			}
 
 			if bytes.Equal(gotRec.TokenHash, rawToken) {
