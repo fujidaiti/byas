@@ -31,8 +31,17 @@ type Credentials struct {
 	DeviceKind string
 }
 
+type ValidPassword struct{ value string }
+
 // Printable ASCII characters only; 15-64 characters
 var pswdRegex = regexp.MustCompile(`^[\x20-\x7E]{15,64}$`)
+
+func ValidatePassword(p string) (ValidPassword, error) {
+	if !pswdRegex.MatchString(p) {
+		return ValidPassword{}, ErrPswdInvalid
+	}
+	return ValidPassword{value: p}, nil
+}
 
 // SignUp creates a fresh user account for the given email and issue a new authentication token.
 func (s *Service) SignUp(ctx context.Context, crd Credentials) (string, error) {
@@ -43,10 +52,11 @@ func (s *Service) SignUp(ctx context.Context, crd Credentials) (string, error) {
 	if err != nil || email.Address != crd.Email {
 		return "", ErrEmailInvalid
 	}
-	if !pswdRegex.MatchString(crd.Password) {
-		return "", ErrPswdInvalid
+	pswd, err := ValidatePassword(crd.Password)
+	if err != nil {
+		return "", err
 	}
-	id, err := s.CreateUserAccount(ctx, email.Address, crd.Password)
+	id, err := s.CreateUserAccount(ctx, email.Address, pswd.value)
 	if err != nil {
 		return "", err
 	}
