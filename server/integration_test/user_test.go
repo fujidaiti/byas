@@ -170,53 +170,108 @@ func TestAuth_CreateUserAccount_EmailUniquness(t *testing.T) {
 
 func TestAuth_IssueAuthToken(t *testing.T) {
 	t.Cleanup(testenv.ResetDB)
+	s := user.Service{DB: testenv.DB}
 
-	now := time.Date(2026, time.July, 15, 12, 0, 0, 0, time.UTC)
-	want3 := authTokenRecord{ID: 1, UserId: 1, DeviceKind: "Pixel9a/Android17"}
-	s := user.Service{
-		DB:  testenv.DB,
-		Now: func() time.Time { return now },
+	type User struct {
+		email, password string
+		id              user.UserID
+		signedUpAt      time.Time
 	}
-	uID, err := s.CreateUserAccount(t.Context(), "test@gmail.com", "Test$Password")
-	if err != nil {
-		t.Fatalf("failed to seed user: %v", err)
-	}
-
-	got1, err := s.IssueAuthToken(t.Context(), uID, "Pixel9a/Android17")
-	if err != nil {
-		t.Fatalf("failed to issue a new auth token: %v", err)
-	}
-
-	rawToken, err := base64.RawURLEncoding.DecodeString(got1)
-	if err != nil {
-		t.Errorf("returned token must be a valid Base64URL with no padding, but got: %s\n%v", got1, err)
-	}
-	if l := len(rawToken); l != 32 {
-		t.Errorf("raw token must be 32 bytes, but got %d bytes", l)
+	users := map[string]*User{
+		"alice": {
+			email:      "alice@example.com",
+			password:   "alice#pass1234",
+			signedUpAt: time.Date(2026, time.July, 15, 12, 0, 0, 0, time.UTC),
+		},
+		"bob": {
+			email:      "bob@forest.com",
+			password:   "bob#pass987",
+			signedUpAt: time.Date(2026, time.July, 15, 12, 0, 0, 0, time.UTC),
+		},
 	}
 
-	var got2 authTokenRecord
-	err = testenv.DB.QueryRowContext(t.Context(), `
-		SELECT id, user_id, device_kind, token_hash, expires_at FROM auth_tokens WHERE user_id = $1;
-	`, uID).Scan(&got2.ID, &got2.UserId, &got2.DeviceKind, &got2.TokenHash, &got2.ExpiresAt)
-	if err != nil {
-		t.Fatalf("new token record must be created: %v", err)
+	// Seed users
+	for _, u := range users {
+		s.Now = func() time.Time { return u.signedUpAt }
+		var err error
+		u.id, err = s.CreateUserAccount(t.Context(), u.email, u.password)
+		if err != nil {
+			t.Fatalf("failed to seed user (%s): %v", u.email, err)
+		}
 	}
 
-	if d := cmp.Diff(want3, got2, cmpopts.IgnoreFields(authTokenRecord{}, "TokenHash", "ExpiresAt")); d != "" {
-		t.Errorf("created token record is malformed:\n%s", d)
+	test := []struct {
+		name       string
+		user       *User
+		deviceKind string
+		signedInAt time.Time
+	}{
+		{
+			name:       "alice first session",
+			user:       users["alice"],
+			deviceKind: "Pixel9a/Android17",
+			signedInAt: time.Date(2026, time.July, 17, 8, 30, 0, 0, time.UTC),
+		},
+		{
+			name:       "alice second session",
+			user:       users["alice"],
+			deviceKind: "Pixel9a/Android17",
+			signedInAt: time.Date(2026, time.July, 15, 12, 0, 0, 0, time.UTC),
+		},
+		{
+			name:       "alice third session from different device",
+			user:       users["alice"],
+			deviceKind: "iPhone17/iOS26",
+			signedInAt: time.Date(2026, time.July, 15, 12, 0, 0, 0, time.UTC),
+		},
 	}
 
-	if d := got2.ExpiresAt.Sub(now); d != 30*24*time.Hour {
-		t.Errorf("token should expires in 30 days, but actual TTL is %g hour(s)", d.Hours())
+	var tokens []string
+	for _, tt := range test {
+		s.Now = func() time.Time { return tt.signedInAt }
+		t.Run(tt.name, func(t *testing.T) {
+			gotToken, err := s.IssueAuthToken(t.Context(), tt.user.id, tt.deviceKind)
+			if err != nil {
+				t.Fatalf("failed to issue a new auth token: %v", err)
+			}
+			tokens = append(tokens, gotToken)
+
+			rawToken, err := base64.RawURLEncoding.DecodeString(gotToken)
+			if err != nil {
+				t.Errorf("returned token must be a valid Base64URL with no padding, got: %s\n%v", gotToken, err)
+			}
+			if l := len(rawToken); l != 32 {
+				t.Errorf("raw token must be 32 bytes, got %d bytes", l)
+			}
+
+			var gotRec authTokenRecord
+			err = testenv.DB.QueryRowContext(t.Context(), `
+				SELECT device_kind, token_hash, expires_at FROM auth_tokens WHERE user_id = $1;
+			`, tt.user.id).Scan(&gotRec.DeviceKind, &gotRec.TokenHash, &gotRec.ExpiresAt)
+			if err != nil {
+				t.Fatalf("new token record must be created: %v", err)
+			}
+
+			if gotRec.DeviceKind != tt.deviceKind {
+				t.Errorf("got device_kind='%s', want '%s'", gotRec.DeviceKind, tt.deviceKind)
+			}
+
+			if d := gotRec.ExpiresAt.Sub(tt.signedInAt); d != 30*24*time.Hour {
+				t.Errorf("token should expires in 30 days, actual TTL is %g hour(s)", d.Hours())
+			}
+
+			if bytes.Equal(gotRec.TokenHash, rawToken) {
+				t.Error("raw token must not be stored in DB")
+			}
+
+			if d := cmp.Diff(gotRec.TokenHash, new(sha256.Sum256(rawToken))[:]); d != "" {
+				t.Errorf("token must be SHA256-hashed in DB, actual diff:\n%s", d)
+			}
+		})
 	}
 
-	if bytes.Equal(got2.TokenHash, rawToken) {
-		t.Error("raw token must not be stored in DB")
-	}
-
-	if d := cmp.Diff(got2.TokenHash, new(sha256.Sum256(rawToken))[:]); d != "" {
-		t.Errorf("token must be SHA256-hashed in DB; actual diff:\n%s", d)
+	if len(tokens) != len(test) || !isDistinct(tokens) {
+		t.Errorf("tokens must be uniqueue across all sessions")
 	}
 }
 
