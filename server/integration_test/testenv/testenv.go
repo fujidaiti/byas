@@ -22,23 +22,23 @@ var db *sql.DB
 // The database is automatically cleanued up after the test finishes.
 func Run(t *testing.T, f func(db *sql.DB)) {
 	t.Helper()
-	t.Cleanup(func() {
-		// container.Restore force-kills open connections to the db, so a later
-		// test could be handed a dead pooled connection and fail. Close/reopen
-		// the pool around it so every test starts with a known-good connection.
-		if err := db.Close(); err != nil {
-			log.Printf("Failed to close DB before restore: %v\n", err)
-		}
-		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-		defer cancel()
-		if err := container.Restore(ctx); err != nil {
-			log.Printf("Failed to restore DB snapshot: %v\n", err)
-		}
-		if err := openDB(ctx); err != nil {
-			log.Printf("Failed to reopen DB after restore: %v\n", err)
-		}
-	})
+	t.Cleanup(resetDB)
 	f(db)
+}
+
+func RunTT[T any](t *testing.T, test map[string]T, reuseDB bool, f func(db *sql.DB, tt T)) {
+	t.Helper()
+	if reuseDB {
+		t.Cleanup(resetDB)
+	}
+	for name, tt := range test {
+		t.Run(name, func(t *testing.T) {
+			if !reuseDB {
+				t.Cleanup(resetDB)
+			}
+			f(db, tt)
+		})
+	}
 }
 
 // RunTests runs all top-level test functions and returns an exit code.
@@ -121,4 +121,32 @@ func openDB(ctx context.Context) error {
 		return fmt.Errorf("failed to ping: %w", err)
 	}
 	return nil
+}
+
+func resetDB() {
+	// container.Restore force-kills open connections to the db, so a later
+	// test could be handed a dead pooled connection and fail. Close/reopen
+	// the pool around it so every test starts with a known-good connection.
+	if err := db.Close(); err != nil {
+		log.Printf("Failed to close DB before restore: %v\n", err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	if err := container.Restore(ctx); err != nil {
+		log.Printf("Failed to restore DB snapshot: %v\n", err)
+	}
+	if err := openDB(ctx); err != nil {
+		log.Printf("Failed to reopen DB after restore: %v\n", err)
+	}
+}
+
+func IsDistinct[T comparable](v []T) bool {
+	seen := make(map[T]struct{}, len(v))
+	for _, x := range v {
+		if _, exists := seen[x]; exists {
+			return false
+		}
+		seen[x] = struct{}{}
+	}
+	return true
 }

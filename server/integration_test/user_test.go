@@ -35,19 +35,31 @@ type authTokenRecord struct {
 }
 
 func TestAuth_CreateUserAccount(t *testing.T) {
-	tt := struct {
-		email    string
-		password string
-	}{"test@example.com", "Test$Password+123"}
-	want := userRecord{
-		ID:    1,
-		Email: tt.email,
+	type Test struct {
+		email      string
+		password   string
+		wantRecord userRecord
 	}
-	testenv.Run(t, func(db *sql.DB) {
+	test := map[string]Test{
+		"happy": {
+			email:      "alice@gmail.com",
+			password:   "Test$Password+123",
+			wantRecord: userRecord{ID: 1, Email: "alice@gmail.com"},
+		},
+		"same password": {
+			email:      "bob@exchange.com",
+			password:   "Test$Password+123",
+			wantRecord: userRecord{ID: 2, Email: "bob@exchange.com"},
+		},
+	}
+
+	var passwordHashes []string
+	testenv.RunTT(t, test, true, func(db *sql.DB, tt Test) {
 		s := user.Service{
 			DB:  db,
 			Now: func() time.Time { return time.Now() },
 		}
+
 		got1, err := s.CreateUserAccount(t.Context(), tt.email, tt.password)
 		if err != nil {
 			t.Fatalf("failed to create user account: %v", err)
@@ -65,7 +77,7 @@ func TestAuth_CreateUserAccount(t *testing.T) {
 			t.Errorf("returned ID(=%d) must be same as stored ID(=%d)", got1, got2.ID)
 		}
 
-		if d := cmp.Diff(want, got2, cmpopts.IgnoreFields(userRecord{}, "PasswordHash")); d != "" {
+		if d := cmp.Diff(tt.wantRecord, got2, cmpopts.IgnoreFields(userRecord{}, "PasswordHash")); d != "" {
 			t.Errorf("created user recored is malformed:\n%s", d)
 		}
 
@@ -79,7 +91,16 @@ func TestAuth_CreateUserAccount(t *testing.T) {
 		); err != nil {
 			t.Errorf("a bcrypt hash should be stored instead of the real password: %v", err)
 		}
+
+		passwordHashes = append(passwordHashes, string(got2.PasswordHash))
 	})
+
+	if len(passwordHashes) != len(test) {
+		t.Fatal("some of subtests have failed")
+	}
+	if !testenv.IsDistinct(passwordHashes) {
+		t.Errorf("")
+	}
 }
 
 func TestAuth_IssueAuthToken(t *testing.T) {
