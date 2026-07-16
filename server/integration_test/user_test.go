@@ -36,17 +36,20 @@ type authTokenRecord struct {
 func TestAuth_CreateUserAccount(t *testing.T) {
 	t.Cleanup(testenv.ResetDB)
 
-	test := map[string]struct {
+	test := []struct {
+		name       string
 		email      string
 		password   string
 		wantRecord userRecord
 	}{
-		"success": {
+		{
+			name:       "success",
 			email:      "alice@gmail.com",
 			password:   "Test$Password+123",
 			wantRecord: userRecord{ID: 1, Email: "alice@gmail.com"},
 		},
-		"same password": {
+		{
+			name:       "same password",
 			email:      "bob@exchange.com",
 			password:   "Test$Password+123",
 			wantRecord: userRecord{ID: 2, Email: "bob@exchange.com"},
@@ -54,8 +57,8 @@ func TestAuth_CreateUserAccount(t *testing.T) {
 	}
 
 	var passwordHashes []string
-	for name, tt := range test {
-		t.Run(name, func(t *testing.T) {
+	for _, tt := range test {
+		t.Run(tt.name, func(t *testing.T) {
 			s := user.Service{
 				DB:  testenv.DB,
 				Now: func() time.Time { return time.Now() },
@@ -105,28 +108,29 @@ func TestAuth_CreateUserAccount(t *testing.T) {
 func TestAuth_CreateUserAccount_EmailUniquness(t *testing.T) {
 	t.Cleanup(testenv.ResetDB)
 
-	test := map[string]struct {
+	test := []struct {
+		name     string
 		email    string
 		password string
 		wantErr  error
 		wantID   int
 	}{
-		"success": {
-			email: "testUser@gmail.com", password: "testPassword1",
+		{
+			name: "success", email: "testUser@gmail.com", password: "testPassword1",
 			wantErr: nil, wantID: 1,
 		},
-		"same email": {
-			email: "testUser@gmail.com", password: "testPassword2",
+		{
+			name: "same email", email: "testUser@gmail.com", password: "testPassword2",
 			wantErr: user.ErrEmailTaken, wantID: 0,
 		},
-		"same email and password": {
-			email: "testUser@gmail.com", password: "testPassword1",
+		{
+			name: "same email and password", email: "testUser@gmail.com", password: "testPassword1",
 			wantErr: user.ErrEmailTaken, wantID: 0,
 		},
 	}
 
-	for name, tt := range test {
-		t.Run(name, func(t *testing.T) {
+	for _, tt := range test {
+		t.Run(tt.name, func(t *testing.T) {
 			s := user.Service{
 				DB:  testenv.DB,
 				Now: func() time.Time { return time.Now() },
