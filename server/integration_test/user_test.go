@@ -56,14 +56,14 @@ func TestAuth_CreateUserAccount(t *testing.T) {
 		},
 	}
 
+	s := user.Service{
+		DB:  testenv.DB,
+		Now: func() time.Time { return time.Now() },
+	}
+
 	var pswdHashes []string
 	for _, tt := range test {
 		t.Run(tt.name, func(t *testing.T) {
-			s := user.Service{
-				DB:  testenv.DB,
-				Now: func() time.Time { return time.Now() },
-			}
-
 			gotID, err := s.CreateUserAccount(t.Context(), tt.email, tt.password)
 			if err != nil {
 				t.Fatalf("failed to create user account: %v", err)
@@ -133,12 +133,13 @@ func TestAuth_CreateUserAccount_EmailUniquness(t *testing.T) {
 		},
 	}
 
+	s := user.Service{
+		DB:  testenv.DB,
+		Now: func() time.Time { return time.Now() },
+	}
+
 	for _, tt := range test {
 		t.Run(tt.name, func(t *testing.T) {
-			s := user.Service{
-				DB:  testenv.DB,
-				Now: func() time.Time { return time.Now() },
-			}
 			gotID, gotErr := s.CreateUserAccount(t.Context(), tt.email, tt.password)
 			if gotID != tt.wantID {
 				t.Errorf("want ID=%d, got ID=%d", tt.wantID, gotID)
@@ -172,7 +173,6 @@ func TestAuth_IssueAuthToken(t *testing.T) {
 
 	now := time.Date(2026, time.July, 15, 12, 0, 0, 0, time.UTC)
 	want3 := authTokenRecord{ID: 1, UserId: 1, DeviceKind: "Pixel9a/Android17"}
-
 	s := user.Service{
 		DB:  testenv.DB,
 		Now: func() time.Time { return now },
