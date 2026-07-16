@@ -16,45 +16,18 @@ import (
 )
 
 var container *postgres.PostgresContainer
-var db *sql.DB
-
-// Run is a wrapper around the body of top-level test functions that requires a sql.DB handle.
-// The database is automatically cleanued up after the test finishes.
-func Run(t *testing.T, f func(db *sql.DB)) {
-	t.Helper()
-	t.Cleanup(resetDB)
-	f(db)
-}
-
-// RunTT is similar to [Run], but runs sub-tests for each suit in the test table.
-//
-// If reuseDB is true, the test DB is reset only once after all sub-tests finish.
-// Otherwise, the DB is cleaned up after each sub-test.
-func RunTT[T any](t *testing.T, test map[string]T, reuseDB bool, f func(db *sql.DB, tt T)) {
-	t.Helper()
-	if reuseDB {
-		t.Cleanup(resetDB)
-	}
-	for name, tt := range test {
-		t.Run(name, func(t *testing.T) {
-			if !reuseDB {
-				t.Cleanup(resetDB)
-			}
-			f(db, tt)
-		})
-	}
-}
+var DB *sql.DB
 
 // RunTests runs all top-level test functions and returns an exit code.
 // Intended to be used in TestMain, only once.
 func RunTests(m *testing.M) int {
-	if container != nil || db != nil {
+	if container != nil || DB != nil {
 		return exitAs("Do not call RunTests twice")
 	}
 	ctx := context.Background()
 	defer func() {
-		if db != nil {
-			err := db.Close()
+		if DB != nil {
+			err := DB.Close()
 			if err != nil {
 				log.Printf("Failed to close DB: %v\n", err)
 			}
@@ -86,12 +59,12 @@ func RunTests(m *testing.M) int {
 	if err != nil {
 		return exitAs("Failed to open the DB for migration: %v\n", err)
 	}
-	err = migration.Run(ctx, db, "up", nil)
+	err = migration.Run(ctx, DB, "up", nil)
 	if err != nil {
 		return exitAs("Failed to migrate DB: %v\n", err)
 	}
 	// container.Snapshot requires all DB connections to be closed.
-	if err := db.Close(); err != nil {
+	if err := DB.Close(); err != nil {
 		return exitAs("Failed to close DB before taking a snapshot: %v\n", err)
 	}
 	err = container.Snapshot(ctx)
@@ -116,22 +89,22 @@ func openDB(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to construct the DSN: %w", err)
 	}
-	db, err = sql.Open("pgx", dsn)
+	DB, err = sql.Open("pgx", dsn)
 	if err != nil {
 		return fmt.Errorf("failed to connect to %s: %w", dsn, err)
 	}
-	err = db.Ping()
+	err = DB.Ping()
 	if err != nil {
 		return fmt.Errorf("failed to ping: %w", err)
 	}
 	return nil
 }
 
-func resetDB() {
+func ResetDB() {
 	// container.Restore force-kills open connections to the db, so a later
 	// test could be handed a dead pooled connection and fail. Close/reopen
 	// the pool around it so every test starts with a known-good connection.
-	if err := db.Close(); err != nil {
+	if err := DB.Close(); err != nil {
 		log.Printf("Failed to close DB before restore: %v\n", err)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
