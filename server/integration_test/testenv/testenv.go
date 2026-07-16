@@ -26,6 +26,10 @@ func Run(t *testing.T, f func(db *sql.DB)) {
 	f(db)
 }
 
+// RunTT is similar to [Run], but runs sub-tests for each suit in the test table.
+//
+// If reuseDB is true, the test DB is reset only once after all sub-tests finish.
+// Otherwise, the DB is cleaned up after each sub-test.
 func RunTT[T any](t *testing.T, test map[string]T, reuseDB bool, f func(db *sql.DB, tt T)) {
 	t.Helper()
 	if reuseDB {
