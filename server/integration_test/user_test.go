@@ -41,7 +41,7 @@ func TestAuth_CreateUserAccount(t *testing.T) {
 		wantRecord userRecord
 	}
 	test := map[string]Test{
-		"happy": {
+		"success": {
 			email:      "alice@gmail.com",
 			password:   "Test$Password+123",
 			wantRecord: userRecord{ID: 1, Email: "alice@gmail.com"},
@@ -60,39 +60,36 @@ func TestAuth_CreateUserAccount(t *testing.T) {
 			Now: func() time.Time { return time.Now() },
 		}
 
-		got1, err := s.CreateUserAccount(t.Context(), tt.email, tt.password)
+		gotID, err := s.CreateUserAccount(t.Context(), tt.email, tt.password)
 		if err != nil {
 			t.Fatalf("failed to create user account: %v", err)
 		}
 
-		var got2 userRecord
+		var gotUser userRecord
 		err = db.QueryRowContext(t.Context(), `
 			SELECT id, email, password_hash FROM users WHERE email = $1;
-		`, tt.email).Scan(&got2.ID, &got2.Email, &got2.PasswordHash)
+		`, tt.email).Scan(&gotUser.ID, &gotUser.Email, &gotUser.PasswordHash)
 		if err != nil {
 			t.Fatalf("a new user record must be created: %v", err)
 		}
 
-		if got1 != got2.ID {
-			t.Errorf("returned ID(=%d) must be same as stored ID(=%d)", got1, got2.ID)
+		if gotID != gotUser.ID {
+			t.Errorf("returned ID(=%d) must be same as stored ID(=%d)", gotID, gotUser.ID)
 		}
 
-		if d := cmp.Diff(tt.wantRecord, got2, cmpopts.IgnoreFields(userRecord{}, "PasswordHash")); d != "" {
+		if d := cmp.Diff(tt.wantRecord, gotUser, cmpopts.IgnoreFields(userRecord{}, "PasswordHash")); d != "" {
 			t.Errorf("created user recored is malformed:\n%s", d)
 		}
 
-		if bytes.Equal(got2.PasswordHash, []byte(tt.password)) {
+		if bytes.Equal(gotUser.PasswordHash, []byte(tt.password)) {
 			t.Error("raw password must not be stored in DB")
 		}
 
-		if err := bcrypt.CompareHashAndPassword(
-			got2.PasswordHash,
-			[]byte(tt.password),
-		); err != nil {
+		if err := bcrypt.CompareHashAndPassword(gotUser.PasswordHash, []byte(tt.password)); err != nil {
 			t.Errorf("a bcrypt hash should be stored instead of the real password: %v", err)
 		}
 
-		passwordHashes = append(passwordHashes, string(got2.PasswordHash))
+		passwordHashes = append(passwordHashes, string(gotUser.PasswordHash))
 	})
 
 	if len(passwordHashes) != len(test) {
@@ -101,6 +98,65 @@ func TestAuth_CreateUserAccount(t *testing.T) {
 	if !isDistinct(passwordHashes) {
 		t.Errorf("password hashes must be uniqueue for each user even if raw passwords are identical")
 	}
+}
+
+func TestAuth_CreateUserAccount_EmailUniquness(t *testing.T) {
+	type Test struct {
+		email    string
+		password string
+		wantErr  error
+		wantID   int
+	}
+	test := map[string]Test{
+		"success": {
+			email: "testUser@gmail.com", password: "testPassword1", wantErr: nil, wantID: 1,
+		},
+		"same email": {
+			email: "testUser@gmail.com", password: "testPassword2", wantErr: user.ErrEmailTaken, wantID: 0,
+		},
+		"same email and password": {
+			email: "testUser@gmail.com", password: "testPassword1", wantErr: user.ErrEmailTaken, wantID: 0,
+		},
+	}
+
+	testenv.RunTT(t, test, true, func(db *sql.DB, tt Test) {
+		s := user.Service{
+			DB:  db,
+			Now: func() time.Time { return time.Now() },
+		}
+		gotID, gotErr := s.CreateUserAccount(t.Context(), tt.email, tt.password)
+		if gotID != tt.wantID {
+			t.Errorf("want ID=%d, got %d", tt.wantID, gotID)
+		}
+		if gotErr != tt.wantErr {
+			t.Errorf("want an error '%v', got '%v'", tt.wantErr, gotErr)
+		}
+
+		var gotUsers []userRecord
+		if rows, err := db.QueryContext(t.Context(), `SELECT id, email, password_hash FROM users where;`); err != nil {
+			t.Errorf("failed to fetch users: %v", err)
+		} else {
+			defer rows.Close()
+			for rows.Next() {
+				got := userRecord{}
+				if err := rows.Scan(&got.ID, &got.Email, &got.PasswordHash); err != nil {
+					t.Fatalf("failed to fetch user record: %v", err)
+				}
+				gotUsers = append(gotUsers, got)
+			}
+			if err := rows.Err(); err != nil {
+				t.Fatalf("failed to fetch user records: %v", err)
+			}
+		}
+		if n := len(gotUsers); n != 1 {
+			t.Fatalf("exactly one user must be registered, got %d users", n)
+		}
+		if got := gotUsers[0]; got.ID != gotID || got.Email != tt.email ||
+			bcrypt.CompareHashAndPassword(got.PasswordHash, []byte(tt.password)) != nil {
+			t.Errorf("only the first user must be registered, got=%v", got)
+		}
+	})
+
 }
 
 func TestAuth_IssueAuthToken(t *testing.T) {
