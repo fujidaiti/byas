@@ -14,8 +14,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const tokenExpiresInDays = 30
-
 var (
 	ErrDeviceKindEmpty = errors.New("device kind is empty")
 	ErrEmailInvalid    = errors.New("email has invalid format")
@@ -35,9 +33,6 @@ type Credentials struct {
 
 // Printable ASCII characters only; 15-64 characters
 var pswdRegex = regexp.MustCompile(`^[\x20-\x7E]{15,64}$`)
-
-// TODO: Tweak the bcrypt cost
-const bcryptCost = 12
 
 // SignUp creates a fresh user account for the given email and issue a new authentication token.
 func (s *Service) SignUp(ctx context.Context, crd Credentials) (string, error) {
@@ -79,6 +74,9 @@ func (s *Service) SignIn(ctx context.Context, crd Credentials) (string, error) {
 	return s.IssueAuthToken(ctx, id, crd.DeviceKind)
 }
 
+// TODO: Tweak the bcrypt cost
+const bcryptCost = 12
+
 func (s *Service) CreateUserAccount(ctx context.Context, email, password string) (UserID, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcryptCost)
 	if err != nil {
@@ -99,6 +97,8 @@ func (s *Service) CreateUserAccount(ctx context.Context, email, password string)
 	}
 	return id, nil
 }
+
+const tokenExpiresInDays = 30
 
 func (s *Service) IssueAuthToken(ctx context.Context, id UserID, device string) (string, error) {
 	token := make([]byte, 32)
