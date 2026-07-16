@@ -5,6 +5,7 @@ package integration_test
 import (
 	"bytes"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"net/http/httptest"
@@ -145,23 +146,14 @@ func TestAuth_CreateUserAccount_EmailUniquness(t *testing.T) {
 				t.Errorf("want an error '%v', got '%v'", tt.wantErr, gotErr)
 			}
 
-			var gotUsers []userRecord
-			rows, err := testenv.DB.QueryContext(t.Context(), `
-				SELECT id, email, password_hash FROM users;
-			`)
+			gotUsers, err := scanRows(t.Context(),
+				`SELECT id, email, password_hash FROM users;`, nil,
+				func(r *sql.Rows, d *userRecord) error {
+					return r.Scan(&d.ID, &d.Email, &d.PasswordHash)
+				},
+			)
 			if err != nil {
-				t.Fatalf("failed to fetch users: %v", err)
-			}
-			defer rows.Close()
-			for rows.Next() {
-				got := userRecord{}
-				if err := rows.Scan(&got.ID, &got.Email, &got.PasswordHash); err != nil {
-					t.Fatalf("failed to fetch user record: %v", err)
-				}
-				gotUsers = append(gotUsers, got)
-			}
-			if err := rows.Err(); err != nil {
-				t.Fatalf("failed to fetch user records: %v", err)
+				t.Fatal(err)
 			}
 			if n := len(gotUsers); n != 1 {
 				t.Fatalf("exactly one user must be registered, got %d users", n)
