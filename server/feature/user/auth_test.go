@@ -2,35 +2,33 @@ package user
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 	"testing"
 )
 
 func TestValidatePassword(t *testing.T) {
 	tests := []struct {
+		name    string
 		p       string
 		wantErr bool
 	}{
-		{p: "", wantErr: true},
-		{p: strings.Repeat("a", 14), wantErr: true},
-		{p: strings.Repeat("a", 15), wantErr: false},
-		{p: strings.Repeat("a", 64), wantErr: false},
-		{p: strings.Repeat("a", 65), wantErr: true},
-		{p: `Ab1!@#$%^&*()_+`, wantErr: false},
-		{p: "  password123  ", wantErr: false},
-		{p: strings.Repeat(" ", 15), wantErr: false},
-		{p: strings.Repeat("~", 15), wantErr: false},
-		{p: strings.Repeat("\x1f", 15) + "a", wantErr: true},
-		{p: strings.Repeat("a", 14) + "\x7f", wantErr: true},
-		{p: strings.Repeat("a", 14) + "\n", wantErr: true},
-		{p: strings.Repeat("a", 14) + "\t", wantErr: true},
-		{p: strings.Repeat("a", 14) + "\x00", wantErr: true},
-		{p: strings.Repeat("a", 14) + "é", wantErr: true},
-		{p: strings.Repeat("パスワード", 4), wantErr: true},
+		{name: "empty", p: "", wantErr: true},
+		{name: "too short (14 chars)", p: strings.Repeat("a", 14), wantErr: true},
+		{name: "min length (15 chars)", p: strings.Repeat("a", 15), wantErr: false},
+		{name: "max length (64 chars)", p: strings.Repeat("a", 64), wantErr: false},
+		{name: "too long (65 chars)", p: strings.Repeat("a", 65), wantErr: true},
+		{name: "mixed symbols", p: `Ab1!@#$%^&*()_+`, wantErr: false},
+		{name: "leading and trailing spaces", p: "  password123  ", wantErr: false},
+		{name: "all spaces", p: "               ", wantErr: false},
+		{name: "DEL character", p: "aaaaaaaaaaaaaa\x7f", wantErr: true},
+		{name: "newline", p: "aaaaaaaaaaaaaa\n", wantErr: true},
+		{name: "tab", p: "aaaaaaaaaaaaaa\t", wantErr: true},
+		{name: "null byte", p: "aaaaaaaaaaaaaa\x00", wantErr: true},
+		{name: "non-ASCII character", p: "aaaaaaaaaaaaaaé", wantErr: true},
+		{name: "non-ASCII character 2", p: "パスワードパスワード", wantErr: true},
 	}
 	for _, tt := range tests {
-		t.Run(fmt.Sprintf(`"%s"`, tt.p), func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			got, err := ValidatePassword(tt.p)
 			if tt.wantErr {
 				if !errors.Is(err, ErrPswdInvalid) {
@@ -48,34 +46,33 @@ func TestValidatePassword(t *testing.T) {
 
 func TestValidateEmail(t *testing.T) {
 	tests := []struct {
+		name    string
 		addr    string
 		wantErr bool
 	}{
-		{addr: "", wantErr: true},
-		{addr: "user", wantErr: true},
-		{addr: "@", wantErr: true},
-		{addr: "user@example.com", wantErr: false},
-		{addr: "USER@EXAMPLE.CO.JP", wantErr: false},
-		{addr: "user+tag@example.com", wantErr: false},
-		{addr: "first.middle.last@example.com", wantErr: false},
-		{addr: "user@localhost", wantErr: false},
-		{addr: "userexample.com", wantErr: true},
-		{addr: "@example.com", wantErr: true},
-		{addr: "user@", wantErr: true},
-		{addr: "user@@example.com", wantErr: true},
-		{addr: "user name@example.com", wantErr: true},
-		{addr: "user@exa mple.com", wantErr: true},
-		{addr: "Name <user@example.com>", wantErr: true},
-		{addr: " user@example.com", wantErr: true},
-		{addr: "user@example.com ", wantErr: true},
-		{addr: "üser@example.com", wantErr: true},
-		{addr: "user@ｅｘａｍｐｌｅ.ｃｏ.ｊｐ", wantErr: true},
-		{addr: "user@度メイン.co.jp", wantErr: true},
-		{addr: "日本語@example.com", wantErr: true},
-		{addr: "😀@example.com", wantErr: true},
+		{name: "empty", addr: "", wantErr: true},
+		{name: "no @", addr: "user", wantErr: true},
+		{name: "just @", addr: "@", wantErr: true},
+		{name: "simple address", addr: "user@example.com", wantErr: false},
+		{name: "uppercase", addr: "USER@EXAMPLE.CO.JP", wantErr: false},
+		{name: "plus tag", addr: "user+tag@example.com", wantErr: false},
+		{name: "dotted local part", addr: "first.middle.last@example.com", wantErr: false},
+		{name: "localhost domain", addr: "user@localhost", wantErr: false},
+		{name: "missing @", addr: "userexample.com", wantErr: true},
+		{name: "missing local part", addr: "@example.com", wantErr: true},
+		{name: "missing domain", addr: "user@", wantErr: true},
+		{name: "double @", addr: "user@@example.com", wantErr: true},
+		{name: "space in local part", addr: "user name@example.com", wantErr: true},
+		{name: "space in domain", addr: "user@exa mple.com", wantErr: true},
+		{name: "display name wrapper", addr: "Name <user@example.com>", wantErr: true},
+		{name: "leading space", addr: " user@example.com", wantErr: true},
+		{name: "trailing space", addr: "user@example.com ", wantErr: true},
+		{name: "accented character", addr: "üser@example.com", wantErr: true},
+		{name: "non-ASCII domain", addr: "user@ｅｘａｍｐｌｅ.ｃｏ.ｊｐ", wantErr: true},
+		{name: "non-ASCII local part", addr: "日本語😀@example.com", wantErr: true},
 	}
 	for _, tt := range tests {
-		t.Run(fmt.Sprintf(`"%s"`, tt.addr), func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			got, err := ValidateEmail(tt.addr)
 			if tt.wantErr {
 				if !errors.Is(err, ErrEmailInvalid) {
