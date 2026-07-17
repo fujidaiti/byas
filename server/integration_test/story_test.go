@@ -26,62 +26,34 @@ func TestSubmitStories(t *testing.T) {
 	t.Cleanup(testenv.ResetDB)
 
 	var feedID int
-	err := testenv.DB.QueryRowContext(t.Context(), `
+	scanRowOrFatal(t, `
 		INSERT INTO feeds (url, title)
 		VALUES ('https://example.com', 'Example Feed')
 		RETURNING id;
-	`).Scan(&feedID)
-	if err != nil {
-		t.Fatal(err)
-	}
+	`, nil, &feedID)
+
 	var entryID int
-	err = testenv.DB.QueryRowContext(t.Context(), `
+	scanRowOrFatal(t, `
 		INSERT INTO feed_entries (dedup_key, feed_id, url, title, snapshot_at)
 		VALUES ('https://example.com', $1, 'https://example.com', 'Example Entry', now())
 		RETURNING id;
-	`, feedID).Scan(&entryID)
-	if err != nil {
-		t.Fatal(err)
-	}
+	`, []any{feedID}, &entryID)
 
 	story := newspaper.Story{
 		FeedEntryID: entryID,
 		Title:       "Example Entry",
 		Source:      "Example Feed",
 	}
-	err = newspaper.SubmitStories(t.Context(), []newspaper.Story{story}, testenv.DB)
+	err := newspaper.SubmitStories(t.Context(), []newspaper.Story{story}, testenv.DB)
 	if err != nil {
 		t.Fatal(err)
 	}
-	rows, err := testenv.DB.QueryContext(t.Context(), `
-		SELECT id, feed_entry_id, newspaper_id, title, description, source, published_at
-		FROM stories;
-	`)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		_ = rows.Close()
-	}()
-	if !rows.Next() {
-		t.Fatal("no story is saved")
-	}
+
 	var got storyRow
-	err = rows.Scan(
-		&got.ID,
-		&got.FeedEntryID,
-		&got.NewspaperID,
-		&got.Title,
-		&got.Description,
-		&got.Source,
-		&got.PublishedAt,
+	scanRowOrFatal(t, `
+		SELECT id, feed_entry_id, newspaper_id, title, description, source, published_at FROM stories LIMIT 1
+	`, nil, &got.ID, &got.FeedEntryID, &got.NewspaperID, &got.Title, &got.Description, &got.Source, &got.PublishedAt,
 	)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := rows.Err(); err != nil {
-		t.Fatal(err)
-	}
 
 	want := storyRow{
 		FeedEntryID: int64(entryID),

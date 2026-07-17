@@ -70,12 +70,9 @@ func TestAuth_SignUp_Success(t *testing.T) {
 			gotTokens = append(gotTokens, gotToken)
 
 			var gotUser userRecord
-			err = testenv.DB.QueryRowContext(t.Context(), `
+			scanRowOrFatal(t, `
 				SELECT id, email, password_hash FROM users WHERE email = $1;
-			`, tt.email).Scan(&gotUser.ID, &gotUser.Email, &gotUser.PasswordHash)
-			if err != nil {
-				t.Fatalf("a new user record must be created: %v", err)
-			}
+			`, []any{tt.email}, &gotUser.ID, &gotUser.Email, &gotUser.PasswordHash)
 			gotPswdHashes = append(gotPswdHashes, string(gotUser.PasswordHash))
 
 			if got, want := gotUser.Email, tt.email; got != want {
@@ -91,23 +88,16 @@ func TestAuth_SignUp_Success(t *testing.T) {
 			}
 
 			var n int
-			err = testenv.DB.QueryRowContext(t.Context(), `SELECT COUNT(*) from auth_tokens`).Scan(&n)
-			if err != nil {
-				t.Fatalf("failed to count rows: %v", err)
-			}
+			scanRowOrFatal(t, `SELECT COUNT(*) from auth_tokens`, nil, &n)
 			if want := i + 1; n != want {
 				t.Errorf("only one token record must be added, got +%d rows", n-want)
 			}
 
 			var gotRec authTokenRecord
-			err = testenv.DB.QueryRowContext(t.Context(), `
+			scanRowOrFatal(t, `
 				SELECT user_id, device, token_hash, expires_at FROM auth_tokens
 				ORDER BY created_at DESC LIMIT 1
-			`).Scan(&gotRec.UserId, &gotRec.Device, &gotRec.TokenHash, &gotRec.ExpiresAt)
-			if err != nil {
-				t.Fatalf("token record not found: %v", err)
-			}
-
+			`, nil, &gotRec.UserId, &gotRec.Device, &gotRec.TokenHash, &gotRec.ExpiresAt)
 			if got, want := gotRec.UserId, gotUser.ID; got != want {
 				t.Errorf("token was issued for wrong user Id=%d, want Id=%d", got, want)
 			}
@@ -181,15 +171,11 @@ func TestAuth_SignUp_EmailUniqueness(t *testing.T) {
 				t.Errorf("got '%v', want '%v'", gotErr, tt.wantErr)
 			}
 
-			gotUsers, err := scanRows(t.Context(),
-				`SELECT id, email, password_hash FROM users;`, nil,
-				func(r *sql.Rows, d *userRecord) error {
-					return r.Scan(&d.ID, &d.Email, &d.PasswordHash)
-				},
-			)
-			if err != nil {
-				t.Fatal(err)
-			}
+			gotUsers := scanRowsOrFatal(t, `
+				SELECT id, email, password_hash FROM users
+			`, nil, func(r *sql.Rows, d *userRecord) error {
+				return r.Scan(&d.ID, &d.Email, &d.PasswordHash)
+			})
 
 			if n := len(gotUsers); n != 1 {
 				t.Fatalf("exactly one user must be registered, got %d users", n)
@@ -283,30 +269,21 @@ func TestAuth_SignIn_Success(t *testing.T) {
 			gotTokens = append(gotTokens, gotToken)
 
 			var n int
-			err = testenv.DB.QueryRowContext(t.Context(), `SELECT COUNT(*) from auth_tokens`).Scan(&n)
-			if err != nil {
-				t.Fatalf("failed to count rows: %v", err)
-			}
+			scanRowOrFatal(t, `SELECT COUNT(*) from auth_tokens`, nil, &n)
 			if want := len(users) + i + 1; want != n {
 				t.Errorf("only one token record must be added, got +%d rows", n-want)
 			}
 
 			var gotRec authTokenRecord
-			err = testenv.DB.QueryRowContext(t.Context(), `
+			scanRowOrFatal(t, `
 				SELECT user_id, device, token_hash, expires_at FROM auth_tokens
 				ORDER BY created_at DESC LIMIT 1
-			`).Scan(&gotRec.UserId, &gotRec.Device, &gotRec.TokenHash, &gotRec.ExpiresAt)
-			if err != nil {
-				t.Fatalf("token record not found: %v", err)
-			}
+			`, nil, &gotRec.UserId, &gotRec.Device, &gotRec.TokenHash, &gotRec.ExpiresAt)
 
 			var gotEmail string
-			err = testenv.DB.QueryRowContext(t.Context(), `
+			scanRowOrFatal(t, `
 				SELECT email FROM users WHERE id = $1
-			`, gotRec.UserId).Scan(&gotEmail)
-			if err != nil {
-				t.Errorf("token must be issued for an existing user: %v", err)
-			}
+			`, []any{gotRec.UserId}, &gotEmail)
 			if got, want := gotEmail, tt.user.email; got != want {
 				t.Errorf("token was issued for wrong user %s, want %s", got, want)
 			}
@@ -396,11 +373,9 @@ func TestAuth_SignIn_Failure(t *testing.T) {
 			}
 
 			var n int
-			if err := testenv.DB.QueryRowContext(t.Context(), `SELECT COUNT(*) from auth_tokens`).Scan(&n); err != nil {
-				t.Fatalf("failed to count rows: %v", err)
-			}
+			scanRowOrFatal(t, `SELECT COUNT(*) from auth_tokens`, nil, &n)
 			if got := n - 1; got != 0 {
-				t.Errorf("no token must be issued, got %d extra rows", got)
+				t.Errorf("no extra token must be issued, got %d extra rows", got)
 			}
 		})
 	}
