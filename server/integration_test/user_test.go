@@ -22,11 +22,11 @@ type userRecord struct {
 }
 
 type authTokenRecord struct {
-	ID         int
-	UserId     int
-	DeviceKind string
-	TokenHash  []byte
-	ExpiresAt  time.Time
+	ID        int
+	UserId    int
+	Device    string
+	TokenHash []byte
+	ExpiresAt time.Time
 }
 
 func TestAuth_SignUp(t *testing.T) {
@@ -101,9 +101,9 @@ func TestAuth_SignUp(t *testing.T) {
 
 			var gotRec authTokenRecord
 			err = testenv.DB.QueryRowContext(t.Context(), `
-				SELECT user_id, device_kind, token_hash, expires_at FROM auth_tokens
+				SELECT user_id, device, token_hash, expires_at FROM auth_tokens
 				ORDER BY created_at DESC LIMIT 1
-			`).Scan(&gotRec.UserId, &gotRec.DeviceKind, &gotRec.TokenHash, &gotRec.ExpiresAt)
+			`).Scan(&gotRec.UserId, &gotRec.Device, &gotRec.TokenHash, &gotRec.ExpiresAt)
 			if err != nil {
 				t.Fatalf("token record not found: %v", err)
 			}
@@ -112,8 +112,8 @@ func TestAuth_SignUp(t *testing.T) {
 				t.Errorf("token was issued for wrong user Id=%d, want Id=%d", got, want)
 			}
 
-			if got, want := gotRec.DeviceKind, tt.device; got != want {
-				t.Errorf("got device_kind '%s', want '%s'", gotRec.DeviceKind, tt.device)
+			if got, want := gotRec.Device, tt.device; got != want {
+				t.Errorf("got device '%s', want '%s'", gotRec.Device, tt.device)
 			}
 
 			if d := gotRec.ExpiresAt.Sub(tt.signedUpAt); d != 30*24*time.Hour {
@@ -229,31 +229,31 @@ func TestAuth_SignIn(t *testing.T) {
 	test := []struct {
 		name       string
 		user       *User
-		deviceKind string
+		device     string
 		signedInAt time.Time
 	}{
 		{
 			name:       "alice's first session",
 			user:       users["alice"],
-			deviceKind: "Pixel9a/Android17",
+			device:     "Pixel9a/Android17",
 			signedInAt: mustTimeUTC("2026-07-01 09:15:30"),
 		},
 		{
 			name:       "bob's first session",
 			user:       users["bob"],
-			deviceKind: "GalaxyS26/Android16",
+			device:     "GalaxyS26/Android16",
 			signedInAt: mustTimeUTC("2026-07-10 14:45:18"),
 		},
 		{
 			name:       "alice's second session",
 			user:       users["alice"],
-			deviceKind: "Pixel9a/Android17",
+			device:     "Pixel9a/Android17",
 			signedInAt: mustTimeUTC("2026-07-08 07:45:00"),
 		},
 		{
 			name:       "alice's third session from different device",
 			user:       users["alice"],
-			deviceKind: "iPhone17/iOS26",
+			device:     "iPhone17/iOS26",
 			signedInAt: mustTimeUTC("2026-07-14 21:05:40"),
 		},
 	}
@@ -278,7 +278,7 @@ func TestAuth_SignIn(t *testing.T) {
 	for i, tt := range test {
 		s.Now = func() time.Time { return tt.signedInAt }
 		t.Run(tt.name, func(t *testing.T) {
-			gotToken, err := s.SignIn(t.Context(), tt.user.email, tt.user.password, tt.deviceKind)
+			gotToken, err := s.SignIn(t.Context(), tt.user.email, tt.user.password, tt.device)
 			if err != nil {
 				t.Fatalf("failed to sign-in: %v", err)
 			}
@@ -295,9 +295,9 @@ func TestAuth_SignIn(t *testing.T) {
 
 			var gotRec authTokenRecord
 			err = testenv.DB.QueryRowContext(t.Context(), `
-				SELECT user_id, device_kind, token_hash, expires_at FROM auth_tokens
+				SELECT user_id, device, token_hash, expires_at FROM auth_tokens
 				ORDER BY created_at DESC LIMIT 1
-			`).Scan(&gotRec.UserId, &gotRec.DeviceKind, &gotRec.TokenHash, &gotRec.ExpiresAt)
+			`).Scan(&gotRec.UserId, &gotRec.Device, &gotRec.TokenHash, &gotRec.ExpiresAt)
 			if err != nil {
 				t.Fatalf("token record not found: %v", err)
 			}
@@ -313,8 +313,8 @@ func TestAuth_SignIn(t *testing.T) {
 				t.Errorf("token was issued for wrong user %s, want %s", got, want)
 			}
 
-			if got, want := gotRec.DeviceKind, tt.deviceKind; got != want {
-				t.Errorf("got device_kind '%s', want '%s'", got, want)
+			if got, want := gotRec.Device, tt.device; got != want {
+				t.Errorf("got device '%s', want '%s'", got, want)
 			}
 
 			if d := gotRec.ExpiresAt.Sub(tt.signedInAt); d != 30*24*time.Hour {
@@ -344,9 +344,9 @@ func TestAuth_SignIn(t *testing.T) {
 // 		},
 // 	}
 // 	rBody := api.SignUpReqBody{
-// 		Email:      "test@example.com",
-// 		Password:   "Test$Password+123",
-// 		DeviceKind: "Pixel9a/Android16",
+// 		Email:    "test@example.com",
+// 		Password: "Test$Password+123",
+// 		Device:   "Pixel9a/Android16",
 // 	}
 // 	jBody, _ := json.Marshal(rBody)
 // 	req := httptest.NewRequest("POST", "/signup", bytes.NewReader(jBody))

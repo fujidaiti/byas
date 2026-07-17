@@ -1010,9 +1010,9 @@ func (h *Handler) setReadingListItemArchivedStatus(w http.ResponseWriter, r *htt
 }
 
 type SignUpReqBody struct {
-	Email      string `json:"email"`
-	Password   string `json:"password"`
-	DeviceKind string `json:"device_kind"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	Device   string `json:"device"`
 }
 
 type SignUpResBody struct {
@@ -1047,10 +1047,10 @@ func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.UserService.SignUp(r.Context(), email, pswd, req.DeviceKind)
+	token, err := h.UserService.SignUp(r.Context(), email, pswd, req.Device)
 	switch {
-	case errors.Is(err, user.ErrDeviceKindEmpty):
-		serverError(w, http.StatusBadRequest, "Device kind is empty")
+	case errors.Is(err, user.ErrDeviceEmpty):
+		serverError(w, http.StatusBadRequest, "Device is empty")
 		return
 	case errors.Is(err, user.ErrEmailTaken):
 		serverError(w, http.StatusConflict, "Email already exists")
@@ -1073,9 +1073,9 @@ func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
 }
 
 type signInReqBody struct {
-	Email      string `json:"email"`
-	Password   string `json:"password"`
-	DeviceKind string `json:"device_kind"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	Device   string `json:"device"`
 }
 
 type signInResBody struct {
@@ -1090,10 +1090,10 @@ func (h *Handler) signIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.UserService.SignIn(r.Context(), req.Email, req.Password, req.DeviceKind)
+	token, err := h.UserService.SignIn(r.Context(), req.Email, req.Password, req.Device)
 	switch {
-	case errors.Is(err, user.ErrDeviceKindEmpty):
-		serverError(w, http.StatusBadRequest, "Device kind is empty")
+	case errors.Is(err, user.ErrDeviceEmpty):
+		serverError(w, http.StatusBadRequest, "Device is empty")
 		return
 	case errors.Is(err, user.ErrAuthFailed):
 		serverError(w, http.StatusUnauthorized, "Email or password is incorrect")

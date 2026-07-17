@@ -16,12 +16,12 @@ import (
 )
 
 var (
-	ErrDeviceKindEmpty = errors.New("device kind is empty")
-	ErrEmailInvalid    = errors.New("email has invalid format")
-	ErrEmailTaken      = errors.New("email already exists")
-	ErrPswdInvalid     = errors.New("password has invalid format")
-	ErrAuthFailed      = errors.New("email or password is incorrect")
-	ErrTokenInvalid    = errors.New("token is invalid or has been expired")
+	ErrDeviceEmpty  = errors.New("device is empty")
+	ErrEmailInvalid = errors.New("email has invalid format")
+	ErrEmailTaken   = errors.New("email already exists")
+	ErrPswdInvalid  = errors.New("password has invalid format")
+	ErrAuthFailed   = errors.New("email or password is incorrect")
+	ErrTokenInvalid = errors.New("token is invalid or has been expired")
 )
 
 type UserID = int
@@ -76,7 +76,7 @@ const bcryptCost = 12
 // SignUp creates a fresh user account for the given email and issue a new authentication token.
 func (s *Service) SignUp(ctx context.Context, email ValidEmail, pswd ValidPassword, device string) (AuthToken, error) {
 	if device == "" {
-		return AuthToken{}, ErrDeviceKindEmpty
+		return AuthToken{}, ErrDeviceEmpty
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(pswd.value), bcryptCost)
 	if err != nil {
@@ -100,7 +100,7 @@ func (s *Service) SignUp(ctx context.Context, email ValidEmail, pswd ValidPasswo
 
 func (s *Service) SignIn(ctx context.Context, email, pswd, device string) (AuthToken, error) {
 	if device == "" {
-		return AuthToken{}, ErrDeviceKindEmpty
+		return AuthToken{}, ErrDeviceEmpty
 	}
 	var dbHash []byte
 	var id int
@@ -128,7 +128,7 @@ func (s *Service) issueAuthToken(ctx context.Context, id UserID, device string) 
 	}
 	expr := s.Now().AddDate(0, 0, tokenExpiresInDays)
 	_, err = s.DB.ExecContext(ctx, `
-		INSERT INTO auth_tokens (user_id, device_kind, token_hash, expires_at)
+		INSERT INTO auth_tokens (user_id, device, token_hash, expires_at)
 		VALUES ($1, $2, $3, $4);
 	`, id, device, token.Hash(), expr)
 	if err != nil {
