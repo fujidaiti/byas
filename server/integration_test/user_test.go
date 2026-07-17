@@ -134,7 +134,7 @@ func TestAuth_SignUp_Success(t *testing.T) {
 	}
 }
 
-func TestAuth_SignUp_EmailUniquness(t *testing.T) {
+func TestAuth_SignUp_EmailUniqueness(t *testing.T) {
 	t.Cleanup(testenv.ResetDB)
 
 	test := []struct {
@@ -205,7 +205,7 @@ func TestAuth_SignUp_EmailUniquness(t *testing.T) {
 	}
 }
 
-func TestAuth_SignIn_MultipleSessions(t *testing.T) {
+func TestAuth_SignIn_Success(t *testing.T) {
 	t.Cleanup(testenv.ResetDB)
 	type User struct {
 		email, password, signUpDevice string
