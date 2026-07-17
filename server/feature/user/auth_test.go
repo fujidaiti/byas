@@ -11,14 +11,14 @@ func TestValidatePassword(t *testing.T) {
 		name, p string
 		wantErr bool
 	}{
-		{name: "empty", p: "", wantErr: true},
+		{name: "min length (15 chars)", p: strings.Repeat("a", 15)},
+		{name: "max length (64 chars)", p: strings.Repeat("a", 64)},
 		{name: "too short (14 chars)", p: strings.Repeat("a", 14), wantErr: true},
-		{name: "min length (15 chars)", p: strings.Repeat("a", 15), wantErr: false},
-		{name: "max length (64 chars)", p: strings.Repeat("a", 64), wantErr: false},
 		{name: "too long (65 chars)", p: strings.Repeat("a", 65), wantErr: true},
-		{name: "mixed symbols", p: `Ab1!@#$%^&*()_+`, wantErr: false},
-		{name: "leading and trailing spaces", p: "  password123  ", wantErr: false},
-		{name: "all spaces", p: "               ", wantErr: false},
+		{name: "mixed symbols", p: `Ab1!@#$%^&*()_+`},
+		{name: "leading and trailing spaces", p: "  password123  "},
+		{name: "all spaces", p: "               "},
+		{name: "empty", p: "", wantErr: true},
 		{name: "DEL character", p: "aaaaaaaaaaaaaa\x7f", wantErr: true},
 		{name: "newline", p: "aaaaaaaaaaaaaa\n", wantErr: true},
 		{name: "tab", p: "aaaaaaaaaaaaaa\t", wantErr: true},
@@ -51,7 +51,11 @@ func TestParseEmail(t *testing.T) {
 		{name: "simple address", addr: "user@example.com"},
 		{name: "uppercase", addr: "USER@EXAMPLE.CO.JP", want: "user@example.co.jp"},
 		{name: "plus tag", addr: "user+tag@example.com", want: "user+tag@example.com"},
-		{name: "dotted local part", addr: "first.middle.last@example.com", want: "first.middle.last@example.com"},
+		{
+			name: "dotted local part",
+			addr: "first.middle.last@example.com",
+			want: "first.middle.last@example.com",
+		},
 		{name: "localhost domain", addr: "user@localhost", want: "user@localhost"},
 		{name: "empty", addr: "", wantErr: true},
 		{name: "no @", addr: "user", wantErr: true},
