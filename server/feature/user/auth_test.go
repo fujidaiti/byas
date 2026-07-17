@@ -1,12 +1,10 @@
-package user_test
+package user
 
 import (
 	"errors"
 	"fmt"
 	"strings"
 	"testing"
-
-	"github.com/fujidaiti/paperdoll/feature/user"
 )
 
 func TestValidatePassword(t *testing.T) {
@@ -33,12 +31,12 @@ func TestValidatePassword(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf(`"%s"`, tt.p), func(t *testing.T) {
-			got, err := user.ValidatePassword(tt.p)
+			got, err := ValidatePassword(tt.p)
 			if tt.wantErr {
-				if !errors.Is(err, user.ErrPswdInvalid) {
-					t.Fatalf("f(%q) error = %v, want %v", tt.p, err, user.ErrPswdInvalid)
+				if !errors.Is(err, ErrPswdInvalid) {
+					t.Fatalf("f(%q) error = %v, want %v", tt.p, err, ErrPswdInvalid)
 				}
-				if got != (user.ValidPassword{}) {
+				if got != (ValidPassword{}) {
 					t.Errorf("f(%q) = %+v, want zero value on error", tt.p, got)
 				}
 			} else if err != nil {
@@ -78,12 +76,12 @@ func TestValidateEmail(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf(`"%s"`, tt.addr), func(t *testing.T) {
-			got, err := user.ValidateEmail(tt.addr)
+			got, err := ValidateEmail(tt.addr)
 			if tt.wantErr {
-				if !errors.Is(err, user.ErrEmailInvalid) {
-					t.Fatalf("f(%q) error = %v, want %v", tt.addr, err, user.ErrEmailInvalid)
+				if !errors.Is(err, ErrEmailInvalid) {
+					t.Fatalf("f(%q) error = %v, want %v", tt.addr, err, ErrEmailInvalid)
 				}
-				if got != (user.ValidEmail{}) {
+				if got != (ValidEmail{}) {
 					t.Errorf("f(%q) = %+v, want zero value on error", tt.addr, got)
 				}
 			} else if err != nil {
