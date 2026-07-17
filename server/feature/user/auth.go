@@ -93,7 +93,7 @@ func (s *Service) SignUp(ctx context.Context, email ValidEmail, pswd ValidPasswo
 		INSERT INTO users (email, password_hash)
 		VALUES ($1, $2)
 		ON CONFLICT (email) DO NOTHING
-		RETURNING id;
+		RETURNING id
 	`, email.value, hash).Scan(&id)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
@@ -111,7 +111,7 @@ func (s *Service) SignIn(ctx context.Context, email, pswd, device string) (AuthT
 	var dbHash []byte
 	var id int
 	err := s.DB.QueryRowContext(ctx, `
-		SELECT id, password_hash FROM users WHERE email = $1;
+		SELECT id, password_hash FROM users WHERE email = $1
 	`, email).Scan(&id, &dbHash)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
@@ -135,7 +135,7 @@ func (s *Service) issueAuthToken(ctx context.Context, id UserID, device string) 
 	expr := s.Now().AddDate(0, 0, tokenExpiresInDays)
 	_, err = s.DB.ExecContext(ctx, `
 		INSERT INTO auth_tokens (user_id, device, token_hash, expires_at)
-		VALUES ($1, $2, $3, $4);
+		VALUES ($1, $2, $3, $4)
 	`, id, device, token.Hash(), expr)
 	if err != nil {
 		return AuthToken{}, err
