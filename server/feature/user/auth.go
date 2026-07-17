@@ -62,11 +62,17 @@ func generateAuthToken() (AuthToken, error) {
 }
 
 func (t AuthToken) Hash() []byte {
+	if t == (AuthToken{}) {
+		return nil
+	}
 	h := sha256.Sum256(t.value[:])
 	return h[:]
 }
 
 func (t AuthToken) Encode() string {
+	if t == (AuthToken{}) {
+		return ""
+	}
 	return base64.RawURLEncoding.EncodeToString(t.value[:])
 }
 

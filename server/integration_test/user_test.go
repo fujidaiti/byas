@@ -29,35 +29,35 @@ type authTokenRecord struct {
 	ExpiresAt time.Time
 }
 
-func TestAuth_SignUp(t *testing.T) {
+func TestAuth_SignUp_Success(t *testing.T) {
 	t.Cleanup(testenv.ResetDB)
 
 	test := []struct {
 		name, email, password, device string
-		signedUpAt                    time.Time
+		signUpAt                      time.Time
 	}{
 		{
-			name:       "alice",
-			email:      "alice@gmail.com",
-			password:   "Test$Password+123",
-			device:     "Pixel9a/Android16",
-			signedUpAt: mustTimeUTC("2026-07-01 09:15:00"),
+			name:     "alice",
+			email:    "alice@gmail.com",
+			password: "Test$Password+123",
+			device:   "Pixel9a/Android16",
+			signUpAt: mustTimeUTC("2026-07-01 09:15:00"),
 		},
 		{
-			name:       "bob (same password as alice)",
-			email:      "bob@exchange.com",
-			password:   "Test$Password+123",
-			device:     "iPhone17/iOS26",
-			signedUpAt: mustTimeUTC("2027-08-20 14:00:59"),
+			name:     "bob (same password as alice)",
+			email:    "bob@exchange.com",
+			password: "Test$Password+123",
+			device:   "iPhone17/iOS26",
+			signUpAt: mustTimeUTC("2027-08-20 14:00:59"),
 		},
 	}
 
 	s := user.Service{DB: testenv.DB}
-	var pswdHashes []string
+	var gotPswdHashes []string
 	var gotTokens []user.AuthToken
 	for i, tt := range test {
 		t.Run(tt.name, func(t *testing.T) {
-			s.Now = func() time.Time { return tt.signedUpAt }
+			s.Now = func() time.Time { return tt.signUpAt }
 			gotToken, err := s.SignUp(
 				t.Context(),
 				must(user.ValidateEmail(tt.email)),
@@ -76,7 +76,7 @@ func TestAuth_SignUp(t *testing.T) {
 			if err != nil {
 				t.Fatalf("a new user record must be created: %v", err)
 			}
-			pswdHashes = append(pswdHashes, string(gotUser.PasswordHash))
+			gotPswdHashes = append(gotPswdHashes, string(gotUser.PasswordHash))
 
 			if got, want := gotUser.Email, tt.email; got != want {
 				t.Errorf("created user has a malformed email address: got %s, want %s", got, want)
@@ -116,7 +116,7 @@ func TestAuth_SignUp(t *testing.T) {
 				t.Errorf("got device '%s', want '%s'", gotRec.Device, tt.device)
 			}
 
-			if d := gotRec.ExpiresAt.Sub(tt.signedUpAt); d != 30*24*time.Hour {
+			if d := gotRec.ExpiresAt.Sub(tt.signUpAt); d != 30*24*time.Hour {
 				t.Errorf("token should expires in 30 days, actual TTL is %g day(s)", d.Hours()/24)
 			}
 
@@ -126,7 +126,7 @@ func TestAuth_SignUp(t *testing.T) {
 		})
 	}
 
-	if len(pswdHashes) != len(test) || !isDistinct(pswdHashes) {
+	if len(gotPswdHashes) != len(test) || !isDistinct(gotPswdHashes) {
 		t.Errorf("password hashes must be uniqueue for each user even if raw passwords are identical")
 	}
 	if len(gotTokens) != len(test) || !isDistinct(gotTokens) {
@@ -205,69 +205,67 @@ func TestAuth_SignUp_EmailUniquness(t *testing.T) {
 	}
 }
 
-func TestAuth_SignIn(t *testing.T) {
+func TestAuth_SignIn_MultipleSessions(t *testing.T) {
 	t.Cleanup(testenv.ResetDB)
 	type User struct {
-		email, password string
-		signedUpAt      time.Time
-		signInDevice    string
+		email, password, signUpDevice string
+		signUpAt                      time.Time
 	}
 	users := map[string]*User{
 		"alice": {
 			email:        "alice@example.com",
 			password:     "alice#password$123",
-			signedUpAt:   mustTimeUTC("2026-07-01 09:15:00"),
-			signInDevice: "Pixel9a/Android17",
+			signUpDevice: "Pixel9a/Android17",
+			signUpAt:     mustTimeUTC("2026-07-01 09:15:00"),
 		},
 		"bob": {
 			email:        "bob@forest.com",
 			password:     "bob#password$123",
-			signedUpAt:   mustTimeUTC("2026-07-10 14:40:05"),
-			signInDevice: "GalaxyS26/Android16",
+			signUpDevice: "GalaxyS26/Android16",
+			signUpAt:     mustTimeUTC("2026-07-10 14:40:05"),
 		},
 	}
 	test := []struct {
-		name       string
-		user       *User
-		device     string
-		signedInAt time.Time
+		name, device string
+		user         *User
+		signInAt     time.Time
 	}{
 		{
-			name:       "alice's first session",
-			user:       users["alice"],
-			device:     "Pixel9a/Android17",
-			signedInAt: mustTimeUTC("2026-07-01 09:15:30"),
+			name:     "alice's first session",
+			device:   "Pixel9a/Android17",
+			user:     users["alice"],
+			signInAt: mustTimeUTC("2026-07-01 09:15:30"),
 		},
 		{
-			name:       "bob's first session",
-			user:       users["bob"],
-			device:     "GalaxyS26/Android16",
-			signedInAt: mustTimeUTC("2026-07-10 14:45:18"),
+			name:     "bob's first session",
+			device:   "GalaxyS26/Android16",
+			user:     users["bob"],
+			signInAt: mustTimeUTC("2026-07-10 14:45:18"),
 		},
 		{
-			name:       "alice's second session",
-			user:       users["alice"],
-			device:     "Pixel9a/Android17",
-			signedInAt: mustTimeUTC("2026-07-08 07:45:00"),
+			name:     "alice's second session",
+			device:   "Pixel9a/Android17",
+			user:     users["alice"],
+			signInAt: mustTimeUTC("2026-07-08 07:45:00"),
 		},
 		{
-			name:       "alice's third session from different device",
-			user:       users["alice"],
-			device:     "iPhone17/iOS26",
-			signedInAt: mustTimeUTC("2026-07-14 21:05:40"),
+			name:     "alice's third session from different device",
+			device:   "iPhone17/iOS26",
+			user:     users["alice"],
+			signInAt: mustTimeUTC("2026-07-14 21:05:40"),
 		},
 	}
 
 	s := user.Service{DB: testenv.DB}
 	// Seed users
 	for _, u := range users {
-		s.Now = func() time.Time { return u.signedUpAt }
+		s.Now = func() time.Time { return u.signUpAt }
 		var err error
 		_, err = s.SignUp(
 			t.Context(),
 			must(user.ValidateEmail(u.email)),
 			must(user.ValidatePassword(u.password)),
-			u.signInDevice,
+			u.signUpDevice,
 		)
 		if err != nil {
 			t.Fatalf("failed to seed user (%s): %v", u.email, err)
@@ -276,7 +274,7 @@ func TestAuth_SignIn(t *testing.T) {
 
 	var gotTokens []user.AuthToken
 	for i, tt := range test {
-		s.Now = func() time.Time { return tt.signedInAt }
+		s.Now = func() time.Time { return tt.signInAt }
 		t.Run(tt.name, func(t *testing.T) {
 			gotToken, err := s.SignIn(t.Context(), tt.user.email, tt.user.password, tt.device)
 			if err != nil {
@@ -317,7 +315,7 @@ func TestAuth_SignIn(t *testing.T) {
 				t.Errorf("got device '%s', want '%s'", got, want)
 			}
 
-			if d := gotRec.ExpiresAt.Sub(tt.signedInAt); d != 30*24*time.Hour {
+			if d := gotRec.ExpiresAt.Sub(tt.signInAt); d != 30*24*time.Hour {
 				t.Errorf("token should expires in 30 days, actual TTL is %g day(s)", d.Hours()/24)
 			}
 
@@ -329,6 +327,82 @@ func TestAuth_SignIn(t *testing.T) {
 
 	if len(gotTokens) != len(test) || !isDistinct(gotTokens) {
 		t.Errorf("tokens must be uniqueue across all sessions")
+	}
+}
+
+func TestAuth_SignIn_Failure(t *testing.T) {
+	t.Cleanup(testenv.ResetDB)
+
+	alice := struct {
+		email, password, signUpDevice string
+		signUpAt                      time.Time
+	}{
+		"alice@example.com", "alice#password$123", "Pixel9a/Android16",
+		mustTimeUTC("2026-07-01 09:15:00"),
+	}
+	test := []struct {
+		name, email, password, device string
+		signedInAt                    time.Time
+		wantErr                       error
+	}{
+		{
+			name:       "wrong password",
+			email:      alice.email,
+			password:   "wrong#" + alice.password,
+			device:     alice.signUpDevice,
+			signedInAt: mustTimeUTC("2026-07-01 09:16:00"),
+			wantErr:    user.ErrAuthFailed,
+		},
+		{
+			name:       "unregistered user",
+			email:      "unregistered." + alice.email,
+			password:   alice.password,
+			device:     alice.signUpDevice,
+			signedInAt: mustTimeUTC("2026-07-01 09:16:00"),
+			wantErr:    user.ErrAuthFailed,
+		},
+		{
+			name:       "no device info",
+			email:      alice.email,
+			password:   alice.password,
+			device:     "",
+			signedInAt: mustTimeUTC("2026-07-01 09:16:00"),
+			wantErr:    user.ErrDeviceEmpty,
+		},
+	}
+
+	// Seed user
+	s := user.Service{DB: testenv.DB, Now: func() time.Time { return alice.signUpAt }}
+	var err error
+	_, err = s.SignUp(
+		t.Context(),
+		must(user.ValidateEmail(alice.email)),
+		must(user.ValidatePassword(alice.password)),
+		alice.signUpDevice,
+	)
+	if err != nil {
+		t.Fatalf("failed to seed user: %v", err)
+	}
+
+	for _, tt := range test {
+		s.Now = func() time.Time { return tt.signedInAt }
+		t.Run(tt.name, func(t *testing.T) {
+			got1, got2 := s.SignIn(t.Context(), tt.email, tt.password, tt.device)
+			if !errors.Is(got2, tt.wantErr) {
+				t.Errorf("got %v, want %v", got2, tt.wantErr)
+			}
+			if got := got1.Encode(); got != "" {
+				t.Errorf("must be an empty token, got %v", got)
+			}
+
+			var n int
+			if err := testenv.DB.QueryRowContext(t.Context(), `SELECT COUNT(*) from auth_tokens`).Scan(&n); err != nil {
+				t.Fatalf("failed to count rows: %v", err)
+			}
+			if got := n - 1; got != 0 {
+				t.Errorf("no token must be issued, got %d extra rows", got)
+			}
+		})
 	}
 }
 
