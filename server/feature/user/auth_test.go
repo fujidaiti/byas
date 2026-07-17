@@ -8,8 +8,7 @@ import (
 
 func TestValidatePassword(t *testing.T) {
 	tests := []struct {
-		name    string
-		p       string
+		name, p string
 		wantErr bool
 	}{
 		{name: "empty", p: "", wantErr: true},
@@ -45,33 +44,33 @@ func TestValidatePassword(t *testing.T) {
 }
 
 func TestParseEmail(t *testing.T) {
-	tests := map[string]struct {
-		addr, want string
-		wantErr    bool
+	tests := []struct {
+		name, addr, want string
+		wantErr          bool
 	}{
-		"simple address":       {addr: "user@example.com"},
-		"uppercase":            {addr: "USER@EXAMPLE.CO.JP", want: "user@example.co.jp"},
-		"plus tag":             {addr: "user+tag@example.com", want: "user+tag@example.com"},
-		"dotted local part":    {addr: "first.middle.last@example.com", want: "first.middle.last@example.com"},
-		"localhost domain":     {addr: "user@localhost", want: "user@localhost"},
-		"empty":                {addr: "", wantErr: true},
-		"no @":                 {addr: "user", wantErr: true},
-		"just @":               {addr: "@", wantErr: true},
-		"missing @":            {addr: "userexample.com", wantErr: true},
-		"missing local part":   {addr: "@example.com", wantErr: true},
-		"missing domain":       {addr: "user@", wantErr: true},
-		"double @":             {addr: "user@@example.com", wantErr: true},
-		"space in local part":  {addr: "user name@example.com", wantErr: true},
-		"space in domain":      {addr: "user@exa mple.com", wantErr: true},
-		"display name wrapper": {addr: "Name <user@example.com>", wantErr: true},
-		"leading space":        {addr: " user@example.com", wantErr: true},
-		"trailing space":       {addr: "user@example.com ", wantErr: true},
-		"accented character":   {addr: "üser@example.com", wantErr: true},
-		"non-ASCII domain":     {addr: "user@ｅｘａｍｐｌｅ.ｃｏ.ｊｐ", wantErr: true},
-		"non-ASCII local part": {addr: "日本語😀@example.com", wantErr: true},
+		{name: "simple address", addr: "user@example.com"},
+		{name: "uppercase", addr: "USER@EXAMPLE.CO.JP", want: "user@example.co.jp"},
+		{name: "plus tag", addr: "user+tag@example.com", want: "user+tag@example.com"},
+		{name: "dotted local part", addr: "first.middle.last@example.com", want: "first.middle.last@example.com"},
+		{name: "localhost domain", addr: "user@localhost", want: "user@localhost"},
+		{name: "empty", addr: "", wantErr: true},
+		{name: "no @", addr: "user", wantErr: true},
+		{name: "just @", addr: "@", wantErr: true},
+		{name: "missing @", addr: "userexample.com", wantErr: true},
+		{name: "missing local part", addr: "@example.com", wantErr: true},
+		{name: "missing domain", addr: "user@", wantErr: true},
+		{name: "double @", addr: "user@@example.com", wantErr: true},
+		{name: "space in local part", addr: "user name@example.com", wantErr: true},
+		{name: "space in domain", addr: "user@exa mple.com", wantErr: true},
+		{name: "display name wrapper", addr: "Name <user@example.com>", wantErr: true},
+		{name: "leading space", addr: " user@example.com", wantErr: true},
+		{name: "trailing space", addr: "user@example.com ", wantErr: true},
+		{name: "accented character", addr: "üser@example.com", wantErr: true},
+		{name: "non-ASCII domain", addr: "user@ｅｘａｍｐｌｅ.ｃｏ.ｊｐ", wantErr: true},
+		{name: "non-ASCII local part", addr: "日本語😀@example.com", wantErr: true},
 	}
-	for name, tt := range tests {
-		t.Run(name, func(t *testing.T) {
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
 			got, err := ParseEmail(tt.addr)
 			if tt.wantErr {
 				if !errors.Is(err, ErrEmailInvalid) {
