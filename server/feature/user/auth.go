@@ -61,7 +61,7 @@ func generateAuthToken() (AuthToken, error) {
 	return t, err
 }
 
-func (t AuthToken) hash() []byte {
+func (t AuthToken) Hash() []byte {
 	h := sha256.Sum256(t.value[:])
 	return h[:]
 }
@@ -70,46 +70,17 @@ func (t AuthToken) Encode() string {
 	return base64.RawURLEncoding.EncodeToString(t.value[:])
 }
 
+// TODO: Tweak the bcrypt cost
+const bcryptCost = 12
+
 // SignUp creates a fresh user account for the given email and issue a new authentication token.
 func (s *Service) SignUp(ctx context.Context, email ValidEmail, pswd ValidPassword, device string) (AuthToken, error) {
 	if device == "" {
 		return AuthToken{}, ErrDeviceKindEmpty
 	}
-	id, err := s.CreateUserAccount(ctx, email, pswd)
-	if err != nil {
-		return AuthToken{}, err
-	}
-	return s.IssueAuthToken(ctx, id, device)
-}
-
-func (s *Service) SignIn(ctx context.Context, email ValidEmail, pswd string, device string) (AuthToken, error) {
-	if device == "" {
-		return AuthToken{}, ErrDeviceKindEmpty
-	}
-	var dbHash []byte
-	var id int
-	err := s.DB.QueryRowContext(ctx, `
-		SELECT id, password_hash FROM users WHERE email = $1;
-	`, email.value).Scan(&id, &dbHash)
-	switch {
-	case errors.Is(err, sql.ErrNoRows):
-		return AuthToken{}, ErrAuthFailed
-	case err != nil:
-		return AuthToken{}, err
-	}
-	if bcrypt.CompareHashAndPassword(dbHash, []byte(pswd)) != nil {
-		return AuthToken{}, ErrAuthFailed
-	}
-	return s.IssueAuthToken(ctx, id, device)
-}
-
-// TODO: Tweak the bcrypt cost
-const bcryptCost = 12
-
-func (s *Service) CreateUserAccount(ctx context.Context, email ValidEmail, pswd ValidPassword) (UserID, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(pswd.value), bcryptCost)
 	if err != nil {
-		return 0, err
+		return AuthToken{}, err
 	}
 	var id int
 	err = s.DB.QueryRowContext(ctx, `
@@ -120,16 +91,37 @@ func (s *Service) CreateUserAccount(ctx context.Context, email ValidEmail, pswd 
 	`, email.value, hash).Scan(&id)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
-		return 0, ErrEmailTaken
+		return AuthToken{}, ErrEmailTaken
 	case err != nil:
-		return 0, err
+		return AuthToken{}, err
 	}
-	return id, nil
+	return s.issueAuthToken(ctx, id, device)
+}
+
+func (s *Service) SignIn(ctx context.Context, email, pswd, device string) (AuthToken, error) {
+	if device == "" {
+		return AuthToken{}, ErrDeviceKindEmpty
+	}
+	var dbHash []byte
+	var id int
+	err := s.DB.QueryRowContext(ctx, `
+		SELECT id, password_hash FROM users WHERE email = $1;
+	`, email).Scan(&id, &dbHash)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return AuthToken{}, ErrAuthFailed
+	case err != nil:
+		return AuthToken{}, err
+	}
+	if bcrypt.CompareHashAndPassword(dbHash, []byte(pswd)) != nil {
+		return AuthToken{}, ErrAuthFailed
+	}
+	return s.issueAuthToken(ctx, id, device)
 }
 
 const tokenExpiresInDays = 30
 
-func (s *Service) IssueAuthToken(ctx context.Context, id UserID, device string) (AuthToken, error) {
+func (s *Service) issueAuthToken(ctx context.Context, id UserID, device string) (AuthToken, error) {
 	token, err := generateAuthToken()
 	if err != nil {
 		return AuthToken{}, err
@@ -138,7 +130,7 @@ func (s *Service) IssueAuthToken(ctx context.Context, id UserID, device string) 
 	_, err = s.DB.ExecContext(ctx, `
 		INSERT INTO auth_tokens (user_id, device_kind, token_hash, expires_at)
 		VALUES ($1, $2, $3, $4);
-	`, id, device, token.hash(), expr)
+	`, id, device, token.Hash(), expr)
 	if err != nil {
 		return AuthToken{}, err
 	}

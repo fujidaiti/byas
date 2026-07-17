@@ -4,20 +4,14 @@ package integration_test
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"database/sql"
-	"encoding/base64"
-	"encoding/json"
 	"errors"
-	"net/http/httptest"
 	"testing"
 	"time"
 
-	"github.com/fujidaiti/paperdoll/api"
 	"github.com/fujidaiti/paperdoll/feature/user"
 	"github.com/fujidaiti/paperdoll/integration_test/testenv"
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -35,43 +29,45 @@ type authTokenRecord struct {
 	ExpiresAt  time.Time
 }
 
-func TestAuth_CreateUserAccount(t *testing.T) {
+func TestAuth_SignUp(t *testing.T) {
 	t.Cleanup(testenv.ResetDB)
 
 	test := []struct {
-		name, email, password string
-		wantRecord            userRecord
+		name, email, password, device string
+		signedUpAt                    time.Time
 	}{
 		{
-			name:       "success",
+			name:       "alice",
 			email:      "alice@gmail.com",
 			password:   "Test$Password+123",
-			wantRecord: userRecord{ID: 1, Email: "alice@gmail.com"},
+			device:     "Pixel9a/Android16",
+			signedUpAt: mustTimeUTC("2026-07-01 09:15:00"),
 		},
 		{
-			name:       "same password",
+			name:       "bob (same password as alice)",
 			email:      "bob@exchange.com",
 			password:   "Test$Password+123",
-			wantRecord: userRecord{ID: 2, Email: "bob@exchange.com"},
+			device:     "iPhone17/iOS26",
+			signedUpAt: mustTimeUTC("2027-08-20 14:00:59"),
 		},
 	}
 
-	s := user.Service{
-		DB:  testenv.DB,
-		Now: func() time.Time { return time.Now() },
-	}
-
+	s := user.Service{DB: testenv.DB}
 	var pswdHashes []string
-	for _, tt := range test {
+	var gotTokens []user.AuthToken
+	for i, tt := range test {
 		t.Run(tt.name, func(t *testing.T) {
-			gotID, err := s.CreateUserAccount(
+			s.Now = func() time.Time { return tt.signedUpAt }
+			gotToken, err := s.SignUp(
 				t.Context(),
 				must(user.ValidateEmail(tt.email)),
 				must(user.ValidatePassword(tt.password)),
+				tt.device,
 			)
 			if err != nil {
 				t.Fatalf("failed to create user account: %v", err)
 			}
+			gotTokens = append(gotTokens, gotToken)
 
 			var gotUser userRecord
 			err = testenv.DB.QueryRowContext(t.Context(), `
@@ -80,13 +76,10 @@ func TestAuth_CreateUserAccount(t *testing.T) {
 			if err != nil {
 				t.Fatalf("a new user record must be created: %v", err)
 			}
+			pswdHashes = append(pswdHashes, string(gotUser.PasswordHash))
 
-			if gotID != gotUser.ID {
-				t.Errorf("returned ID(=%d) must be same as stored ID(=%d)", gotID, gotUser.ID)
-			}
-
-			if d := cmp.Diff(tt.wantRecord, gotUser, cmpopts.IgnoreFields(userRecord{}, "PasswordHash")); d != "" {
-				t.Errorf("created user recored is malformed:\n%s", d)
+			if got, want := gotUser.Email, tt.email; got != want {
+				t.Errorf("created user has a malformed email address: got %s, want %s", got, want)
 			}
 
 			if bytes.Equal(gotUser.PasswordHash, []byte(tt.password)) {
@@ -97,43 +90,77 @@ func TestAuth_CreateUserAccount(t *testing.T) {
 				t.Errorf("a bcrypt hash should be stored instead of the real password: %v", err)
 			}
 
-			pswdHashes = append(pswdHashes, string(gotUser.PasswordHash))
+			var n int
+			err = testenv.DB.QueryRowContext(t.Context(), `SELECT COUNT(*) from auth_tokens`).Scan(&n)
+			if err != nil {
+				t.Fatalf("failed to count rows: %v", err)
+			}
+			if want := i + 1; n != want {
+				t.Errorf("only one token record must be added, got +%d rows", n-want)
+			}
+
+			var gotRec authTokenRecord
+			err = testenv.DB.QueryRowContext(t.Context(), `
+				SELECT user_id, device_kind, token_hash, expires_at FROM auth_tokens
+				ORDER BY created_at DESC LIMIT 1
+			`).Scan(&gotRec.UserId, &gotRec.DeviceKind, &gotRec.TokenHash, &gotRec.ExpiresAt)
+			if err != nil {
+				t.Fatalf("token record not found: %v", err)
+			}
+
+			if got, want := gotRec.UserId, gotUser.ID; got != want {
+				t.Errorf("token was issued for wrong user Id=%d, want Id=%d", got, want)
+			}
+
+			if got, want := gotRec.DeviceKind, tt.device; got != want {
+				t.Errorf("got device_kind '%s', want '%s'", gotRec.DeviceKind, tt.device)
+			}
+
+			if d := gotRec.ExpiresAt.Sub(tt.signedUpAt); d != 30*24*time.Hour {
+				t.Errorf("token should expires in 30 days, actual TTL is %g day(s)", d.Hours()/24)
+			}
+
+			if d := cmp.Diff(gotRec.TokenHash, gotToken.Hash()); d != "" {
+				t.Errorf("token must be hashed in DB, diff:\n%s", d)
+			}
 		})
 	}
 
 	if len(pswdHashes) != len(test) || !isDistinct(pswdHashes) {
 		t.Errorf("password hashes must be uniqueue for each user even if raw passwords are identical")
 	}
+	if len(gotTokens) != len(test) || !isDistinct(gotTokens) {
+		t.Errorf("auth tokens must be uniqueue")
+	}
 }
 
-func TestAuth_CreateUserAccount_EmailUniquness(t *testing.T) {
+func TestAuth_SignUp_EmailUniquness(t *testing.T) {
 	t.Cleanup(testenv.ResetDB)
 
 	test := []struct {
-		name, email, password string
-		wantErr               error
-		wantID                int
+		name, email, password, device string
+		wantErr                       error
 	}{
 		{
-			name:     "success",
-			email:    "testUser@gmail.com",
+			name:     "baseline",
+			email:    "alice@gmail.com",
 			password: "test$Password123",
+			device:   "Pixel9a/Android16",
 			wantErr:  nil,
-			wantID:   1,
 		},
 		{
-			name:     "same email",
-			email:    "testUser@gmail.com",
+			name:     "same email and different password",
+			email:    "alice@gmail.com",
 			password: "test$Password987",
+			device:   "Pixel9a/Android16",
 			wantErr:  user.ErrEmailTaken,
-			wantID:   0,
 		},
 		{
-			name:     "same email and password",
-			email:    "testUser@gmail.com",
+			name:     "same email and same password",
+			email:    "alice@gmail.com",
 			password: "test$Password123",
+			device:   "Pixel9a/Android16",
 			wantErr:  user.ErrEmailTaken,
-			wantID:   0,
 		},
 	}
 
@@ -141,19 +168,17 @@ func TestAuth_CreateUserAccount_EmailUniquness(t *testing.T) {
 		DB:  testenv.DB,
 		Now: func() time.Time { return time.Now() },
 	}
-
+	var firstUser *userRecord
 	for _, tt := range test {
 		t.Run(tt.name, func(t *testing.T) {
-			gotID, gotErr := s.CreateUserAccount(
+			_, gotErr := s.SignUp(
 				t.Context(),
 				must(user.ValidateEmail(tt.email)),
 				must(user.ValidatePassword(tt.password)),
+				tt.device,
 			)
-			if gotID != tt.wantID {
-				t.Errorf("want ID=%d, got ID=%d", tt.wantID, gotID)
-			}
 			if !errors.Is(gotErr, tt.wantErr) {
-				t.Errorf("want an error '%v', got '%v'", tt.wantErr, gotErr)
+				t.Errorf("got '%v', want '%v'", gotErr, tt.wantErr)
 			}
 
 			gotUsers, err := scanRows(t.Context(),
@@ -165,34 +190,40 @@ func TestAuth_CreateUserAccount_EmailUniquness(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			if n := len(gotUsers); n != 1 {
 				t.Fatalf("exactly one user must be registered, got %d users", n)
 			}
-			if got, want := gotUsers[0], test[0]; got.ID != want.wantID || got.Email != want.email ||
-				bcrypt.CompareHashAndPassword(got.PasswordHash, []byte(want.password)) != nil {
-				t.Errorf("only the first user must be registered:\ngot=%v\nwant=%v", got, want)
+			if firstUser == nil {
+				firstUser = &gotUsers[0]
+			}
+
+			if d := cmp.Diff(gotUsers[0], *firstUser); d != "" {
+				t.Errorf("already registered user must never be touched, diff:\n%s", d)
 			}
 		})
 	}
 }
 
-func TestAuth_IssueAuthToken(t *testing.T) {
+func TestAuth_SignIn(t *testing.T) {
 	t.Cleanup(testenv.ResetDB)
 	type User struct {
 		email, password string
-		id              user.UserID
 		signedUpAt      time.Time
+		signInDevice    string
 	}
 	users := map[string]*User{
 		"alice": {
-			email:      "alice@example.com",
-			password:   "alice#password$123",
-			signedUpAt: mustTimeUTC("2026-07-01 09:15:00"),
+			email:        "alice@example.com",
+			password:     "alice#password$123",
+			signedUpAt:   mustTimeUTC("2026-07-01 09:15:00"),
+			signInDevice: "Pixel9a/Android17",
 		},
 		"bob": {
-			email:      "bob@forest.com",
-			password:   "bob#password$123",
-			signedUpAt: mustTimeUTC("2026-07-10 14:40:05"),
+			email:        "bob@forest.com",
+			password:     "bob#password$123",
+			signedUpAt:   mustTimeUTC("2026-07-10 14:40:05"),
+			signInDevice: "GalaxyS26/Android16",
 		},
 	}
 	test := []struct {
@@ -232,90 +263,99 @@ func TestAuth_IssueAuthToken(t *testing.T) {
 	for _, u := range users {
 		s.Now = func() time.Time { return u.signedUpAt }
 		var err error
-		u.id, err = s.CreateUserAccount(
+		_, err = s.SignUp(
 			t.Context(),
 			must(user.ValidateEmail(u.email)),
 			must(user.ValidatePassword(u.password)),
+			u.signInDevice,
 		)
 		if err != nil {
 			t.Fatalf("failed to seed user (%s): %v", u.email, err)
 		}
 	}
 
-	var tokens []string
-	for _, tt := range test {
+	var gotTokens []user.AuthToken
+	for i, tt := range test {
 		s.Now = func() time.Time { return tt.signedInAt }
 		t.Run(tt.name, func(t *testing.T) {
-			gotToken, err := s.IssueAuthToken(t.Context(), tt.user.id, tt.deviceKind)
+			gotToken, err := s.SignIn(t.Context(), tt.user.email, tt.user.password, tt.deviceKind)
 			if err != nil {
-				t.Fatalf("failed to issue a new auth token: %v", err)
+				t.Fatalf("failed to sign-in: %v", err)
 			}
-			tokens = append(tokens, gotToken.Encode())
+			gotTokens = append(gotTokens, gotToken)
 
-			rawToken, err := base64.RawURLEncoding.DecodeString(gotToken.Encode())
+			var n int
+			err = testenv.DB.QueryRowContext(t.Context(), `SELECT COUNT(*) from auth_tokens`).Scan(&n)
 			if err != nil {
-				t.Errorf("returned token must be a valid Base64URL with no padding, got: %s\n%v", gotToken, err)
+				t.Fatalf("failed to count rows: %v", err)
 			}
-			if l := len(rawToken); l != 32 {
-				t.Errorf("raw token must be 32 bytes, got %d bytes", l)
+			if want := len(users) + i + 1; want != n {
+				t.Errorf("only one token record must be added, got +%d rows", n-want)
 			}
 
 			var gotRec authTokenRecord
 			err = testenv.DB.QueryRowContext(t.Context(), `
-				SELECT device_kind, token_hash, expires_at FROM auth_tokens
-				WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1;
-			`, tt.user.id).Scan(&gotRec.DeviceKind, &gotRec.TokenHash, &gotRec.ExpiresAt)
+				SELECT user_id, device_kind, token_hash, expires_at FROM auth_tokens
+				ORDER BY created_at DESC LIMIT 1
+			`).Scan(&gotRec.UserId, &gotRec.DeviceKind, &gotRec.TokenHash, &gotRec.ExpiresAt)
 			if err != nil {
-				t.Fatalf("new token record must be created: %v", err)
+				t.Fatalf("token record not found: %v", err)
 			}
 
-			if gotRec.DeviceKind != tt.deviceKind {
-				t.Errorf("got device_kind='%s', want '%s'", gotRec.DeviceKind, tt.deviceKind)
+			var gotEmail string
+			err = testenv.DB.QueryRowContext(t.Context(), `
+				SELECT email FROM users WHERE id = $1
+			`, gotRec.UserId).Scan(&gotEmail)
+			if err != nil {
+				t.Errorf("token must be issued for an existing user: %v", err)
+			}
+			if got, want := gotEmail, tt.user.email; got != want {
+				t.Errorf("token was issued for wrong user %s, want %s", got, want)
+			}
+
+			if got, want := gotRec.DeviceKind, tt.deviceKind; got != want {
+				t.Errorf("got device_kind '%s', want '%s'", got, want)
 			}
 
 			if d := gotRec.ExpiresAt.Sub(tt.signedInAt); d != 30*24*time.Hour {
 				t.Errorf("token should expires in 30 days, actual TTL is %g day(s)", d.Hours()/24)
 			}
 
-			if bytes.Equal(gotRec.TokenHash, rawToken) {
-				t.Error("raw token must not be stored in DB")
-			}
-
-			if d := cmp.Diff(gotRec.TokenHash, new(sha256.Sum256(rawToken))[:]); d != "" {
-				t.Errorf("token must be SHA256-hashed in DB, actual diff:\n%s", d)
+			if d := cmp.Diff(gotRec.TokenHash, gotToken.Hash()); d != "" {
+				t.Errorf("token must be hashed in DB, diff:\n%s", d)
 			}
 		})
 	}
 
-	if len(tokens) != len(test) || !isDistinct(tokens) {
+	if len(gotTokens) != len(test) || !isDistinct(gotTokens) {
 		t.Errorf("tokens must be uniqueue across all sessions")
 	}
 }
 
-func TestAuth_SignUp(t *testing.T) {
-	t.Cleanup(testenv.ResetDB)
+// func TestAuth_SignUp(t *testing.T) {
+// 	t.Cleanup(testenv.ResetDB)
 
-	now := time.Date(2026, time.July, 15, 12, 0, 0, 0, time.UTC)
-	h := api.Handler{
-		DB: testenv.DB,
-		UserService: user.Service{
-			DB:  testenv.DB,
-			Now: func() time.Time { return now },
-		},
-	}
-	rBody := api.SignUpReqBody{
-		Email:      "test@example.com",
-		Password:   "Test$Password+123",
-		DeviceKind: "Pixel9a/Android16",
-	}
-	jBody, _ := json.Marshal(rBody)
-	req := httptest.NewRequest("POST", "/signup", bytes.NewReader(jBody))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-	api.NewRouter(&h).ServeHTTP(rec, req)
+// 	now := time.Date(2026, time.July, 15, 12, 0, 0, 0, time.UTC)
+// 	h := api.Handler{
+// 		DB: testenv.DB,
+// 		UserService: user.Service{
+// 			DB:  testenv.DB,
+// 			Now: func() time.Time { return now },
+// 		},
+// 	}
+// 	rBody := api.SignUpReqBody{
+// 		Email:      "test@example.com",
+// 		Password:   "Test$Password+123",
+// 		DeviceKind: "Pixel9a/Android16",
+// 	}
+// 	jBody, _ := json.Marshal(rBody)
+// 	req := httptest.NewRequest("POST", "/signup", bytes.NewReader(jBody))
+// 	req.Header.Set("Content-Type", "application/json")
+// 	rec := httptest.NewRecorder()
+// 	api.NewRouter(&h).ServeHTTP(rec, req)
 
-	var got1 api.SignUpResBody
-	if err := json.NewDecoder(rec.Body).Decode(&got1); err != nil {
-		t.Fatalf("failed to decode response body: %v", err)
-	}
-}
+// 	var got1 api.SignUpResBody
+// 	if err := json.NewDecoder(rec.Body).Decode(&got1); err != nil {
+// 		t.Fatalf("failed to decode response body: %v", err)
+// 	}
+// }

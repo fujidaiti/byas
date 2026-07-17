@@ -1090,17 +1090,7 @@ func (h *Handler) signIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	email, err := user.ValidateEmail(req.Email)
-	switch {
-	case errors.Is(err, user.ErrEmailInvalid):
-		serverError(w, http.StatusBadRequest, "Email has invalid format")
-		return
-	case err != nil:
-		serverError(w, http.StatusInternalServerError, "Something went wrong")
-		return
-	}
-
-	token, err := h.UserService.SignIn(r.Context(), email, req.Password, req.DeviceKind)
+	token, err := h.UserService.SignIn(r.Context(), req.Email, req.Password, req.DeviceKind)
 	switch {
 	case errors.Is(err, user.ErrDeviceKindEmpty):
 		serverError(w, http.StatusBadRequest, "Device kind is empty")
