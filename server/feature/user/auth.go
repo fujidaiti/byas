@@ -30,10 +30,10 @@ type UserID = int
 type ValidPassword struct{ value string }
 
 // Printable ASCII characters only; 15-64 characters
-var pswdRegex = regexp.MustCompile(`^[\x20-\x7E]{15,64}$`)
+var passwordRegex = regexp.MustCompile(`^[\x20-\x7E]{15,64}$`)
 
 func ValidatePassword(p string) (ValidPassword, error) {
-	if !pswdRegex.MatchString(p) {
+	if !passwordRegex.MatchString(p) {
 		return ValidPassword{}, ErrPswdInvalid
 	}
 	return ValidPassword{p}, nil
@@ -80,8 +80,6 @@ func (t AuthToken) Encode() string {
 // TODO: Tweak the bcrypt cost
 const bcryptCost = 12
 
-// SignUp creates a fresh user account for the given email and
-// issue a new authentication token.
 func (s *Service) SignUp(
 	ctx context.Context, email CanonicalEmail, pswd ValidPassword, device string,
 ) (AuthToken, error) {
