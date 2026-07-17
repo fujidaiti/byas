@@ -26,12 +26,6 @@ var (
 
 type UserID = int
 
-type Credentials struct {
-	Email      string
-	Password   string
-	DeviceKind string
-}
-
 type ValidPassword struct{ value string }
 
 // Printable ASCII characters only; 15-64 characters
@@ -60,51 +54,43 @@ func ValidateEmail(addr string) (ValidEmail, error) {
 }
 
 // SignUp creates a fresh user account for the given email and issue a new authentication token.
-func (s *Service) SignUp(ctx context.Context, crd Credentials) (string, error) {
-	if crd.DeviceKind == "" {
+func (s *Service) SignUp(ctx context.Context, email ValidEmail, pswd ValidPassword, device string) (string, error) {
+	if device == "" {
 		return "", ErrDeviceKindEmpty
 	}
-	email, err := ValidateEmail(crd.Email)
+	id, err := s.CreateUserAccount(ctx, email, pswd)
 	if err != nil {
 		return "", err
 	}
-	pswd, err := ValidatePassword(crd.Password)
-	if err != nil {
-		return "", err
-	}
-	id, err := s.CreateUserAccount(ctx, email.value, pswd.value)
-	if err != nil {
-		return "", err
-	}
-	return s.IssueAuthToken(ctx, id, crd.DeviceKind)
+	return s.IssueAuthToken(ctx, id, device)
 }
 
-func (s *Service) SignIn(ctx context.Context, crd Credentials) (string, error) {
-	if crd.DeviceKind == "" {
+func (s *Service) SignIn(ctx context.Context, email ValidEmail, pswd string, device string) (string, error) {
+	if device == "" {
 		return "", ErrDeviceKindEmpty
 	}
 	var dbHash []byte
 	var id int
 	err := s.DB.QueryRowContext(ctx, `
 		SELECT id, password_hash FROM users WHERE email = $1;
-	`, crd.Email).Scan(&id, &dbHash)
+	`, email.value).Scan(&id, &dbHash)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
 		return "", ErrAuthFailed
 	case err != nil:
 		return "", err
 	}
-	if bcrypt.CompareHashAndPassword(dbHash, []byte(crd.Password)) != nil {
+	if bcrypt.CompareHashAndPassword(dbHash, []byte(pswd)) != nil {
 		return "", ErrAuthFailed
 	}
-	return s.IssueAuthToken(ctx, id, crd.DeviceKind)
+	return s.IssueAuthToken(ctx, id, device)
 }
 
 // TODO: Tweak the bcrypt cost
 const bcryptCost = 12
 
-func (s *Service) CreateUserAccount(ctx context.Context, email, password string) (UserID, error) {
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcryptCost)
+func (s *Service) CreateUserAccount(ctx context.Context, email ValidEmail, pswd ValidPassword) (UserID, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(pswd.value), bcryptCost)
 	if err != nil {
 		return 0, err
 	}
@@ -114,7 +100,7 @@ func (s *Service) CreateUserAccount(ctx context.Context, email, password string)
 		VALUES ($1, $2)
 		ON CONFLICT (email) DO NOTHING
 		RETURNING id;
-	`, email, hash).Scan(&id)
+	`, email.value, hash).Scan(&id)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
 		return 0, ErrEmailTaken

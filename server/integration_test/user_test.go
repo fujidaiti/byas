@@ -64,7 +64,11 @@ func TestAuth_CreateUserAccount(t *testing.T) {
 	var pswdHashes []string
 	for _, tt := range test {
 		t.Run(tt.name, func(t *testing.T) {
-			gotID, err := s.CreateUserAccount(t.Context(), tt.email, tt.password)
+			gotID, err := s.CreateUserAccount(
+				t.Context(),
+				must(user.ValidateEmail(tt.email)),
+				must(user.ValidatePassword(tt.password)),
+			)
 			if err != nil {
 				t.Fatalf("failed to create user account: %v", err)
 			}
@@ -113,21 +117,21 @@ func TestAuth_CreateUserAccount_EmailUniquness(t *testing.T) {
 		{
 			name:     "success",
 			email:    "testUser@gmail.com",
-			password: "testPassword1",
+			password: "test$Password123",
 			wantErr:  nil,
 			wantID:   1,
 		},
 		{
 			name:     "same email",
 			email:    "testUser@gmail.com",
-			password: "testPassword2",
+			password: "test$Password987",
 			wantErr:  user.ErrEmailTaken,
 			wantID:   0,
 		},
 		{
 			name:     "same email and password",
 			email:    "testUser@gmail.com",
-			password: "testPassword1",
+			password: "test$Password123",
 			wantErr:  user.ErrEmailTaken,
 			wantID:   0,
 		},
@@ -140,7 +144,11 @@ func TestAuth_CreateUserAccount_EmailUniquness(t *testing.T) {
 
 	for _, tt := range test {
 		t.Run(tt.name, func(t *testing.T) {
-			gotID, gotErr := s.CreateUserAccount(t.Context(), tt.email, tt.password)
+			gotID, gotErr := s.CreateUserAccount(
+				t.Context(),
+				must(user.ValidateEmail(tt.email)),
+				must(user.ValidatePassword(tt.password)),
+			)
 			if gotID != tt.wantID {
 				t.Errorf("want ID=%d, got ID=%d", tt.wantID, gotID)
 			}
@@ -178,12 +186,12 @@ func TestAuth_IssueAuthToken(t *testing.T) {
 	users := map[string]*User{
 		"alice": {
 			email:      "alice@example.com",
-			password:   "alice#pass1234",
+			password:   "alice#password$123",
 			signedUpAt: mustTimeUTC("2026-07-01 09:15:00"),
 		},
 		"bob": {
 			email:      "bob@forest.com",
-			password:   "bob#pass987",
+			password:   "bob#password$123",
 			signedUpAt: mustTimeUTC("2026-07-10 14:40:05"),
 		},
 	}
@@ -224,7 +232,11 @@ func TestAuth_IssueAuthToken(t *testing.T) {
 	for _, u := range users {
 		s.Now = func() time.Time { return u.signedUpAt }
 		var err error
-		u.id, err = s.CreateUserAccount(t.Context(), u.email, u.password)
+		u.id, err = s.CreateUserAccount(
+			t.Context(),
+			must(user.ValidateEmail(u.email)),
+			must(user.ValidatePassword(u.password)),
+		)
 		if err != nil {
 			t.Fatalf("failed to seed user (%s): %v", u.email, err)
 		}

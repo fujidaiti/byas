@@ -1027,23 +1027,33 @@ func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.UserService.SignUp(r.Context(), user.Credentials{
-		Email:      req.Email,
-		Password:   req.Password,
-		DeviceKind: req.DeviceKind,
-	})
+	email, err := user.ValidateEmail(req.Email)
 	switch {
 	case errors.Is(err, user.ErrEmailInvalid):
 		serverError(w, http.StatusBadRequest, "Email has invalid format")
 		return
+	case err != nil:
+		serverError(w, http.StatusInternalServerError, "Something went wrong")
+		return
+	}
+
+	pswd, err := user.ValidatePassword(req.Password)
+	switch {
+	case errors.Is(err, user.ErrPswdInvalid):
+		serverError(w, http.StatusBadRequest, "Password has invalid format")
+		return
+	case err != nil:
+		serverError(w, http.StatusInternalServerError, "Something went wrong")
+		return
+	}
+
+	token, err := h.UserService.SignUp(r.Context(), email, pswd, req.DeviceKind)
+	switch {
 	case errors.Is(err, user.ErrDeviceKindEmpty):
 		serverError(w, http.StatusBadRequest, "Device kind is empty")
 		return
 	case errors.Is(err, user.ErrEmailTaken):
 		serverError(w, http.StatusConflict, "Email already exists")
-		return
-	case errors.Is(err, user.ErrPswdInvalid):
-		serverError(w, http.StatusBadRequest, "Password has invalid format")
 		return
 	case err != nil:
 		fmt.Println(err)
@@ -1080,11 +1090,17 @@ func (h *Handler) signIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.UserService.SignIn(r.Context(), user.Credentials{
-		Email:      req.Email,
-		Password:   req.Password,
-		DeviceKind: req.DeviceKind,
-	})
+	email, err := user.ValidateEmail(req.Email)
+	switch {
+	case errors.Is(err, user.ErrEmailInvalid):
+		serverError(w, http.StatusBadRequest, "Email has invalid format")
+		return
+	case err != nil:
+		serverError(w, http.StatusInternalServerError, "Something went wrong")
+		return
+	}
+
+	token, err := h.UserService.SignIn(r.Context(), email, req.Password, req.DeviceKind)
 	switch {
 	case errors.Is(err, user.ErrDeviceKindEmpty):
 		serverError(w, http.StatusBadRequest, "Device kind is empty")
