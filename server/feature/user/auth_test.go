@@ -44,20 +44,26 @@ func TestValidatePassword(t *testing.T) {
 	}
 }
 
-func TestValidateEmail(t *testing.T) {
+func TestParseEmail(t *testing.T) {
 	tests := []struct {
 		name    string
 		addr    string
+		want    string
 		wantErr bool
 	}{
+		{name: "simple address", addr: "user@example.com", wantErr: false},
+		{name: "uppercase", addr: "USER@EXAMPLE.CO.JP", want: "user@example.co.jp", wantErr: false},
+		{name: "plus tag", addr: "user+tag@example.com", want: "user+tag@example.com", wantErr: false},
+		{
+			name:    "dotted local part",
+			addr:    "first.middle.last@example.com",
+			want:    "first.middle.last@example.com",
+			wantErr: false,
+		},
+		{name: "localhost domain", addr: "user@localhost", want: "user@localhost", wantErr: false},
 		{name: "empty", addr: "", wantErr: true},
 		{name: "no @", addr: "user", wantErr: true},
 		{name: "just @", addr: "@", wantErr: true},
-		{name: "simple address", addr: "user@example.com", wantErr: false},
-		{name: "uppercase", addr: "USER@EXAMPLE.CO.JP", wantErr: false},
-		{name: "plus tag", addr: "user+tag@example.com", wantErr: false},
-		{name: "dotted local part", addr: "first.middle.last@example.com", wantErr: false},
-		{name: "localhost domain", addr: "user@localhost", wantErr: false},
 		{name: "missing @", addr: "userexample.com", wantErr: true},
 		{name: "missing local part", addr: "@example.com", wantErr: true},
 		{name: "missing domain", addr: "user@", wantErr: true},
@@ -73,12 +79,12 @@ func TestValidateEmail(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ValidateEmail(tt.addr)
+			got, err := ParseEmail(tt.addr)
 			if tt.wantErr {
 				if !errors.Is(err, ErrEmailInvalid) {
 					t.Fatalf("f(%q) error = %v, want %v", tt.addr, err, ErrEmailInvalid)
 				}
-				if got != (ValidEmail{}) {
+				if got != (CanonicalEmail{}) {
 					t.Errorf("f(%q) = %+v, want zero value on error", tt.addr, got)
 				}
 			} else if err != nil {

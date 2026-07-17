@@ -1027,7 +1027,7 @@ func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	email, err := user.ValidateEmail(req.Email)
+	email, err := user.ParseEmail(req.Email)
 	switch {
 	case errors.Is(err, user.ErrEmailInvalid):
 		serverError(w, http.StatusBadRequest, "Email has invalid format")

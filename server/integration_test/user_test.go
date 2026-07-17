@@ -59,7 +59,7 @@ func TestAuth_SignUp_Success(t *testing.T) {
 			s.Now = func() time.Time { return tt.signUpAt }
 			gotToken, err := s.SignUp(
 				t.Context(),
-				must(user.ValidateEmail(tt.email)),
+				must(user.ParseEmail(tt.email)),
 				must(user.ValidatePassword(tt.password)),
 				tt.device,
 			)
@@ -158,7 +158,7 @@ func TestAuth_SignUp_EmailUniqueness(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			_, gotErr := s.SignUp(
 				t.Context(),
-				must(user.ValidateEmail(tt.email)),
+				must(user.ParseEmail(tt.email)),
 				must(user.ValidatePassword(tt.password)),
 				tt.device,
 			)
@@ -244,7 +244,7 @@ func TestAuth_SignIn_Success(t *testing.T) {
 		var err error
 		_, err = s.SignUp(
 			t.Context(),
-			must(user.ValidateEmail(u.email)),
+			must(user.ParseEmail(u.email)),
 			must(user.ValidatePassword(u.password)),
 			u.signUpDevice,
 		)
@@ -348,7 +348,7 @@ func TestAuth_SignIn_Failure(t *testing.T) {
 	var err error
 	_, err = s.SignUp(
 		t.Context(),
-		must(user.ValidateEmail(alice.email)),
+		must(user.ParseEmail(alice.email)),
 		must(user.ValidatePassword(alice.password)),
 		alice.signUpDevice,
 	)

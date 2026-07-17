@@ -10,6 +10,7 @@ import (
 	"errors"
 	"net/mail"
 	"regexp"
+	"strings"
 	"unicode"
 
 	"golang.org/x/crypto/bcrypt"
@@ -38,19 +39,19 @@ func ValidatePassword(p string) (ValidPassword, error) {
 	return ValidPassword{p}, nil
 }
 
-type ValidEmail struct{ value string }
+type CanonicalEmail struct{ value string }
 
-func ValidateEmail(addr string) (ValidEmail, error) {
+func ParseEmail(addr string) (CanonicalEmail, error) {
 	for i := 0; i < len(addr); i++ {
 		if addr[i] > unicode.MaxASCII {
-			return ValidEmail{}, ErrEmailInvalid
+			return CanonicalEmail{}, ErrEmailInvalid
 		}
 	}
-	r, err := mail.ParseAddress(addr)
-	if err != nil || r.Address != addr {
-		return ValidEmail{}, ErrEmailInvalid
+	a, err := mail.ParseAddress(addr)
+	if err != nil || a.Address != addr {
+		return CanonicalEmail{}, ErrEmailInvalid
 	}
-	return ValidEmail{r.Address}, nil
+	return CanonicalEmail{strings.ToLower(a.Address)}, nil
 }
 
 type AuthToken struct{ value [32]byte }
@@ -80,7 +81,12 @@ func (t AuthToken) Encode() string {
 const bcryptCost = 12
 
 // SignUp creates a fresh user account for the given email and issue a new authentication token.
-func (s *Service) SignUp(ctx context.Context, email ValidEmail, pswd ValidPassword, device string) (AuthToken, error) {
+func (s *Service) SignUp(
+	ctx context.Context,
+	email CanonicalEmail,
+	pswd ValidPassword,
+	device string,
+) (AuthToken, error) {
 	if device == "" {
 		return AuthToken{}, ErrDeviceEmpty
 	}
