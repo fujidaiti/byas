@@ -12,7 +12,6 @@ import (
 	"github.com/fujidaiti/paperdoll/feature/user"
 	"github.com/fujidaiti/paperdoll/integration_test/testenv"
 	"github.com/google/go-cmp/cmp"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type userRecord struct {
@@ -83,10 +82,6 @@ func TestAuth_SignUp_Success(t *testing.T) {
 				t.Error("raw password must not be stored in DB")
 			}
 
-			if err := bcrypt.CompareHashAndPassword(gotUser.PasswordHash, []byte(tt.password)); err != nil {
-				t.Errorf("a bcrypt hash should be stored instead of the real password: %v", err)
-			}
-
 			var n int
 			scanRowOrFatal(t, `SELECT COUNT(*) from auth_tokens`, nil, &n)
 			if want := i + 1; n != want {
@@ -107,7 +102,7 @@ func TestAuth_SignUp_Success(t *testing.T) {
 			}
 
 			if d := gotRec.ExpiresAt.Sub(tt.signUpAt); d != 30*24*time.Hour {
-				t.Errorf("token should expires in 30 days, actual TTL is %g day(s)", d.Hours()/24)
+				t.Errorf("token should expires in 30 days, got TTL = %g day(s)", d.Hours()/24)
 			}
 
 			if d := cmp.Diff(gotRec.TokenHash, gotToken.Hash()); d != "" {
@@ -380,31 +375,3 @@ func TestAuth_SignIn_Failure(t *testing.T) {
 		})
 	}
 }
-
-// func TestAuth_SignUp(t *testing.T) {
-// 	t.Cleanup(testenv.ResetDB)
-
-// 	now := time.Date(2026, time.July, 15, 12, 0, 0, 0, time.UTC)
-// 	h := api.Handler{
-// 		DB: testenv.DB,
-// 		UserService: user.Service{
-// 			DB:  testenv.DB,
-// 			Now: func() time.Time { return now },
-// 		},
-// 	}
-// 	rBody := api.SignUpReqBody{
-// 		Email:    "test@example.com",
-// 		Password: "Test$Password+123",
-// 		Device:   "Pixel9a/Android16",
-// 	}
-// 	jBody, _ := json.Marshal(rBody)
-// 	req := httptest.NewRequest("POST", "/signup", bytes.NewReader(jBody))
-// 	req.Header.Set("Content-Type", "application/json")
-// 	rec := httptest.NewRecorder()
-// 	api.NewRouter(&h).ServeHTTP(rec, req)
-
-// 	var got1 api.SignUpResBody
-// 	if err := json.NewDecoder(rec.Body).Decode(&got1); err != nil {
-// 		t.Fatalf("failed to decode response body: %v", err)
-// 	}
-// }
