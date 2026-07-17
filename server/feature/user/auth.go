@@ -80,12 +80,10 @@ func (t AuthToken) Encode() string {
 // TODO: Tweak the bcrypt cost
 const bcryptCost = 12
 
-// SignUp creates a fresh user account for the given email and issue a new authentication token.
+// SignUp creates a fresh user account for the given email and
+// issue a new authentication token.
 func (s *Service) SignUp(
-	ctx context.Context,
-	email CanonicalEmail,
-	pswd ValidPassword,
-	device string,
+	ctx context.Context, email CanonicalEmail, pswd ValidPassword, device string,
 ) (AuthToken, error) {
 	if device == "" {
 		return AuthToken{}, ErrDeviceEmpty
@@ -110,7 +108,9 @@ func (s *Service) SignUp(
 	return s.issueAuthToken(ctx, id, device)
 }
 
-func (s *Service) SignIn(ctx context.Context, email, pswd, device string) (AuthToken, error) {
+func (s *Service) SignIn(
+	ctx context.Context, email CanonicalEmail, pswd, device string,
+) (AuthToken, error) {
 	if device == "" {
 		return AuthToken{}, ErrDeviceEmpty
 	}
@@ -118,7 +118,7 @@ func (s *Service) SignIn(ctx context.Context, email, pswd, device string) (AuthT
 	var id int
 	err := s.DB.QueryRowContext(ctx, `
 		SELECT id, password_hash FROM users WHERE email = $1
-	`, email).Scan(&id, &dbHash)
+	`, email.value).Scan(&id, &dbHash)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
 		return AuthToken{}, ErrAuthFailed
@@ -133,7 +133,9 @@ func (s *Service) SignIn(ctx context.Context, email, pswd, device string) (AuthT
 
 const tokenExpiresInDays = 30
 
-func (s *Service) issueAuthToken(ctx context.Context, id UserID, device string) (AuthToken, error) {
+func (s *Service) issueAuthToken(
+	ctx context.Context, id UserID, device string,
+) (AuthToken, error) {
 	token, err := generateAuthToken()
 	if err != nil {
 		return AuthToken{}, err

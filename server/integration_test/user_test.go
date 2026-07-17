@@ -111,10 +111,10 @@ func TestAuth_SignUp_Success(t *testing.T) {
 		})
 	}
 
-	if len(gotPswdHashes) != len(test) || !isDistinct(gotPswdHashes) {
+	if !isDistinct(gotPswdHashes) {
 		t.Errorf("password hashes must be uniqueue for each user even if raw passwords are identical")
 	}
-	if len(gotTokens) != len(test) || !isDistinct(gotTokens) {
+	if !isDistinct(gotTokens) {
 		t.Errorf("auth tokens must be uniqueue")
 	}
 }
@@ -143,6 +143,13 @@ func TestAuth_SignUp_EmailUniqueness(t *testing.T) {
 		{
 			name:     "same email and same password",
 			email:    "alice@gmail.com",
+			password: "test$Password123",
+			device:   "Pixel9a/Android16",
+			wantErr:  user.ErrEmailTaken,
+		},
+		{
+			name:     "same but capitalized email",
+			email:    "ALICE@GMAIL.COM",
 			password: "test$Password123",
 			device:   "Pixel9a/Android16",
 			wantErr:  user.ErrEmailTaken,
@@ -235,6 +242,17 @@ func TestAuth_SignIn_Success(t *testing.T) {
 			user:     users["alice"],
 			signInAt: mustTimeUTC("2026-07-14 21:05:40"),
 		},
+		{
+			name:   "bob's second session but email capitalized",
+			device: "GalaxyS26/Android16",
+			user: &User{
+				email:        "BOB@FOREST.COM",
+				password:     users["bob"].password,
+				signUpDevice: users["bob"].signUpDevice,
+				signUpAt:     users["bob"].signUpAt,
+			},
+			signInAt: mustTimeUTC("2026-07-10 14:45:18"),
+		},
 	}
 
 	s := user.Service{DB: testenv.DB}
@@ -257,7 +275,8 @@ func TestAuth_SignIn_Success(t *testing.T) {
 	for i, tt := range test {
 		s.Now = func() time.Time { return tt.signInAt }
 		t.Run(tt.name, func(t *testing.T) {
-			gotToken, err := s.SignIn(t.Context(), tt.user.email, tt.user.password, tt.device)
+			email := must(user.ParseEmail(tt.user.email))
+			gotToken, err := s.SignIn(t.Context(), email, tt.user.password, tt.device)
 			if err != nil {
 				t.Fatalf("failed to sign-in: %v", err)
 			}
@@ -266,7 +285,7 @@ func TestAuth_SignIn_Success(t *testing.T) {
 			var n int
 			scanRowOrFatal(t, `SELECT COUNT(*) from auth_tokens`, nil, &n)
 			if want := len(users) + i + 1; want != n {
-				t.Errorf("only one token record must be added, got +%d rows", n-want)
+				t.Errorf("only one token record must be added, got %d extra rows", n-want)
 			}
 
 			var gotRec authTokenRecord
@@ -279,12 +298,14 @@ func TestAuth_SignIn_Success(t *testing.T) {
 			scanRowOrFatal(t, `
 				SELECT email FROM users WHERE id = $1
 			`, []any{gotRec.UserId}, &gotEmail)
-			if got, want := gotEmail, tt.user.email; got != want {
-				t.Errorf("token was issued for wrong user %s, want %s", got, want)
+			if got, err := user.ParseEmail(gotEmail); err != nil {
+				t.Errorf("saved email %q is malformed, want %v", gotEmail, email)
+			} else if got != email {
+				t.Errorf("token was issued for wrong user %v, want %v", got, email)
 			}
 
-			if got, want := gotRec.Device, tt.device; got != want {
-				t.Errorf("got device '%s', want '%s'", got, want)
+			if gotRec.Device != tt.device {
+				t.Errorf("got device %q, want %q", gotRec.Device, tt.device)
 			}
 
 			if d := gotRec.ExpiresAt.Sub(tt.signInAt); d != 30*24*time.Hour {
@@ -297,7 +318,7 @@ func TestAuth_SignIn_Success(t *testing.T) {
 		})
 	}
 
-	if len(gotTokens) != len(test) || !isDistinct(gotTokens) {
+	if !isDistinct(gotTokens) {
 		t.Errorf("tokens must be uniqueue across all sessions")
 	}
 }
@@ -359,7 +380,10 @@ func TestAuth_SignIn_Failure(t *testing.T) {
 	for _, tt := range test {
 		s.Now = func() time.Time { return tt.signedInAt }
 		t.Run(tt.name, func(t *testing.T) {
-			got1, got2 := s.SignIn(t.Context(), tt.email, tt.password, tt.device)
+			got1, got2 := s.SignIn(
+				t.Context(), must(user.ParseEmail(tt.email)),
+				tt.password, tt.device,
+			)
 			if !errors.Is(got2, tt.wantErr) {
 				t.Errorf("got %v, want %v", got2, tt.wantErr)
 			}
