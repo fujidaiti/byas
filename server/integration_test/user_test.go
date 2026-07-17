@@ -74,8 +74,8 @@ func TestAuth_SignUp_Success(t *testing.T) {
 			`, []any{tt.email}, &gotUser.ID, &gotUser.Email, &gotUser.PasswordHash)
 			gotPswdHashes = append(gotPswdHashes, string(gotUser.PasswordHash))
 
-			if got, want := gotUser.Email, tt.email; got != want {
-				t.Errorf("created user has a malformed email address: got %s, want %s", got, want)
+			if gotUser.Email != tt.email {
+				t.Errorf("created user has a malformed email %q, want %q", gotUser.Email, tt.email)
 			}
 
 			if bytes.Equal(gotUser.PasswordHash, []byte(tt.password)) {
@@ -97,8 +97,8 @@ func TestAuth_SignUp_Success(t *testing.T) {
 				t.Errorf("token was issued for wrong user Id=%d, want Id=%d", got, want)
 			}
 
-			if got, want := gotRec.Device, tt.device; got != want {
-				t.Errorf("got device '%s', want '%s'", gotRec.Device, tt.device)
+			if gotRec.Device != tt.device {
+				t.Errorf("got device %q, want %q", gotRec.Device, tt.device)
 			}
 
 			if d := gotRec.ExpiresAt.Sub(tt.signUpAt); d != 30*24*time.Hour {
