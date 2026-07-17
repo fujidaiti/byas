@@ -7,6 +7,15 @@ BadRequest:
       example:
         message: "Invalid feed id"
 
+Unauthorized:
+  description: Unauthorized
+  content:
+    application/json:
+      schema:
+        $ref: "./schemas.yaml#/Error"
+      example:
+        message: "Email or password is incorrect"
+
 NotFound:
   description: Not found
   content:
@@ -15,6 +24,15 @@ NotFound:
         $ref: "./schemas.yaml#/Error"
       example:
         message: "No feed found"
+
+Conflict:
+  description: Conflict
+  content:
+    application/json:
+      schema:
+        $ref: "./schemas.yaml#/Error"
+      example:
+        message: "Email already exists"
 
 InternalServerError:
   description: Internal server error

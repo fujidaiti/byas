@@ -1092,11 +1092,8 @@ func (h *Handler) signIn(w http.ResponseWriter, r *http.Request) {
 
 	email, err := user.ParseEmail(req.Email)
 	switch {
-	case errors.Is(err, user.ErrEmailInvalid):
-		serverError(w, http.StatusBadRequest, "Email has invalid format")
-		return
 	case err != nil:
-		serverError(w, http.StatusInternalServerError, "Something went wrong")
+		serverError(w, http.StatusUnauthorized, "Email or password is incorrect")
 		return
 	}
 

@@ -1,0 +1,113 @@
+signup:
+  post:
+    summary: Create a new account
+    description:
+      Registers a new user with the given email and password, and immediately
+      issues an authentication token (as if the user had logged in right after
+      signing up, to avoid a separate login round trip). The email is
+      canonicalized (lowercased) before storage, so uniqueness is
+      case-insensitive. Returns 409 if the email is already registered.
+    operationId: signUp
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [email, password, device]
+            properties:
+              email:
+                description:
+                  The account's email address. Used as the login identifier.
+                type: string
+                format: email
+              password:
+                description: Printable ASCII only, 15–64 characters.
+                type: string
+              device:
+                description:
+                  Opaque client identifier stored alongside the issued token
+                  (e.g. `platform/app_version`). Recorded once when the token is
+                  created; not parsed by the server.
+                type: string
+          example:
+            email: "alice@example.com"
+            password: "correct horse battery staple"
+            device: "ios/1.4.2"
+    responses:
+      "201":
+        description: Created
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  description:
+                    Opaque bearer token to send in the `Authorization` header on
+                    subsequent requests.
+                  type: string
+      "400":
+        $ref: "../components/responses.yaml#/BadRequest"
+      "409":
+        $ref: "../components/responses.yaml#/Conflict"
+      "500":
+        $ref: "../components/responses.yaml#/InternalServerError"
+
+signin:
+  post:
+    summary: Log in to an existing account
+    description:
+      Authenticates with email and password and issues a new authentication
+      token. A new token is issued per call, so signing in from multiple devices
+      yields multiple concurrent sessions. Returns the same generic 401 whether
+      the email is unregistered or the password is wrong, to avoid revealing
+      whether an account exists.
+    operationId: signIn
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [email, password, device]
+            properties:
+              email:
+                description: The account's email address.
+                type: string
+                format: email
+              password:
+                type: string
+              device:
+                description:
+                  Opaque client identifier stored alongside the issued token
+                  (e.g. `platform/app_version`). Recorded once when the token is
+                  created; not parsed by the server.
+                type: string
+          example:
+            email: "alice@example.com"
+            password: "correct horse battery staple"
+            device: "ios/1.4.2"
+    responses:
+      "200":
+        description: OK
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  description:
+                    Opaque bearer token to send in the `Authorization` header on
+                    subsequent requests.
+                  type: string
+      "400":
+        $ref: "../components/responses.yaml#/BadRequest"
+      "401":
+        $ref: "../components/responses.yaml#/Unauthorized"
+      "500":
+        $ref: "../components/responses.yaml#/InternalServerError"
