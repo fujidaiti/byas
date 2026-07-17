@@ -30,14 +30,14 @@ func TestValidatePassword(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := ValidatePassword(tt.p)
 			if tt.wantErr {
-				if !errors.Is(err, ErrPswdInvalid) {
-					t.Fatalf("f(%q) error = %v, want %v", tt.p, err, ErrPswdInvalid)
+				if want := ErrPswdInvalid; !errors.Is(err, want) {
+					t.Fatalf("got %v, want %v", err, want)
 				}
 				if got != (ValidPassword{}) {
-					t.Errorf("f(%q) = %+v, want zero value on error", tt.p, got)
+					t.Errorf("got %v, want zero value on error", got)
 				}
 			} else if err != nil {
-				t.Fatalf("f(%q) unexpected error: %v", tt.p, err)
+				t.Fatalf("unexpected error: %v", err)
 			}
 		})
 	}
