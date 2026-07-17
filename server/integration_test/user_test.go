@@ -250,9 +250,9 @@ func TestAuth_IssueAuthToken(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to issue a new auth token: %v", err)
 			}
-			tokens = append(tokens, gotToken)
+			tokens = append(tokens, gotToken.Encode())
 
-			rawToken, err := base64.RawURLEncoding.DecodeString(gotToken)
+			rawToken, err := base64.RawURLEncoding.DecodeString(gotToken.Encode())
 			if err != nil {
 				t.Errorf("returned token must be a valid Base64URL with no padding, got: %s\n%v", gotToken, err)
 			}

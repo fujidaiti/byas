@@ -53,21 +53,38 @@ func ValidateEmail(addr string) (ValidEmail, error) {
 	return ValidEmail{r.Address}, nil
 }
 
+type AuthToken struct{ value [32]byte }
+
+func generateAuthToken() (AuthToken, error) {
+	t := AuthToken{}
+	_, err := rand.Read(t.value[:])
+	return t, err
+}
+
+func (t AuthToken) hash() []byte {
+	h := sha256.Sum256(t.value[:])
+	return h[:]
+}
+
+func (t AuthToken) Encode() string {
+	return base64.RawURLEncoding.EncodeToString(t.value[:])
+}
+
 // SignUp creates a fresh user account for the given email and issue a new authentication token.
-func (s *Service) SignUp(ctx context.Context, email ValidEmail, pswd ValidPassword, device string) (string, error) {
+func (s *Service) SignUp(ctx context.Context, email ValidEmail, pswd ValidPassword, device string) (AuthToken, error) {
 	if device == "" {
-		return "", ErrDeviceKindEmpty
+		return AuthToken{}, ErrDeviceKindEmpty
 	}
 	id, err := s.CreateUserAccount(ctx, email, pswd)
 	if err != nil {
-		return "", err
+		return AuthToken{}, err
 	}
 	return s.IssueAuthToken(ctx, id, device)
 }
 
-func (s *Service) SignIn(ctx context.Context, email ValidEmail, pswd string, device string) (string, error) {
+func (s *Service) SignIn(ctx context.Context, email ValidEmail, pswd string, device string) (AuthToken, error) {
 	if device == "" {
-		return "", ErrDeviceKindEmpty
+		return AuthToken{}, ErrDeviceKindEmpty
 	}
 	var dbHash []byte
 	var id int
@@ -76,12 +93,12 @@ func (s *Service) SignIn(ctx context.Context, email ValidEmail, pswd string, dev
 	`, email.value).Scan(&id, &dbHash)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
-		return "", ErrAuthFailed
+		return AuthToken{}, ErrAuthFailed
 	case err != nil:
-		return "", err
+		return AuthToken{}, err
 	}
 	if bcrypt.CompareHashAndPassword(dbHash, []byte(pswd)) != nil {
-		return "", ErrAuthFailed
+		return AuthToken{}, ErrAuthFailed
 	}
 	return s.IssueAuthToken(ctx, id, device)
 }
@@ -112,25 +129,18 @@ func (s *Service) CreateUserAccount(ctx context.Context, email ValidEmail, pswd 
 
 const tokenExpiresInDays = 30
 
-func (s *Service) IssueAuthToken(ctx context.Context, id UserID, device string) (string, error) {
-	token := make([]byte, 32)
-	_, err := rand.Read(token)
+func (s *Service) IssueAuthToken(ctx context.Context, id UserID, device string) (AuthToken, error) {
+	token, err := generateAuthToken()
 	if err != nil {
-		return "", err
+		return AuthToken{}, err
 	}
-	hashed := hashToken(token)
 	expr := s.Now().AddDate(0, 0, tokenExpiresInDays)
 	_, err = s.DB.ExecContext(ctx, `
 		INSERT INTO auth_tokens (user_id, device_kind, token_hash, expires_at)
 		VALUES ($1, $2, $3, $4);
-	`, id, device, hashed, expr)
+	`, id, device, token.hash(), expr)
 	if err != nil {
-		return "", err
+		return AuthToken{}, err
 	}
-	return base64.RawURLEncoding.EncodeToString(token), nil
-}
-
-func hashToken(raw []byte) []byte {
-	h := sha256.Sum256(raw)
-	return h[:]
+	return token, nil
 }
