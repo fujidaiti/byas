@@ -13,14 +13,10 @@ setup:
 db-migrate:
 	go run ./server/cmd/app/main.go migrate up
 
-.PHONY: dev-poll
-dev-poll:
-	go run ./server/cmd/dev/main.go poll
-
-.PHONY: dev-serve
-dev-serve:
+.PHONY: dev-server
+dev-server:
 	go run ./server/cmd/app/main.go serve
 
-.PHONY: build-linux-amd64
-build-linux-amd64:
-	GOOS=linux GOARCH=amd64 go build -o server/build/paperdoll-linux-amd64 ./server/cmd/app/main.go
+.PHONY: build-server-linux-amd64
+build-server-linux-amd64:
+	GOOS=linux GOARCH=amd64 go build -o build/paperdoll-server-linux-amd64 ./server/cmd/app/main.go
