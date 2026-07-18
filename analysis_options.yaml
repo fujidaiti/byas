@@ -10,6 +10,7 @@ analyzer:
     - "**/*.freezed.dart"
     - "**/*.riverpod.dart"
     - "**/*.mock.dart"
+    - "api/dart_binding/"
   errors:
 
 linter:
