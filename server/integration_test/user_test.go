@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fujidaiti/paperdoll/feature/user"
-	"github.com/fujidaiti/paperdoll/integration_test/testenv"
+	"github.com/fujidaiti/paperdoll/server/feature/user"
+	"github.com/fujidaiti/paperdoll/server/integration_test/testenv"
 	"github.com/google/go-cmp/cmp"
 )
 

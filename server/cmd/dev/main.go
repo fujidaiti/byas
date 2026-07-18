@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/fujidaiti/paperdoll/feature/feed"
+	"github.com/fujidaiti/paperdoll/server/feature/feed"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 

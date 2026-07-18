@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"codeberg.org/readeck/go-readability/v2"
-	"github.com/fujidaiti/paperdoll/feature/newspaper"
+	"github.com/fujidaiti/paperdoll/server/feature/newspaper"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/mmcdole/gofeed"

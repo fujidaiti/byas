@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/fujidaiti/paperdoll/feature/feed"
-	"github.com/fujidaiti/paperdoll/feature/newspaper"
+	"github.com/fujidaiti/paperdoll/server/feature/feed"
+	"github.com/fujidaiti/paperdoll/server/feature/newspaper"
 	"github.com/go-co-op/gocron/v2"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )

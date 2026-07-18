@@ -4,4 +4,4 @@ setup:
 	git config core.hooksPath .githooks
 	fvm use
 	cd client && fvm flutter pub get
-	cd server && go mod tidy
+	go mod tidy
