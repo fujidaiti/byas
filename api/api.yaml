@@ -26,6 +26,10 @@ paths:
     $ref: "./paths/reading-list-archived.yaml"
   /reading-list/{id}:
     $ref: "./paths/reading-list-item.yaml"
+  /signup:
+    $ref: "./paths/auth.yaml#/signup"
+  /signin:
+    $ref: "./paths/auth.yaml#/signin"
 
 components:
   schemas:
@@ -44,7 +48,11 @@ components:
   responses:
     BadRequest:
       $ref: "./components/responses.yaml#/BadRequest"
+    Unauthorized:
+      $ref: "./components/responses.yaml#/Unauthorized"
     NotFound:
       $ref: "./components/responses.yaml#/NotFound"
+    Conflict:
+      $ref: "./components/responses.yaml#/Conflict"
     InternalServerError:
       $ref: "./components/responses.yaml#/InternalServerError"

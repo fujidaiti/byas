@@ -1,0 +1,108 @@
+signup:
+  post:
+    summary: Sign up a new account
+    description:
+      Registers a new user with the given email and password, and immediately
+      issues an authentication token. The email is canonicalized (lowercased)
+      before storage, so uniqueness is case-insensitive. Returns 409 if the
+      email is already registered.
+    operationId: signUp
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [email, password, device]
+            properties:
+              email:
+                description:
+                  The account's email address. Used as the sign-in identifier.
+                type: string
+                format: email
+              password:
+                description: Printable ASCII only, 15–64 characters.
+                type: string
+              device:
+                description:
+                  Human-readable client label stored alongside the issued token.
+                  There is no specific format, but empty string is rejected.
+                type: string
+          example:
+            email: "alice@example.com"
+            password: "Police-Repurpose-Atypical-Gravel-Identical"
+            device: "pixel9a/android17"
+    responses:
+      "201":
+        description: Created
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  description:
+                    Opaque bearer token to send in the `Authorization` header on
+                    subsequent requests.
+                  type: string
+      "400":
+        $ref: "../components/responses.yaml#/BadRequest"
+      "409":
+        $ref: "../components/responses.yaml#/Conflict"
+      "500":
+        $ref: "../components/responses.yaml#/InternalServerError"
+
+signin:
+  post:
+    summary: Sign in to an existing account
+    description:
+      Authenticates with email and password and issues a new authentication
+      token. A new token is issued per call, so signing in from multiple devices
+      yields multiple concurrent sessions. Returns the same generic 401 whether
+      the email is unregistered or the password is wrong.
+    operationId: signIn
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [email, password, device]
+            properties:
+              email:
+                type: string
+                format: email
+              password:
+                type: string
+              device:
+                description:
+                  Human-readable client label stored alongside the issued token.
+                  There is no specific format, but empty string is rejected.
+                type: string
+          example:
+            email: "alice@example.com"
+            password: "Police-Repurpose-Atypical-Gravel-Identical"
+            device: "iphone17/ios26"
+    responses:
+      "200":
+        description: OK
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  description:
+                    Opaque bearer token to send in the `Authorization` header on
+                    subsequent requests.
+                  type: string
+      "400":
+        $ref: "../components/responses.yaml#/BadRequest"
+      "401":
+        $ref: "../components/responses.yaml#/Unauthorized"
+      "500":
+        $ref: "../components/responses.yaml#/InternalServerError"

@@ -15,11 +15,11 @@ excluded from the normal unit test suite:
 Run all integration tests with:
 
 ```sh
-go test -tags="integration" ./integration_test/...
+go test -tags="integration" -count=1 ./integration_test/...
 ```
 
 or filter by name with `-run`:
 
 ```sh
-go test -tags="integration" ./integration_test/... -run TestSubmitStories
+go test -tags="integration" -count=1 ./integration_test/... -run TestSubmitStories
 ```
