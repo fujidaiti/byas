@@ -6,7 +6,7 @@ export
 setup:
 	git config core.hooksPath .githooks
 	fvm use
-	cd client && fvm flutter pub get
+	fvm flutter pub get
 	go mod tidy
 
 .PHONY: db-migrate
