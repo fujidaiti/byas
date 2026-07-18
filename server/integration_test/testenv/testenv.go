@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fujidaiti/paperdoll/db/migration"
+	"github.com/fujidaiti/paperdoll/server/db/migration"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"

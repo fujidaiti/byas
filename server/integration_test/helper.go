@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fujidaiti/paperdoll/integration_test/testenv"
+	"github.com/fujidaiti/paperdoll/server/integration_test/testenv"
 )
 
 // isDistinct checks if all comparable elements in v are uniqueue.

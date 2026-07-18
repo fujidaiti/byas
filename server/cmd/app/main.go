@@ -7,9 +7,9 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/fujidaiti/paperdoll/api"
-	"github.com/fujidaiti/paperdoll/db/migration"
-	"github.com/fujidaiti/paperdoll/worker"
+	"github.com/fujidaiti/paperdoll/server/api"
+	"github.com/fujidaiti/paperdoll/server/db/migration"
+	"github.com/fujidaiti/paperdoll/server/worker"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 

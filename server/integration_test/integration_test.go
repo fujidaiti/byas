@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/fujidaiti/paperdoll/integration_test/testenv"
+	"github.com/fujidaiti/paperdoll/server/integration_test/testenv"
 )
 
 func TestMain(m *testing.M) {

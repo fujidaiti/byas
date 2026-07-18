@@ -14,9 +14,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/fujidaiti/paperdoll/feature/feed"
-	"github.com/fujidaiti/paperdoll/feature/readinglist"
-	"github.com/fujidaiti/paperdoll/feature/user"
+	"github.com/fujidaiti/paperdoll/server/feature/feed"
+	"github.com/fujidaiti/paperdoll/server/feature/readinglist"
+	"github.com/fujidaiti/paperdoll/server/feature/user"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
