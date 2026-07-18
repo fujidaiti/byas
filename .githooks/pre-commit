@@ -5,15 +5,12 @@ set -euo pipefail
 go_files=$(git diff --cached --name-only --diff-filter=ACM -- '*.go')
 
 if [ -n "$go_files" ]; then
-  (cd server && golangci-lint fmt ./...)
+  golangci-lint fmt ./...
   git add -- $go_files
 
-  # Test and lint the server module to catch errors before committing.
-  (
-    cd server
-    go test ./...
-    golangci-lint run ./...
-  )
+  # Test and lint the module to catch errors before committing.
+  go test ./...
+  golangci-lint run ./...
 fi
 
 # Auto-fix and format staged Dart files and include the results in this commit.

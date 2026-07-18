@@ -40,13 +40,11 @@ jobs:
           install-only: true
 
       - name: Check server formatting
-        working-directory: server
         run: |
           golangci-lint fmt ./...
           git diff --exit-code
 
       - name: Lint server
-        working-directory: server
         run: golangci-lint run ./...
 
       - name: Set up Redocly CLI
@@ -72,7 +70,6 @@ jobs:
           go-version-file: go.mod
 
       - name: Test server
-        working-directory: server
         run: go test ./...
 
   server_integration_test:
@@ -88,5 +85,4 @@ jobs:
           go-version-file: go.mod
 
       - name: Integration test server
-        working-directory: server
-        run: go test -tags="integration" ./integration_test/... -v
+        run: go test -tags="integration" ./server/integration_test/... -v
