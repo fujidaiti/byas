@@ -89,4 +89,4 @@ jobs:
 
       - name: Integration test server
         working-directory: server
-        run: go test -tags="integration" ./integration_test/...
+        run: go test -tags="integration" ./integration_test/... -v
