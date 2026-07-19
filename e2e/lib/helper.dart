@@ -10,7 +10,7 @@ Future<void> setUpServer({
 }) async {
   final socket = await Socket.connect(
     // TODO: Make the server host address configurable
-    // Currenlty, we assume that the testing is running on an android emulator.
+    // Currently, we assume that the testing is running on an android emulator.
     '10.0.2.2',
     9000,
     timeout: const Duration(seconds: 60),

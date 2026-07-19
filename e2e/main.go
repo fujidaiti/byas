@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -31,13 +32,8 @@ func run(ctx context.Context) error {
 	// TODO: make the host ip and port configurable
 	sock, err := net.Listen("tcp", "127.0.0.1:9000")
 	if err != nil {
-		return fmt.Errorf("faild to open a socket: %w", err)
+		return fmt.Errorf("failed open a socket: %w", err)
 	}
-	defer func() {
-		if err := sock.Close(); err != nil {
-			fmt.Fprintf(os.Stderr, "got error while closing socket: %v\n", err)
-		}
-	}()
 
 	lisCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -88,12 +84,17 @@ func runTests(ctx context.Context) error {
 // or during a test session. This is a design decision so that non-fatal errors don't terminate
 // the entire testing process.
 func listenToRequests(ctx context.Context, socket net.Listener) {
+	defer func() {
+		if err := socket.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "got error while closing socket: %v\n", err)
+		}
+	}()
+
 	// This channel has no buffer because:
 	//  - we expect exactly one pair of request/response per connection
 	//  - the connection is closed immediately after the response is sent
 	//  - connections are processed one by one (not in parallel)
 	ch := make(chan net.Conn)
-	defer close(ch)
 	go func() {
 		for {
 			conn, err := socket.Accept()
@@ -117,7 +118,12 @@ func listenToRequests(ctx context.Context, socket net.Listener) {
 
 		case conn := <-ch:
 			tearDown()
-			go startNewTestSession(ctx, conn)
+			if session, err := prepareForNewSession(ctx, conn); err != nil {
+				fmt.Fprintf(os.Stderr, "failed to start a new test session: %v\n", err)
+			} else {
+				tearDown = session.tearDown
+				go session.start(ctx)
+			}
 		}
 	}
 }
@@ -127,9 +133,34 @@ type request struct {
 	ScenarioID string `json:"scenario_id"`
 }
 
-// startNewTestSession sets up the testing DB based on the request
-// and spawn a new API server instance for the new test session.
-func startNewTestSession(ctx context.Context, conn net.Conn) {
+type session struct {
+	// TODO: add session related resources here
+	server *http.Server
+}
+
+func (s *session) start(ctx context.Context) {
+	go func() {
+		if err := s.server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+			fmt.Fprintf(os.Stderr, "server exited abnormally: %v\n", err)
+		}
+	}()
+	<-ctx.Done()
+	s.tearDown()
+}
+
+func (s *session) tearDown() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if err := s.server.Shutdown(ctx); err != nil {
+		fmt.Fprintf(os.Stderr, "shutdown failed: %v\n", err)
+	}
+}
+
+const streamDelimiter = "\n"
+
+// prepareForNewSession sets up the testing DB based on the request and spawns a server instance
+// for the new test session.
+func prepareForNewSession(ctx context.Context, conn net.Conn) (*session, error) {
 	defer func() {
 		if err := conn.Close(); err != nil {
 			fmt.Fprintf(os.Stderr, "got an error while closing a connection: %v", err)
@@ -139,44 +170,45 @@ func startNewTestSession(ctx context.Context, conn net.Conn) {
 	defer cancel()
 	if dl, ok := setUpCtx.Deadline(); ok {
 		if err := conn.SetDeadline(dl); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
+			return nil, err
 		}
 	}
 
-	req, err := readRequest(conn)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
+	scanner := bufio.NewScanner(conn)
+	if !scanner.Scan() {
+		if err := scanner.Err(); err != nil {
+			return nil, err
+		}
+		return nil, errors.New("EOF, nothing to read")
+	}
+	var req request
+	if err := json.Unmarshal(scanner.Bytes(), &req); err != nil {
+		sendResponse(conn, "invalid request")
+		return nil, fmt.Errorf("malformed request: %w", err)
 	}
 
 	_, _ = fmt.Fprintf(os.Stdout, "receivced: %+v\n", req)
 
 	// TODO: Open and setup DB based on the request
 	time.Sleep(5 * time.Second) // a fake delay
-	if err := writeResponse(conn); err != nil {
+	sendResponse(conn, "ready")
+
+	// TODO: replace this with the real server
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("Hello E2E!"))
+	})
+	srv := &http.Server{
+		Addr:    ":8080",
+		Handler: mux,
+	}
+
+	return &session{srv}, nil
+}
+
+func sendResponse(conn net.Conn, msg string) {
+	// The newline character is important; it's used as the delimiter for the message stream.
+	if _, err := conn.Write([]byte(msg + "\n")); err != nil {
 		fmt.Fprintf(os.Stderr, "got an error while sending a response: %v\n", err)
 	}
-	// TODO: spawn a server and start listening
-}
-
-func readRequest(conn net.Conn) (request, error) {
-	scanner := bufio.NewScanner(conn)
-	if !scanner.Scan() {
-		if err := scanner.Err(); err != nil {
-			return request{}, err
-		}
-		return request{}, errors.New("EOF, nothing to read")
-	}
-	var req request
-	if err := json.Unmarshal(scanner.Bytes(), &req); err != nil {
-		return request{}, fmt.Errorf("malformed request: %w", err)
-	}
-	return req, nil
-}
-
-func writeResponse(conn net.Conn) error {
-	// The newline character is important; it's used as the delimiter for the message stream.
-	_, err := conn.Write([]byte("ready\n"))
-	return err
 }
