@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -12,6 +14,7 @@ import (
 	"time"
 )
 
+// main is the entry point for the E2E testing.
 func main() {
 	ctx, stop := signal.NotifyContext(
 		context.Background(), syscall.SIGTERM, syscall.SIGINT,
@@ -25,8 +28,7 @@ func main() {
 
 func run(ctx context.Context) error {
 	// TODO: spawn a test DB container and migrate the DB
-	servCtx, tearDownServ := context.WithCancel(ctx)
-	defer tearDownServ()
+	// TODO: make the host ip and port configurable
 	sock, err := net.Listen("tcp", "127.0.0.1:9000")
 	if err != nil {
 		return fmt.Errorf("faild to open a socket: %w", err)
@@ -36,15 +38,25 @@ func run(ctx context.Context) error {
 			fmt.Fprintf(os.Stderr, "got error while closing socket: %v\n", err)
 		}
 	}()
-	go listenToRequests(servCtx, sock)
 
+	lisCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	go listenToRequests(lisCtx, sock)
+
+	return runTests(ctx)
+}
+
+func runTests(ctx context.Context) error {
 	testCmd := exec.CommandContext(ctx,
 		"patrol",
 		"test",
 		"-v",
 		"--flutter-command",
+		// TODO: make flutter command path configurable
 		"/Users/fujidaiti/.fvm/versions/stable/bin/flutter",
-		"-d emulator-5554",
+		"-d",
+		// TODO: make the target device configurable
+		"emulator-5554",
 	)
 	testCmd.Stdout = os.Stdout
 	testCmd.Stderr = os.Stderr
@@ -54,8 +66,8 @@ func run(ctx context.Context) error {
 	return nil
 }
 
-// listenToRequests listens to requests from the client (Dart-sdie testing code)
-// and manages lifecycle of test sessions.
+// listenToRequests listens to requests from the client (Dart-side testing code)
+// and manages the lifecycle of test sessions.
 //
 // A request message initiates a test session, which corresponds to a single e2e test case
 // and its lifecycle consists of the following steps:
@@ -63,7 +75,7 @@ func run(ctx context.Context) error {
 //  1. seeds the DB based on the requested scenario ID
 //  2. spawn a new API server instance
 //  3. tell the client that the server and DB are ready, by sending a response message
-//  4. while testing, the Flutter app and the server communicates via HTTP (not the sock)
+//  4. while testing, the Flutter app and the server communicates via HTTP (not the socket)
 //
 // There is no request message something like "tear down the previous session",
 // since all resources for the previous session is wiped out before starting a new session,
@@ -71,7 +83,11 @@ func run(ctx context.Context) error {
 //
 // The client is supposed to run tests in sequence. Sending multiple requests is not illegal,
 // but test sessions never run in parallel as TCP connections are processed one by one.
-func listenToRequests(ctx context.Context, sock net.Listener) {
+//
+// This continues to listen to the socket even if errors occur while handling TCP connections
+// or during a test session. This is a design decision so that non-fatal errors don't terminate
+// the entire testing process.
+func listenToRequests(ctx context.Context, socket net.Listener) {
 	// This channel has no buffer because:
 	//  - we expect exactly one pair of request/response per connection
 	//  - the connection is closed immediately after the response is sent
@@ -80,7 +96,7 @@ func listenToRequests(ctx context.Context, sock net.Listener) {
 	defer close(ch)
 	go func() {
 		for {
-			conn, err := sock.Accept()
+			conn, err := socket.Accept()
 			switch {
 			case errors.Is(err, net.ErrClosed):
 				return
@@ -92,7 +108,7 @@ func listenToRequests(ctx context.Context, sock net.Listener) {
 		}
 	}()
 
-	var tearDown context.CancelFunc
+	tearDown := context.CancelFunc(func() {})
 	for {
 		select {
 		case <-ctx.Done():
@@ -101,9 +117,7 @@ func listenToRequests(ctx context.Context, sock net.Listener) {
 
 		case conn := <-ch:
 			tearDown()
-			var ctx2 context.Context
-			ctx2, tearDown = context.WithTimeout(ctx, 60*time.Second)
-			go startNewTestSession(ctx2, conn)
+			go startNewTestSession(ctx, conn)
 		}
 	}
 }
@@ -113,8 +127,6 @@ type request struct {
 	ScenarioID string `json:"scenario_id"`
 }
 
-const _delimitor = "\n"
-
 // startNewTestSession sets up the testing DB based on the request
 // and spawn a new API server instance for the new test session.
 func startNewTestSession(ctx context.Context, conn net.Conn) {
@@ -123,34 +135,48 @@ func startNewTestSession(ctx context.Context, conn net.Conn) {
 			fmt.Fprintf(os.Stderr, "got an error while closing a connection: %v", err)
 		}
 	}()
-	// TODO: Open and setup DB based on the request, spawn a new API server
-	time.Sleep(5 * time.Second) // a fake delay
-	if _, err := conn.Write([]byte("ready" + _delimitor)); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to send a response: %v\n", err)
+	setUpCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+	if dl, ok := setUpCtx.Deadline(); ok {
+		if err := conn.SetDeadline(dl); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+	}
+
+	req, err := readRequest(conn)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
+
+	_, _ = fmt.Fprintf(os.Stdout, "receivced: %+v\n", req)
+
+	// TODO: Open and setup DB based on the request
+	time.Sleep(5 * time.Second) // a fake delay
+	if err := writeResponse(conn); err != nil {
+		fmt.Fprintf(os.Stderr, "got an error while sending a response: %v\n", err)
+	}
+	// TODO: spawn a server and start listening
 }
 
-// func readRequest(ctx context.Context, conn net.Conn) error {
-// 	if t, ok := ctx.Deadline(); ok {
-// 		if err := conn.SetDeadline(t); err != nil {
-// 			fmt.Fprintln(os.Stderr, err)
-// 			return
-// 		}
-// 	}
+func readRequest(conn net.Conn) (request, error) {
+	scanner := bufio.NewScanner(conn)
+	if !scanner.Scan() {
+		if err := scanner.Err(); err != nil {
+			return request{}, err
+		}
+		return request{}, errors.New("EOF, nothing to read")
+	}
+	var req request
+	if err := json.Unmarshal(scanner.Bytes(), &req); err != nil {
+		return request{}, fmt.Errorf("malformed request: %w", err)
+	}
+	return req, nil
+}
 
-// 	scanner := bufio.NewScanner(conn)
-// 	if !scanner.Scan() {
-// 		if err := scanner.Err(); err != nil {
-// 			fmt.Fprintln(os.Stderr, err)
-// 		}
-// 		return
-// 	}
-// 	var req request
-// 	if err := json.Unmarshal(scanner.Bytes(), &req); err != nil {
-// 		fmt.Fprintf(os.Stderr, "malformed request: %v\n", err)
-// 		return
-// 	}
-// 	_, _ = fmt.Fprintf(os.Stdout, "received: %+v\n", req)
-
-// }
+func writeResponse(conn net.Conn) error {
+	// The newline character is important; it's used as the delimiter for the message stream.
+	_, err := conn.Write([]byte("ready\n"))
+	return err
+}
