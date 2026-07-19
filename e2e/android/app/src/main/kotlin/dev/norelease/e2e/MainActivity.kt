@@ -1,4 +1,4 @@
-package norelease.dev.e2e
+package dev.norelease.e2e
 
 import io.flutter.embedding.android.FlutterActivity
 
