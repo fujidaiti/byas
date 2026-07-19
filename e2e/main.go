@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -23,24 +24,26 @@ func main() {
 }
 
 func run(ctx context.Context) error {
-	sock, err := net.Listen("tcp", "127.0.0.1:9000")
-	if err != nil {
-		return fmt.Errorf("faild to open a socket: %w", err)
-	}
-	defer func() { _ = sock.Close() }()
-	go func() {
-		for {
-			conn, err := sock.Accept()
-			if err != nil {
-				return
-			}
-			reqCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
-			// Expects exactly one request per session.
-			handleRequest(reqCtx, conn)
-			cancel()
-		}
-	}()
+	subCtx, tearDown := context.WithCancel(ctx)
+	defer tearDown()
+	serverErrCh := make(chan error, 1)
+	go startServer(subCtx, serverErrCh)
+	clientCh := make(chan error, 1)
+	go startClient(subCtx, clientCh)
 
+	select {
+	case err := <-serverErrCh:
+		tearDown()
+		return err
+	case err := <-clientCh:
+		tearDown()
+		return err
+	case <-ctx.Done():
+		return nil
+	}
+}
+
+func startClient(ctx context.Context, c chan<- error) {
 	testCmd := exec.CommandContext(ctx,
 		"patrol",
 		"test",
@@ -51,25 +54,67 @@ func run(ctx context.Context) error {
 	)
 	testCmd.Stdout = os.Stdout
 	testCmd.Stderr = os.Stderr
-	if err := testCmd.Start(); err != nil {
-		return fmt.Errorf("failed to spawn %q: %w", testCmd.String(), err)
+	if err := testCmd.Run(); err != nil {
+		c <- fmt.Errorf("got an error while testing: %w", err)
+	} else {
+		c <- nil
 	}
-	testDone := make(chan error, 1)
-	go func() {
-		err := testCmd.Wait()
-		if err != nil {
-			testDone <- fmt.Errorf("testing has finished with an error: %w", err)
-		} else {
-			testDone <- nil
+}
+
+// TODO: spawn a test DB container and an API server
+func startServer(ctx context.Context, errCh chan<- error) {
+	sock, err := net.Listen("tcp", "127.0.0.1:9000")
+	if err != nil {
+		errCh <- fmt.Errorf("faild to open a socket: %w", err)
+		return
+	}
+	defer func() {
+		if err := sock.Close(); err != nil {
+			errCh <- fmt.Errorf("got error while closing socket: %w", err)
 		}
 	}()
 
-	select {
-	case err := <-testDone:
-		return err
-	case <-ctx.Done():
-		// Wait for the test command to finish
-		return <-testDone
+	// This channel has no buffer because:
+	//   - we expect exactly one pair of request/response per session
+	//   - the session is closed immediately after the response is sent
+	//   - sessions are processed one by one (not in parallel)
+	connCh := make(chan net.Conn)
+	defer close(connCh)
+	go func() {
+		for {
+			conn, err := sock.Accept()
+			switch {
+			case errors.Is(err, net.ErrClosed):
+				return
+
+			case err != nil:
+				errCh <- err
+				close(connCh)
+				return
+
+			default:
+				connCh <- conn
+			}
+		}
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+
+		case c, ok := <-connCh:
+			if !ok {
+				return
+			}
+			connCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+			err := handleConnection(connCtx, c)
+			cancel()
+			if err != nil {
+				errCh <- err
+				return
+			}
+		}
 	}
 }
 
@@ -80,34 +125,36 @@ type request struct {
 
 const _delimitor = "\n"
 
-func handleRequest(ctx context.Context, conn net.Conn) {
+func handleConnection(ctx context.Context, conn net.Conn) error {
+	// Expects exactly one pair of request/response per session.
 	defer func() { _ = conn.Close() }()
+
 	if t, ok := ctx.Deadline(); ok {
 		if err := conn.SetDeadline(t); err != nil {
-			fmt.Fprintf(os.Stderr, "failed to set deadline: %v\n", err)
-			return
+			return err
 		}
 	}
 
 	scanner := bufio.NewScanner(conn)
 	if !scanner.Scan() {
 		if err := scanner.Err(); err != nil {
-			fmt.Fprintf(os.Stderr, "failed to read request: %v\n", err)
+			return fmt.Errorf("failed to read request: %w", err)
 		}
-		return
+		return nil
 	}
 
 	var req request
 	if err := json.Unmarshal(scanner.Bytes(), &req); err != nil {
-		fmt.Fprintf(os.Stderr, "malformed request: %v\n", err)
-		return
+		return fmt.Errorf("malformed request: %w", err)
 	}
 
 	if _, err := fmt.Fprintf(os.Stdout, "received: %+v\n", req); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to log request: %v\n", err)
+		return fmt.Errorf("failed to log request: %w", err)
 	}
+	// TODO: setup DB based on the request
 	time.Sleep(5 * time.Second)
 	if _, err := conn.Write([]byte("ready" + _delimitor)); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to send a response: %v\n", err)
+		return fmt.Errorf("failed to send a response: %w", err)
 	}
+	return nil
 }
