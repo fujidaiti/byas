@@ -16,10 +16,15 @@ import (
 )
 
 var container *postgres.PostgresContainer
-var DB *sql.DB
+var db *sql.DB
+
+// DB returns the test database handle. It is only valid between SetUp and TearDown.
+func DB() *sql.DB {
+	return db
+}
 
 func SetUp(ctx context.Context) error {
-	if container != nil || DB != nil {
+	if container != nil || db != nil {
 		panic("do not call SetUp twice")
 	}
 	var err error
@@ -40,11 +45,11 @@ func SetUp(ctx context.Context) error {
 	if err := openDB(ctx); err != nil {
 		return fmt.Errorf("failed to open the DB for migration: %w", err)
 	}
-	if err := migration.Run(ctx, DB, "up", nil); err != nil {
+	if err := migration.Run(ctx, db, "up", nil); err != nil {
 		return fmt.Errorf("failed to migrate DB: %w", err)
 	}
 	// container.Snapshot requires all DB connections to be closed.
-	if err := DB.Close(); err != nil {
+	if err := db.Close(); err != nil {
 		return fmt.Errorf("failed to close DB before taking a snapshot: %w", err)
 	}
 	if err := container.Snapshot(ctx); err != nil {
@@ -58,9 +63,9 @@ func SetUp(ctx context.Context) error {
 
 func TearDown(ctx context.Context) error {
 	var err1, err2 error
-	if DB != nil {
-		err1 = DB.Close()
-		DB = nil
+	if db != nil {
+		err1 = db.Close()
+		db = nil
 	}
 	if container != nil {
 		err2 = container.Terminate(ctx)
@@ -75,10 +80,10 @@ func openDB(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to construct the DSN: %w", err)
 	}
-	if DB, err = sql.Open("pgx", dsn); err != nil {
+	if db, err = sql.Open("pgx", dsn); err != nil {
 		return fmt.Errorf("failed to connect to %s: %w", dsn, err)
 	}
-	if err = DB.Ping(); err != nil {
+	if err = db.Ping(); err != nil {
 		return fmt.Errorf("failed to ping: %w", err)
 	}
 	return nil
@@ -88,7 +93,7 @@ func ResetDB() {
 	// container.Restore force-kills open connections to the db, so a later
 	// test could be handed a dead pooled connection and fail. Close/reopen
 	// the pool around it so every test starts with a known-good connection.
-	if err := DB.Close(); err != nil {
+	if err := db.Close(); err != nil {
 		log.Printf("Failed to close DB before restore: %v\n", err)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)

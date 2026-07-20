@@ -51,7 +51,7 @@ func TestAuth_SignUp_Success(t *testing.T) {
 		},
 	}
 
-	s := user.Service{DB: testenv.DB}
+	s := user.Service{DB: testenv.DB()}
 	var gotPswdHashes []string
 	var gotTokens []user.AuthToken
 	for i, tt := range test {
@@ -157,7 +157,7 @@ func TestAuth_SignUp_EmailUniqueness(t *testing.T) {
 	}
 
 	s := user.Service{
-		DB:  testenv.DB,
+		DB:  testenv.DB(),
 		Now: func() time.Time { return time.Now() },
 	}
 	var firstUser *userRecord
@@ -255,7 +255,7 @@ func TestAuth_SignIn_Success(t *testing.T) {
 		},
 	}
 
-	s := user.Service{DB: testenv.DB}
+	s := user.Service{DB: testenv.DB()}
 	// Seed users
 	for _, u := range users {
 		s.Now = func() time.Time { return u.signUpAt }
@@ -365,7 +365,7 @@ func TestAuth_SignIn_Failure(t *testing.T) {
 	}
 
 	// Seed user
-	s := user.Service{DB: testenv.DB, Now: func() time.Time { return alice.signUpAt }}
+	s := user.Service{DB: testenv.DB(), Now: func() time.Time { return alice.signUpAt }}
 	var err error
 	_, err = s.SignUp(
 		t.Context(),
