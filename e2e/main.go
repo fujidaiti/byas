@@ -35,8 +35,8 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("failed open a socket: %w", err)
 	}
 
-	lisCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	lisCtx, tearDown := context.WithCancel(ctx)
+	defer tearDown()
 	go listenToRequests(lisCtx, sock)
 
 	return runTests(ctx)
@@ -109,7 +109,7 @@ func listenToRequests(ctx context.Context, socket net.Listener) {
 		}
 	}()
 
-	tearDown := context.CancelFunc(func() {})
+	tearDown := context.CancelFunc(func() { /*no-op */ })
 	for {
 		select {
 		case <-ctx.Done():
@@ -118,12 +118,12 @@ func listenToRequests(ctx context.Context, socket net.Listener) {
 
 		case conn := <-ch:
 			tearDown()
-			if session, err := prepareForNewSession(ctx, conn); err != nil {
+			if s, err := prepareForNewSession(ctx, conn); err != nil {
 				fmt.Fprintf(os.Stderr, "failed to start a new test session: %v\n", err)
 			} else {
 				sctx, cancel := context.WithCancel(ctx)
-				tearDown = cancel
-				go session.start(sctx)
+				tearDown = func() { cancel(); <-s.done }
+				go s.start(sctx)
 			}
 		}
 	}
@@ -137,15 +137,23 @@ type request struct {
 type session struct {
 	// TODO: add session related resources here
 	server *http.Server
+	done   chan struct{}
 }
 
 func (s *session) start(ctx context.Context) {
+	if s.done != nil {
+		panic("start() has been called twice on the same session instance")
+	}
+	s.done = make(chan struct{})
+	defer close(s.done)
+
 	go func() {
 		if err := s.server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 			fmt.Fprintf(os.Stderr, "server exited abnormally: %v\n", err)
 		}
 	}()
 	<-ctx.Done()
+
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	if err := s.server.Shutdown(shutdownCtx); err != nil {
@@ -198,7 +206,7 @@ func prepareForNewSession(ctx context.Context, conn net.Conn) (*session, error) 
 		Handler: mux,
 	}
 
-	return &session{srv}, nil
+	return &session{server: srv}, nil
 }
 
 func sendResponse(conn net.Conn, msg string) {
