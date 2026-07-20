@@ -51,7 +51,7 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
-	// This channel has no buffer because:
+	// This channel is unbuffered because:
 	//  - the receiver (the sessionManager) processes messages one by one, and
 	//  - senders (the messageHandler's handler functions) must wait for it to finish
 	// 	  to tell the client if test sessions are successfully launched.
