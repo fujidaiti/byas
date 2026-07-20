@@ -109,7 +109,7 @@ func listenToRequests(ctx context.Context, socket net.Listener) {
 		}
 	}()
 
-	tearDown := context.CancelFunc(func() { /*no-op */ })
+	tearDown := func() { /*no-op */ }
 	for {
 		select {
 		case <-ctx.Done():
@@ -119,7 +119,8 @@ func listenToRequests(ctx context.Context, socket net.Listener) {
 		case conn := <-ch:
 			tearDown()
 			if s, err := prepareForNewSession(ctx, conn); err != nil {
-				fmt.Fprintf(os.Stderr, "failed to start a new test session: %v\n", err)
+				fmt.Fprintf(os.Stderr, "failed while preparing for a new test session: %v\n", err)
+				tearDown = func() { /* no-op */ }
 			} else {
 				sctx, cancel := context.WithCancel(ctx)
 				tearDown = func() { cancel(); <-s.done }
@@ -137,6 +138,7 @@ type request struct {
 type session struct {
 	// TODO: add session related resources here
 	server *http.Server
+	conn   net.Conn
 	done   chan struct{}
 }
 
@@ -147,11 +149,23 @@ func (s *session) start(ctx context.Context) {
 	s.done = make(chan struct{})
 	defer close(s.done)
 
+	defer func() {
+		if err := s.conn.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "got an error while closing a connection: %v", err)
+		}
+	}()
+
+	if s.server == nil {
+		return
+	}
+
 	go func() {
 		if err := s.server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+			s.sendResponse("server error")
 			fmt.Fprintf(os.Stderr, "server exited abnormally: %v\n", err)
 		}
 	}()
+	s.sendResponse("ready")
 	<-ctx.Done()
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -161,24 +175,18 @@ func (s *session) start(ctx context.Context) {
 	}
 }
 
-// prepareForNewSession sets up the testing DB based on the request and spawns a server instance
-// for the new test session.
-func prepareForNewSession(ctx context.Context, conn net.Conn) (*session, error) {
-	defer func() {
-		if err := conn.Close(); err != nil {
-			fmt.Fprintf(os.Stderr, "got an error while closing a connection: %v", err)
-		}
-	}()
-	setUpCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
-	defer cancel()
-	if dl, ok := setUpCtx.Deadline(); ok {
-		if err := conn.SetDeadline(dl); err != nil {
-			return nil, err
-		}
+func (s *session) sendResponse(msg string) {
+	// The newline character is important; it's used as the delimiter for the message stream.
+	if _, err := s.conn.Write([]byte(msg + "\n")); err != nil {
+		fmt.Fprintf(os.Stderr, "got an error while sending a response: %v\n", err)
 	}
+}
 
+func prepareForNewSession(ctx context.Context, conn net.Conn) (*session, error) {
+	s := session{conn: conn}
 	scanner := bufio.NewScanner(conn)
 	if !scanner.Scan() {
+		s.sendResponse("server error")
 		if err := scanner.Err(); err != nil {
 			return nil, err
 		}
@@ -194,24 +202,16 @@ func prepareForNewSession(ctx context.Context, conn net.Conn) (*session, error) 
 
 	// TODO: Open and setup DB based on the request
 	time.Sleep(5 * time.Second) // a fake delay
-	sendResponse(conn, "ready")
 
 	// TODO: replace this with the real server
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hello E2E!"))
 	})
-	srv := &http.Server{
+	s.server = &http.Server{
 		Addr:    ":8080",
 		Handler: mux,
 	}
 
-	return &session{server: srv}, nil
-}
-
-func sendResponse(conn net.Conn, msg string) {
-	// The newline character is important; it's used as the delimiter for the message stream.
-	if _, err := conn.Write([]byte(msg + "\n")); err != nil {
-		fmt.Fprintf(os.Stderr, "got an error while sending a response: %v\n", err)
-	}
+	return &s, nil
 }
