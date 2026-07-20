@@ -89,6 +89,7 @@ func openDB(ctx context.Context) error {
 	return nil
 }
 
+// TODO: return an error if any
 func ResetDB() {
 	// container.Restore force-kills open connections to the db, so a later
 	// test could be handed a dead pooled connection and fail. Close/reopen

@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/fujidaiti/paperdoll/server/api"
 	"github.com/fujidaiti/paperdoll/server/integration_test/testenv"
 	"golang.org/x/sync/errgroup"
 )
@@ -191,18 +192,11 @@ func sessionManager(ctx context.Context, msgc <-chan message) {
 
 func session(ctx context.Context, done chan struct{}, msg message) {
 	defer close(done)
-	// TODO: Open and setup DB based on the request
+	defer testenv.ResetDB()
+	// TODO: setup DB based on the request
 	time.Sleep(5 * time.Second) // a fake delay
 
-	// TODO: replace this with the real server
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte("Hello E2E!"))
-	})
-	srv := &http.Server{
-		Addr:    ":8080",
-		Handler: mux,
-	}
+	srv := api.NewServer(testenv.DB())
 	defer func() {
 		sctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
@@ -229,5 +223,4 @@ func session(ctx context.Context, done chan struct{}, msg message) {
 
 	case <-ctx.Done():
 	}
-
 }
