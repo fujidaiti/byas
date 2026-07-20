@@ -37,17 +37,18 @@ import (
 // or during a test session. This is a design decision so that non-fatal errors don't terminate
 // the entire testing process.
 func main() {
-	ctx, stop := signal.NotifyContext(
-		context.Background(), syscall.SIGTERM, syscall.SIGINT,
-	)
-	defer stop()
-	if err := run(ctx); err != nil {
+	if err := run(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func run(ctx context.Context) error {
+func run() error {
+	ctx, stop := signal.NotifyContext(
+		context.Background(), syscall.SIGTERM, syscall.SIGINT,
+	)
+	defer stop()
+
 	// This channel has no buffer because:
 	//  - we expect exactly one pair of request/response per connection
 	//  - the connection is closed immediately after the response is sent
@@ -57,14 +58,31 @@ func run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	subCtx, cancel := context.WithCancel(ctx)
+	defer env.tearDown()
+
 	var wg sync.WaitGroup
-	wg.Go(func() { env.startSessionManagement(subCtx) })
-	wg.Go(func() { spawnMessageHandler(subCtx, msgc) })
+	wg.Go(func() { messageHandler(ctx, msgc) })
+	wg.Go(func() { sessionManager(ctx, env) })
 	err = runTests(ctx)
-	cancel()
+
+	stop()
 	wg.Wait()
 	return err
+}
+
+type testEnv struct {
+	// TODO: TBD
+	msgc <-chan message
+}
+
+func setUpTestEnv(_ context.Context, msgc <-chan message) (*testEnv, error) {
+	// TODO: spawn a test DB container and migrate the DB
+	env := testEnv{msgc}
+	return &env, nil
+}
+
+func (env *testEnv) tearDown() {
+	// TODO: shutdown the test container
 }
 
 func runTests(ctx context.Context) error {
@@ -87,17 +105,17 @@ func runTests(ctx context.Context) error {
 	return nil
 }
 
+type message struct {
+	body    messageBody
+	resultc chan<- string
+}
+
 type messageBody struct {
 	DebugLabel string `json:"debug_label"`
 	ScenarioID string `json:"scenario_id"`
 }
 
-type message struct {
-	body   messageBody
-	result chan<- string
-}
-
-func spawnMessageHandler(ctx context.Context, msgc chan<- message) {
+func messageHandler(ctx context.Context, msgc chan<- message) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /setup", func(w http.ResponseWriter, r *http.Request) {
 		var body messageBody
@@ -127,83 +145,45 @@ func spawnMessageHandler(ctx context.Context, msgc chan<- message) {
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 120 * time.Second,
 	}
-
-	errc := make(chan error, 1)
-	go func() {
-		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			fmt.Fprintf(os.Stderr, "message listener exited abnormally: %v", err)
-			errc <- err
-		} else {
-			errc <- nil
+	defer func() {
+		sctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(sctx); err != nil {
+			fmt.Fprintf(os.Stderr, "got error while closing server: %v\n", err)
 		}
 	}()
 
+	errc := make(chan error, 1)
+	go func() { errc <- srv.ListenAndServe() }()
 	select {
 	case <-ctx.Done():
 	case err := <-errc:
-		if err != nil {
+		if !errors.Is(err, http.ErrServerClosed) {
 			fmt.Fprintf(os.Stderr, "server exited abnormally: %v\n", err)
 		}
 	}
-
-	sctx, cancel := context.WithTimeout(ctx, 60*time.Second)
-	defer cancel()
-	if err := srv.Shutdown(sctx); err != nil {
-		fmt.Fprintf(os.Stderr, "got error while closing server: %v\n", err)
-	}
 }
 
-type testEnv struct {
-	// TODO: TBD
-	msgc            <-chan message
-	tearDownSession func()
-}
-
-func setUpTestEnv(_ context.Context, msgc <-chan message) (*testEnv, error) {
-	// TODO: spawn a test DB container and migrate the DB
-	env := testEnv{msgc, func() { /*no-op */ }}
-	return &env, nil
-}
-
-func (env *testEnv) tearDown() {
-	env.tearDownSession()
-	// TODO: shutdown test container
-}
-
-func (env *testEnv) startSessionManagement(ctx context.Context) {
+func sessionManager(ctx context.Context, env *testEnv) {
+	tearDown := func() { /* no-op */ }
 	for {
 		select {
 		case <-ctx.Done():
-			env.tearDown()
+			tearDown()
 			return
 
 		case msg := <-env.msgc:
-			env.tearDownSession()
-			if session, err := setUpNewSession(msg.body); err != nil {
-				fmt.Fprintf(os.Stderr, "failed to start a new session: %v\n", err)
-				env.tearDownSession = func() { /* no-op */ }
-				// TODO: return a cleaner response
-				msg.result <- "failed to start a new session"
-			} else {
-				sctx, cancel := context.WithCancel(ctx)
-				go session.start(sctx)
-				env.tearDownSession = func() { cancel(); <-session.done }
-				// TODO: return a cleaner response
-				msg.result <- "ready"
-			}
+			tearDown()
+			done := make(chan struct{})
+			sctx, cancel := context.WithCancel(ctx)
+			tearDown = func() { cancel(); <-done }
+			go session(sctx, done, msg)
 		}
 	}
 }
 
-type testSession struct {
-	// TODO: add session related resources here
-	server *http.Server
-	done   chan struct{}
-}
-
-func setUpNewSession(msg messageBody) (*testSession, error) {
-	_, _ = fmt.Fprintf(os.Stdout, "received message: %+v\n", msg)
-	s := testSession{}
+func session(ctx context.Context, done chan struct{}, msg message) {
+	defer close(done)
 	// TODO: Open and setup DB based on the request
 	time.Sleep(5 * time.Second) // a fake delay
 
@@ -212,31 +192,29 @@ func setUpNewSession(msg messageBody) (*testSession, error) {
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hello E2E!"))
 	})
-	s.server = &http.Server{
+	srv := &http.Server{
 		Addr:    ":8080",
 		Handler: mux,
 	}
-
-	return &s, nil
-}
-
-func (s *testSession) start(ctx context.Context) {
-	if s.done != nil {
-		panic("start() has been called twice on the same session instance")
-	}
-	s.done = make(chan struct{})
-	defer close(s.done)
-
-	go func() {
-		if err := s.server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-			fmt.Fprintf(os.Stderr, "server exited abnormally: %v\n", err)
+	defer func() {
+		sctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(sctx); err != nil {
+			fmt.Fprintf(os.Stderr, "shutdown failed: %v\n", err)
 		}
 	}()
-	<-ctx.Done()
 
-	sctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	if err := s.server.Shutdown(sctx); err != nil {
-		fmt.Fprintf(os.Stderr, "shutdown failed: %v\n", err)
+	errc := make(chan error, 1)
+	go func() { errc <- srv.ListenAndServe() }()
+	// TODO: return a cleaner response
+	msg.resultc <- "ready"
+
+	select {
+	case <-ctx.Done():
+	case err := <-errc:
+		if !errors.Is(err, http.ErrServerClosed) {
+			fmt.Fprintf(os.Stderr, "server exited abnormally: %v\n", err)
+		}
 	}
+
 }
