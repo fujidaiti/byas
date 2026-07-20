@@ -10,9 +10,10 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 )
 
 // This is an E2E testing runner, which consists of four components:
@@ -47,15 +48,13 @@ func main() {
 }
 
 func run() error {
-	ctx, stop := signal.NotifyContext(
-		context.Background(), syscall.SIGTERM, syscall.SIGINT,
-	)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
 	// This channel has no buffer because:
 	//  - the receiver (the sessionManager) processes messages one by one, and
 	//  - senders (the messageHandler's handler functions) must wait for it to finish
-	// 	  to tell the client if test sessions are successfuly launched.
+	// 	  to tell the client if test sessions are successfully launched.
 	msgc := make(chan message)
 	env, err := setUpTestEnv(ctx)
 	if err != nil {
@@ -63,14 +62,20 @@ func run() error {
 	}
 	defer env.tearDown()
 
-	var wg sync.WaitGroup
-	wg.Go(func() { messageHandler(ctx, msgc) })
-	wg.Go(func() { sessionManager(ctx, msgc, env) })
-	err = runTests(ctx)
-
-	stop()
-	wg.Wait()
-	return err
+	g, ctx := errgroup.WithContext(ctx)
+	g.Go(func() error { return messageHandler(ctx, msgc) })
+	g.Go(func() error { sessionManager(ctx, msgc, env); return nil })
+	g.Go(func() error {
+		// stop() must be called here, otherwise a deadlock occurs in a happy path:
+		//   1. all tests pass, runTests returns with no error.
+		//   2. if messageHandler doesn't get any error, it doesn't return unless ctx is canceled.
+		//   3. sessionManager never returns unless ctx is canceled.
+		//   4. ctx is never canceled, as no goroutine returns an error.
+		//   5. g.Wait() can't return until those two goroutines finish.
+		defer stop()
+		return runTests(ctx)
+	})
+	return g.Wait()
 }
 
 type testEnv struct {
@@ -117,7 +122,7 @@ type messageBody struct {
 	ScenarioID string `json:"scenario_id"`
 }
 
-func messageHandler(ctx context.Context, msgc chan<- message) {
+func messageHandler(ctx context.Context, msgc chan<- message) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /setup", func(w http.ResponseWriter, r *http.Request) {
 		var body messageBody
@@ -156,16 +161,21 @@ func messageHandler(ctx context.Context, msgc chan<- message) {
 		}
 	}()
 
+	ln, err := net.Listen("tcp", srv.Addr)
+	if err != nil {
+		return err
+	}
 	errc := make(chan error, 1)
-	go func() { errc <- srv.ListenAndServe() }()
+	go func() { errc <- srv.Serve(ln) }()
+
 	select {
 	case err := <-errc:
 		if !errors.Is(err, http.ErrServerClosed) {
 			fmt.Fprintf(os.Stderr, "server exited abnormally: %v\n", err)
 		}
-
 	case <-ctx.Done():
 	}
+	return nil
 }
 
 func sessionManager(ctx context.Context, msgc <-chan message, _ *testEnv) {
