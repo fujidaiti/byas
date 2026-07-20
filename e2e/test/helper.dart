@@ -9,6 +9,8 @@ Future<void> setUpServer({
   try {
     final response = await http
         .post(
+          // TODO: make the host and port number configurable
+          // This assumes that the test is running on an android emulator.
           Uri(scheme: 'http', host: '10.0.2.2', port: 9000, path: '/setup'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({

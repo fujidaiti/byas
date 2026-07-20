@@ -14,28 +14,30 @@ import (
 	"time"
 )
 
-// main is the entry point for the E2E testing.
-// listenToRequests listens to requests from the client (Dart-side testing code)
-// and manages the lifecycle of test sessions.
+// This is an E2E testing runner, which consists of four components:
 //
-// A request message initiates a test session, which corresponds to a single e2e test case
-// and its lifecycle consists of the following steps:
+//   - [testEnv], which manages a test DB container that is shared across all test cases.
+//   - client, which is the Dart-side testing code that is driven by the Patrol framework.
+//   - [messageHandler], which is a tiny HTTP server that listens to [message]s from the client.
+//   - [sessionManager], which launches test [session]s based on the received messages and manages their lifecycle.
 //
-//  1. seeds the DB based on the requested scenario ID
-//  2. spawn a new API server instance
-//  3. tell the client that the server and DB are ready, by sending a response message
-//  4. while testing, the Flutter app and the server communicates via HTTP (not the socket)
+// At the begining of each test case, the client sends a message to the messageHandler
+// to initiates a test session. The lifecycle of a session consists of the following steps:
 //
-// There is no request message something like "tear down the previous session",
-// since all resources for the previous session is wiped out before starting a new session,
+//  1. seeds the DB based on the requested scenario ID.
+//  2. spawns a new API server instance.
+//  3. tells the client that the server and DB are ready.
+//  4. after that, the Flutter app can communicate with the server via HTTP.
+//
+// There is no specific message something like "tear down this session".
+// All resources for the previous session is wiped out before starting a new session,
 // including the seeded data and server instance.
 //
-// The client is supposed to run tests in sequence. Sending multiple requests is not illegal,
-// but test sessions never run in parallel as TCP connections are processed one by one.
+// The client is supposed to run tests in sequence. Sending multiple messages is not illegal,
+// but testing sessions never run in parallel as messages are processed one by one.
 //
-// This continues to listen to the socket even if errors occur while handling TCP connections
-// or during a test session. This is a design decision so that non-fatal errors don't terminate
-// the entire testing process.
+// The sessionManager never stops even if errors occur while handling messages or during a test session.
+// This is a design decision so that non-fatal errors don't terminate the entire testing process.
 func main() {
 	if err := run(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -50,11 +52,11 @@ func run() error {
 	defer stop()
 
 	// This channel has no buffer because:
-	//  - we expect exactly one pair of request/response per connection
-	//  - the connection is closed immediately after the response is sent
-	//  - connections are processed one by one (not in parallel)
+	//  - the receiver (the sessionManager) processes messages one by one, and
+	//  - senders (the messageHandler's handler functions) must wait for it to finish
+	// 	  to tell the client if test sessions are successfuly launched.
 	msgc := make(chan message)
-	env, err := setUpTestEnv(ctx, msgc)
+	env, err := setUpTestEnv(ctx)
 	if err != nil {
 		return err
 	}
@@ -62,7 +64,7 @@ func run() error {
 
 	var wg sync.WaitGroup
 	wg.Go(func() { messageHandler(ctx, msgc) })
-	wg.Go(func() { sessionManager(ctx, env) })
+	wg.Go(func() { sessionManager(ctx, msgc, env) })
 	err = runTests(ctx)
 
 	stop()
@@ -72,12 +74,11 @@ func run() error {
 
 type testEnv struct {
 	// TODO: TBD
-	msgc <-chan message
 }
 
-func setUpTestEnv(_ context.Context, msgc <-chan message) (*testEnv, error) {
+func setUpTestEnv(_ context.Context) (*testEnv, error) {
 	// TODO: spawn a test DB container and migrate the DB
-	env := testEnv{msgc}
+	env := testEnv{}
 	return &env, nil
 }
 
@@ -86,7 +87,7 @@ func (env *testEnv) tearDown() {
 }
 
 func runTests(ctx context.Context) error {
-	testCmd := exec.CommandContext(ctx,
+	cmd := exec.CommandContext(ctx,
 		"patrol",
 		"test",
 		"-v",
@@ -97,9 +98,9 @@ func runTests(ctx context.Context) error {
 		// TODO: make the target device configurable
 		"emulator-5554",
 	)
-	testCmd.Stdout = os.Stdout
-	testCmd.Stderr = os.Stderr
-	if err := testCmd.Run(); err != nil {
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("testing failed with an error: %w", err)
 	}
 	return nil
@@ -164,7 +165,7 @@ func messageHandler(ctx context.Context, msgc chan<- message) {
 	}
 }
 
-func sessionManager(ctx context.Context, env *testEnv) {
+func sessionManager(ctx context.Context, msgc <-chan message, _ *testEnv) {
 	tearDown := func() { /* no-op */ }
 	for {
 		select {
@@ -172,7 +173,7 @@ func sessionManager(ctx context.Context, env *testEnv) {
 			tearDown()
 			return
 
-		case msg := <-env.msgc:
+		case msg := <-msgc:
 			tearDown()
 			done := make(chan struct{})
 			sctx, cancel := context.WithCancel(ctx)
