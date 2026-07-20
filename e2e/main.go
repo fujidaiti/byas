@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -51,33 +52,19 @@ func run(ctx context.Context) error {
 	//  - we expect exactly one pair of request/response per connection
 	//  - the connection is closed immediately after the response is sent
 	//  - connections are processed one by one (not in parallel)
-	msgCh := make(chan requestMsg)
+	msgCh := make(chan message)
 	env, err := setUpTestEnv(ctx, msgCh)
 	if err != nil {
 		return err
 	}
-
-	handler := newRequestHandler(msgCh)
-	defer func() {
-		sctx, cancel := context.WithTimeout(ctx, 60*time.Second)
-		defer cancel()
-		if err := handler.Shutdown(sctx); err != nil {
-			fmt.Fprintf(os.Stderr, "got error while closing server: %v\n", err)
-		}
-	}()
-	go func() {
-		if err := handler.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			fmt.Fprintf(os.Stderr, "message listener exited abnormally: %v", err)
-			// TODO: gracefully terminate the main goroutine
-			panic(err)
-		}
-	}()
-
-	envCtx, tearDown := context.WithCancel(ctx)
-	defer tearDown()
-	go env.startSessionManagement(envCtx)
-
-	return runTests(ctx)
+	subCtx, cancel := context.WithCancel(ctx)
+	var wg sync.WaitGroup
+	wg.Go(func() { env.startSessionManagement(subCtx) })
+	wg.Go(func() { spawnMessageHandler(subCtx, msgCh) })
+	err = runTests(ctx)
+	cancel()
+	wg.Wait()
+	return err
 }
 
 func runTests(ctx context.Context) error {
@@ -100,20 +87,123 @@ func runTests(ctx context.Context) error {
 	return nil
 }
 
-type request struct {
+type messageBody struct {
 	DebugLabel string `json:"debug_label"`
 	ScenarioID string `json:"scenario_id"`
 }
 
-type session struct {
+type message struct {
+	body   messageBody
+	result chan<- string
+}
+
+func spawnMessageHandler(ctx context.Context, msgc chan<- message) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /setup", func(w http.ResponseWriter, r *http.Request) {
+		var body messageBody
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			_, _ = fmt.Fprintf(w, "malformed message body: %v", err)
+			return
+		}
+		resc := make(chan string, 1)
+		select {
+		case msgc <- message{body, resc}:
+		case <-r.Context().Done():
+			_, _ = fmt.Fprint(w, "request canceled")
+		}
+		// Wait for the result to be returned.
+		select {
+		case res := <-resc:
+			_, _ = fmt.Fprint(w, res)
+		case <-r.Context().Done():
+			_, _ = fmt.Fprint(w, "request canceled")
+		}
+	})
+
+	srv := http.Server{
+		// TODO: make the host ip and port number configurable
+		Addr:         ":9000",
+		Handler:      mux,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 120 * time.Second,
+	}
+
+	errc := make(chan error, 1)
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			fmt.Fprintf(os.Stderr, "message listener exited abnormally: %v", err)
+			errc <- err
+		} else {
+			errc <- nil
+		}
+	}()
+
+	select {
+	case <-ctx.Done():
+	case err := <-errc:
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "server exited abnormally: %v\n", err)
+		}
+	}
+
+	sctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(sctx); err != nil {
+		fmt.Fprintf(os.Stderr, "got error while closing server: %v\n", err)
+	}
+}
+
+type testEnv struct {
+	// TODO: TBD
+	msgc            <-chan message
+	tearDownSession func()
+}
+
+func setUpTestEnv(_ context.Context, msgc <-chan message) (*testEnv, error) {
+	// TODO: spawn a test DB container and migrate the DB
+	env := testEnv{msgc, func() { /*no-op */ }}
+	return &env, nil
+}
+
+func (env *testEnv) tearDown() {
+	env.tearDownSession()
+	// TODO: shutdown test container
+}
+
+func (env *testEnv) startSessionManagement(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			env.tearDown()
+			return
+
+		case msg := <-env.msgc:
+			env.tearDownSession()
+			if session, err := setUpNewSession(msg.body); err != nil {
+				fmt.Fprintf(os.Stderr, "failed to start a new session: %v\n", err)
+				env.tearDownSession = func() { /* no-op */ }
+				// TODO: return a cleaner response
+				msg.result <- "failed to start a new session"
+			} else {
+				sctx, cancel := context.WithCancel(ctx)
+				go session.start(sctx)
+				env.tearDownSession = func() { cancel(); <-session.done }
+				// TODO: return a cleaner response
+				msg.result <- "ready"
+			}
+		}
+	}
+}
+
+type testSession struct {
 	// TODO: add session related resources here
 	server *http.Server
 	done   chan struct{}
 }
 
-func setUpNewSession(req request) (*session, error) {
-	_, _ = fmt.Fprintf(os.Stdout, "received request: %+v\n", req)
-	s := session{}
+func setUpNewSession(msg messageBody) (*testSession, error) {
+	_, _ = fmt.Fprintf(os.Stdout, "received message: %+v\n", msg)
+	s := testSession{}
 	// TODO: Open and setup DB based on the request
 	time.Sleep(5 * time.Second) // a fake delay
 
@@ -130,7 +220,7 @@ func setUpNewSession(req request) (*session, error) {
 	return &s, nil
 }
 
-func (s *session) start(ctx context.Context) {
+func (s *testSession) start(ctx context.Context) {
 	if s.done != nil {
 		panic("start() has been called twice on the same session instance")
 	}
@@ -148,78 +238,5 @@ func (s *session) start(ctx context.Context) {
 	defer cancel()
 	if err := s.server.Shutdown(sctx); err != nil {
 		fmt.Fprintf(os.Stderr, "shutdown failed: %v\n", err)
-	}
-}
-
-type requestMsg struct {
-	req    request
-	result chan<- string
-}
-
-func newRequestHandler(msgCh chan<- requestMsg) *http.Server {
-	mux := http.NewServeMux()
-	mux.HandleFunc("POST /setup", func(w http.ResponseWriter, r *http.Request) {
-		var req request
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			_, _ = fmt.Fprintf(w, "malformed request body: %v", err)
-			return
-		}
-		resCh := make(chan string, 1)
-		select {
-		case msgCh <- requestMsg{req, resCh}:
-		case <-r.Context().Done():
-			_, _ = fmt.Fprint(w, "request canceled")
-		}
-		select {
-		case res := <-resCh:
-			_, _ = fmt.Fprint(w, res)
-		case <-r.Context().Done():
-			_, _ = fmt.Fprint(w, "request canceled")
-		}
-	})
-
-	return &http.Server{
-		// TODO: make the host ip and port number configurable
-		Addr:         ":9000",
-		Handler:      mux,
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 120 * time.Second,
-	}
-}
-
-type testEnv struct {
-	// TODO: TBD
-	msgCh <-chan requestMsg
-}
-
-func setUpTestEnv(_ context.Context, msgCh <-chan requestMsg) (*testEnv, error) {
-	// TODO: spawn a test DB container and migrate the DB
-	env := testEnv{msgCh}
-	return &env, nil
-}
-
-func (env *testEnv) startSessionManagement(ctx context.Context) {
-	tearDown := func() { /* no-op */ }
-	for {
-		select {
-		case <-ctx.Done():
-			tearDown()
-			return
-
-		case msg := <-env.msgCh:
-			tearDown()
-			if s, err := setUpNewSession(msg.req); err != nil {
-				fmt.Fprintf(os.Stderr, "failed to start a new session: %v\n", err)
-				tearDown = func() { /* no-op */ }
-				// TODO: return a cleaner response
-				msg.result <- "failed to start a new session"
-			} else {
-				sctx, cancel := context.WithCancel(ctx)
-				go s.start(sctx)
-				tearDown = func() { cancel(); <-s.done }
-				// TODO: return a cleaner response
-				msg.result <- "ready"
-			}
-		}
 	}
 }
