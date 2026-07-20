@@ -13,12 +13,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/fujidaiti/paperdoll/server/integration_test/testenv"
 	"golang.org/x/sync/errgroup"
 )
 
 // This is an E2E testing runner, which consists of four components:
 //
-//   - [testEnv], which manages a test DB container that is shared across all test cases.
+//   - [testenv], which manages a test DB container that is shared across all test cases.
 //   - client, which is the Dart-side testing code that is driven by the Patrol framework.
 //   - [messageHandler], which is a tiny HTTP server that listens to [message]s from the client.
 //   - [sessionManager], which launches test [session]s based on the received messages and manages their lifecycle.
@@ -51,20 +52,26 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
+	err := testenv.SetUp(ctx)
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		if err := testenv.TearDown(ctx); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+		cancel()
+	}()
+	if err != nil {
+		return err
+	}
+
 	// This channel is unbuffered because:
 	//  - the receiver (the sessionManager) processes messages one by one, and
 	//  - senders (the messageHandler's handler functions) must wait for it to finish
 	// 	  to tell the client if test sessions are successfully launched.
 	msgc := make(chan message)
-	env, err := setUpTestEnv(ctx)
-	if err != nil {
-		return err
-	}
-	defer env.tearDown()
-
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error { return messageHandler(ctx, msgc) })
-	g.Go(func() error { sessionManager(ctx, msgc, env); return nil })
+	g.Go(func() error { sessionManager(ctx, msgc); return nil })
 	g.Go(func() error {
 		// stop() must be called here, otherwise a deadlock occurs in a happy path:
 		//   1. all tests pass, runTests returns with no error.
@@ -76,20 +83,6 @@ func run() error {
 		return runTests(ctx)
 	})
 	return g.Wait()
-}
-
-type testEnv struct {
-	// TODO: TBD
-}
-
-func setUpTestEnv(_ context.Context) (*testEnv, error) {
-	// TODO: spawn a test DB container and migrate the DB
-	env := testEnv{}
-	return &env, nil
-}
-
-func (env *testEnv) tearDown() {
-	// TODO: shutdown the test container
 }
 
 func runTests(ctx context.Context) error {
@@ -178,7 +171,7 @@ func messageHandler(ctx context.Context, msgc chan<- message) error {
 	return nil
 }
 
-func sessionManager(ctx context.Context, msgc <-chan message, _ *testEnv) {
+func sessionManager(ctx context.Context, msgc <-chan message) {
 	tearDown := func() { /* no-op */ }
 	for {
 		select {
