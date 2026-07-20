@@ -23,7 +23,7 @@ import (
 //   - [messageHandler], which is a tiny HTTP server that listens to [message]s from the client.
 //   - [sessionManager], which launches test [session]s based on the received messages and manages their lifecycle.
 //
-// At the begining of each test case, the client sends a message to the messageHandler
+// At the beginning of each test case, the client sends a message to the messageHandler
 // to initiates a test session. The lifecycle of a session consists of the following steps:
 //
 //  1. seeds the DB based on the requested scenario ID.
@@ -204,7 +204,7 @@ func session(ctx context.Context, done chan struct{}, msg message) {
 	// TODO: replace this with the real server
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Hello E2E!"))
+		_, _ = w.Write([]byte("Hello E2E!"))
 	})
 	srv := &http.Server{
 		Addr:    ":8080",
