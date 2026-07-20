@@ -121,8 +121,9 @@ func listenToRequests(ctx context.Context, socket net.Listener) {
 			if session, err := prepareForNewSession(ctx, conn); err != nil {
 				fmt.Fprintf(os.Stderr, "failed to start a new test session: %v\n", err)
 			} else {
-				tearDown = session.tearDown
-				go session.start(ctx)
+				sctx, cancel := context.WithCancel(ctx)
+				tearDown = cancel
+				go session.start(sctx)
 			}
 		}
 	}
@@ -145,18 +146,12 @@ func (s *session) start(ctx context.Context) {
 		}
 	}()
 	<-ctx.Done()
-	s.tearDown()
-}
-
-func (s *session) tearDown() {
-	ctx, cancel := context.WithCancel(context.Background())
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	if err := s.server.Shutdown(ctx); err != nil {
+	if err := s.server.Shutdown(shutdownCtx); err != nil {
 		fmt.Fprintf(os.Stderr, "shutdown failed: %v\n", err)
 	}
 }
-
-const streamDelimiter = "\n"
 
 // prepareForNewSession sets up the testing DB based on the request and spawns a server instance
 // for the new test session.
