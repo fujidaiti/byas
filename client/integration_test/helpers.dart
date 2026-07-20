@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
+import 'package:paperdoll/app.dart';
 import 'package:paperdoll/core/config/app_config.dart';
 import 'package:paperdoll/core/config/app_config_provider.dart';
 import 'package:paperdoll/core/network/dio_provider.dart';
-import 'package:paperdoll/main.dart';
 import 'package:patrol/patrol.dart';
 
 Future<void> pumpApp(PatrolIntegrationTester $) async {

@@ -97,6 +97,8 @@ func runTests(ctx context.Context) error {
 		"-d",
 		// TODO: make the target device configurable
 		"emulator-5554",
+		"--dart-define-from-file",
+		"test.env",
 	)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

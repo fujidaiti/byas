@@ -1,33 +1,19 @@
-import 'dart:io';
-
-import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:paperdoll/app.dart';
+import 'package:paperdoll/debug_keys.dart';
 import 'package:patrol/patrol.dart';
 
 import 'helper.dart';
 
 void main() {
-  patrolTest(
-    'counter state is the same after going to home and switching apps',
-    ($) async {
-      await setUpServer(
-        debugLabel: 'sample test',
-        scenarioId: 'sample_test_scenario',
-      );
-      // Replace later with your app's main widget
-      await $.pumpWidgetAndSettle(
-        MaterialApp(
-          home: Scaffold(
-            appBar: AppBar(title: const Text('app')),
-            backgroundColor: Colors.blue,
-          ),
-        ),
-      );
-
-      expect($('app'), findsOneWidget);
-      if (!Platform.isMacOS) {
-        await $.platform.mobile.pressHome();
-      }
-    },
-  );
+  patrolTest('sample test', ($) async {
+    await setUpServer(
+      debugLabel: 'sample test',
+      scenarioId: 'sample_test_scenario',
+    );
+    await $.pumpWidget(const ProviderScope(child: PaperdollApp()));
+    await $.pumpAndTrySettle();
+    expect($(AppDebugKey.todayScreen), findsOneWidget);
+  });
 }
