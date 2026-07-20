@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -129,6 +130,7 @@ func messageHandler(ctx context.Context, msgc chan<- message) {
 		case msgc <- message{body, resc}:
 		case <-r.Context().Done():
 			_, _ = fmt.Fprint(w, "request canceled")
+			return
 		}
 		// Wait for the result to be returned.
 		select {
@@ -157,11 +159,12 @@ func messageHandler(ctx context.Context, msgc chan<- message) {
 	errc := make(chan error, 1)
 	go func() { errc <- srv.ListenAndServe() }()
 	select {
-	case <-ctx.Done():
 	case err := <-errc:
 		if !errors.Is(err, http.ErrServerClosed) {
 			fmt.Fprintf(os.Stderr, "server exited abnormally: %v\n", err)
 		}
+
+	case <-ctx.Done():
 	}
 }
 
@@ -169,16 +172,16 @@ func sessionManager(ctx context.Context, msgc <-chan message, _ *testEnv) {
 	tearDown := func() { /* no-op */ }
 	for {
 		select {
-		case <-ctx.Done():
-			tearDown()
-			return
-
 		case msg := <-msgc:
 			tearDown()
 			done := make(chan struct{})
 			sctx, cancel := context.WithCancel(ctx)
 			tearDown = func() { cancel(); <-done }
 			go session(sctx, done, msg)
+
+		case <-ctx.Done():
+			tearDown()
+			return
 		}
 	}
 }
@@ -205,17 +208,23 @@ func session(ctx context.Context, done chan struct{}, msg message) {
 		}
 	}()
 
+	ln, err := net.Listen("tcp", srv.Addr)
+	if err != nil {
+		msg.resultc <- fmt.Sprintf("failed to start server: %v", err)
+		return
+	}
 	errc := make(chan error, 1)
-	go func() { errc <- srv.ListenAndServe() }()
+	go func() { errc <- srv.Serve(ln) }()
 	// TODO: return a cleaner response
 	msg.resultc <- "ready"
 
 	select {
-	case <-ctx.Done():
 	case err := <-errc:
 		if !errors.Is(err, http.ErrServerClosed) {
 			fmt.Fprintf(os.Stderr, "server exited abnormally: %v\n", err)
 		}
+
+	case <-ctx.Done():
 	}
 
 }
