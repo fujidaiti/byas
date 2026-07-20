@@ -52,15 +52,15 @@ func run(ctx context.Context) error {
 	//  - we expect exactly one pair of request/response per connection
 	//  - the connection is closed immediately after the response is sent
 	//  - connections are processed one by one (not in parallel)
-	msgCh := make(chan message)
-	env, err := setUpTestEnv(ctx, msgCh)
+	msgc := make(chan message)
+	env, err := setUpTestEnv(ctx, msgc)
 	if err != nil {
 		return err
 	}
 	subCtx, cancel := context.WithCancel(ctx)
 	var wg sync.WaitGroup
 	wg.Go(func() { env.startSessionManagement(subCtx) })
-	wg.Go(func() { spawnMessageHandler(subCtx, msgCh) })
+	wg.Go(func() { spawnMessageHandler(subCtx, msgc) })
 	err = runTests(ctx)
 	cancel()
 	wg.Wait()
