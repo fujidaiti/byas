@@ -54,7 +54,6 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
-	err := testenv.SetUp(ctx)
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		if err := testenv.TearDown(ctx); err != nil {
@@ -62,7 +61,7 @@ func run() error {
 		}
 		cancel()
 	}()
-	if err != nil {
+	if err := testenv.SetUp(ctx); err != nil {
 		return err
 	}
 
@@ -195,7 +194,7 @@ func sessionManager(ctx context.Context, msgc <-chan message) {
 
 func session(ctx context.Context, done chan struct{}, msg message) {
 	defer close(done)
-	defer testenv.ResetDB()
+	defer testenv.RestoreDB()
 	if err := test.Seed(ctx, testenv.DB(), msg.body.ScenarioID); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to seed DB for scenario %q: %v", msg.body.ScenarioID, err)
 		// TODO: return a better response message

@@ -23,6 +23,8 @@ func DB() *sql.DB {
 	return db
 }
 
+// SetUp initializes a test container and migrate the database.
+// Make sure to always call [TearDown] even if this returns a non-nil error.
 func SetUp(ctx context.Context) error {
 	if container != nil || db != nil {
 		panic("do not call SetUp twice")
@@ -74,23 +76,8 @@ func TearDown(ctx context.Context) error {
 	return errors.Join(err1, err2)
 }
 
-// openDB modifies the global db variable. Errors should be handled on the call site.
-func openDB(ctx context.Context) error {
-	dsn, err := container.ConnectionString(ctx, "sslmode=disable")
-	if err != nil {
-		return fmt.Errorf("failed to construct the DSN: %w", err)
-	}
-	if db, err = sql.Open("pgx", dsn); err != nil {
-		return fmt.Errorf("failed to connect to %s: %w", dsn, err)
-	}
-	if err = db.Ping(); err != nil {
-		return fmt.Errorf("failed to ping: %w", err)
-	}
-	return nil
-}
-
 // TODO: return an error if any
-func ResetDB() {
+func RestoreDB() {
 	// container.Restore force-kills open connections to the db, so a later
 	// test could be handed a dead pooled connection and fail. Close/reopen
 	// the pool around it so every test starts with a known-good connection.
@@ -105,4 +92,19 @@ func ResetDB() {
 	if err := openDB(ctx); err != nil {
 		log.Printf("Failed to reopen DB after restore: %v\n", err)
 	}
+}
+
+// openDB modifies the global db variable. Errors should be handled on the call site.
+func openDB(ctx context.Context) error {
+	dsn, err := container.ConnectionString(ctx, "sslmode=disable")
+	if err != nil {
+		return fmt.Errorf("failed to construct the DSN: %w", err)
+	}
+	if db, err = sql.Open("pgx", dsn); err != nil {
+		return fmt.Errorf("failed to connect to %s: %w", dsn, err)
+	}
+	if err = db.Ping(); err != nil {
+		return fmt.Errorf("failed to ping: %w", err)
+	}
+	return nil
 }
