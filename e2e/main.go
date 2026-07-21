@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/fujidaiti/paperdoll/e2e/test"
 	"github.com/fujidaiti/paperdoll/server/api"
 	"github.com/fujidaiti/paperdoll/server/integration_test/testenv"
 	"golang.org/x/sync/errgroup"
@@ -195,8 +196,10 @@ func sessionManager(ctx context.Context, msgc <-chan message) {
 func session(ctx context.Context, done chan struct{}, msg message) {
 	defer close(done)
 	defer testenv.ResetDB()
-	// TODO: setup DB based on the request
-	time.Sleep(5 * time.Second) // a fake delay
+	if err := test.Seed(msg.body.ScenarioID, testenv.DB()); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to seed DB for scenario %q: %v", msg.body.ScenarioID, err)
+		return
+	}
 
 	srv := api.NewServer(testenv.DB())
 	defer func() {
