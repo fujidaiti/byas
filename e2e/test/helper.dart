@@ -9,20 +9,14 @@ Future<void> pumpApp(PatrolIntegrationTester $) async {
   await $.pumpWidget(const ProviderScope(child: PaperdollApp()));
 }
 
-Future<void> setUpServer({
-  required String debugLabel,
-  required String scenarioId,
-}) async {
+Future<void> setUpServer({required String seederId}) async {
   final response = await http
       .post(
         // TODO: make the host and port number configurable
         // This assumes that the test is running on an android emulator.
         Uri(scheme: 'http', host: '10.0.2.2', port: 9000, path: '/setup'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'debug_label': debugLabel,
-          'scenario_id': scenarioId,
-        }),
+        body: jsonEncode({'seeder_id': seederId}),
       )
       .timeout(const Duration(seconds: 60));
   if (response.body != 'ready') {
