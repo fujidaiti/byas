@@ -3,9 +3,9 @@ package testenv
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
-	"testing"
 	"time"
 
 	"github.com/fujidaiti/paperdoll/server/db/migration"
@@ -16,30 +16,19 @@ import (
 )
 
 var container *postgres.PostgresContainer
-var DB *sql.DB
+var db *sql.DB
 
-// RunTests runs all top-level test functions and returns an exit code.
-// Intended to be used in TestMain, only once.
-func RunTests(m *testing.M) int {
-	if container != nil || DB != nil {
-		return exitAs("Do not call RunTests twice")
+// DB returns the test database handle. It is only valid between SetUp and TearDown.
+func DB() *sql.DB {
+	return db
+}
+
+// SetUp initializes a test container and migrate the database.
+// Make sure to always call [TearDown] even if this returns a non-nil error.
+func SetUp(ctx context.Context) error {
+	if container != nil || db != nil {
+		panic("do not call SetUp twice")
 	}
-	ctx := context.Background()
-	defer func() {
-		if DB != nil {
-			err := DB.Close()
-			if err != nil {
-				log.Printf("Failed to close DB: %v\n", err)
-			}
-		}
-		if container != nil {
-			err := container.Terminate(ctx)
-			if err != nil {
-				log.Printf("Failed to terminate test container: %v\n", err)
-			}
-		}
-	}()
-
 	var err error
 	container, err = postgres.Run(ctx,
 		"postgres:18-alpine",
@@ -53,58 +42,46 @@ func RunTests(m *testing.M) int {
 		),
 	)
 	if err != nil {
-		return exitAs("Failed to launch test container: %v\n", err)
+		return fmt.Errorf("failed to launch test container: %w", err)
 	}
-	err = openDB(ctx)
-	if err != nil {
-		return exitAs("Failed to open the DB for migration: %v\n", err)
+	if err := openDB(ctx); err != nil {
+		return fmt.Errorf("failed to open the DB for migration: %w", err)
 	}
-	err = migration.Run(ctx, DB, "up", nil)
-	if err != nil {
-		return exitAs("Failed to migrate DB: %v\n", err)
+	if err := migration.Run(ctx, db, "up", nil); err != nil {
+		return fmt.Errorf("failed to migrate DB: %w", err)
 	}
 	// container.Snapshot requires all DB connections to be closed.
-	if err := DB.Close(); err != nil {
-		return exitAs("Failed to close DB before taking a snapshot: %v\n", err)
+	if err := db.Close(); err != nil {
+		return fmt.Errorf("failed to close DB before taking a snapshot: %w", err)
 	}
-	err = container.Snapshot(ctx)
-	if err != nil {
-		return exitAs("Failed to take a DB snapshot: %v\n", err)
+	if err := container.Snapshot(ctx); err != nil {
+		return fmt.Errorf("failed to take a DB snapshot: %w", err)
 	}
-	err = openDB(ctx)
-	if err != nil {
-		return exitAs("Failed to reopen the DB: %v\n", err)
-	}
-	return m.Run()
-}
-
-func exitAs(format string, v ...any) int {
-	log.Printf(format, v...)
-	return 1
-}
-
-// openDB modifies the global db variable. Errors should be handled on the call site.
-func openDB(ctx context.Context) error {
-	dsn, err := container.ConnectionString(ctx, "sslmode=disable")
-	if err != nil {
-		return fmt.Errorf("failed to construct the DSN: %w", err)
-	}
-	DB, err = sql.Open("pgx", dsn)
-	if err != nil {
-		return fmt.Errorf("failed to connect to %s: %w", dsn, err)
-	}
-	err = DB.Ping()
-	if err != nil {
-		return fmt.Errorf("failed to ping: %w", err)
+	if err := openDB(ctx); err != nil {
+		return fmt.Errorf("failed to reopen the DB: %w", err)
 	}
 	return nil
 }
 
-func ResetDB() {
+func TearDown(ctx context.Context) error {
+	var err1, err2 error
+	if db != nil {
+		err1 = db.Close()
+		db = nil
+	}
+	if container != nil {
+		err2 = container.Terminate(ctx)
+		container = nil
+	}
+	return errors.Join(err1, err2)
+}
+
+// TODO: return an error if any
+func RestoreDB() {
 	// container.Restore force-kills open connections to the db, so a later
 	// test could be handed a dead pooled connection and fail. Close/reopen
 	// the pool around it so every test starts with a known-good connection.
-	if err := DB.Close(); err != nil {
+	if err := db.Close(); err != nil {
 		log.Printf("Failed to close DB before restore: %v\n", err)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -115,4 +92,19 @@ func ResetDB() {
 	if err := openDB(ctx); err != nil {
 		log.Printf("Failed to reopen DB after restore: %v\n", err)
 	}
+}
+
+// openDB modifies the global db variable. Errors should be handled on the call site.
+func openDB(ctx context.Context) error {
+	dsn, err := container.ConnectionString(ctx, "sslmode=disable")
+	if err != nil {
+		return fmt.Errorf("failed to construct the DSN: %w", err)
+	}
+	if db, err = sql.Open("pgx", dsn); err != nil {
+		return fmt.Errorf("failed to connect to %s: %w", dsn, err)
+	}
+	if err = db.Ping(); err != nil {
+		return fmt.Errorf("failed to ping: %w", err)
+	}
+	return nil
 }

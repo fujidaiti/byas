@@ -39,21 +39,8 @@ func StartServer(ctx context.Context) {
 		panic(err)
 	}
 
-	h := &Handler{
-		DB: db,
-		UserService: user.Service{
-			DB:  db,
-			Now: func() time.Time { return time.Now() },
-		},
-	}
-
-	srv := http.Server{
-		Addr:    ":8080",
-		Handler: NewRouter(h),
-		// Slowloris attack prevention
-		ReadHeaderTimeout: 5 * time.Second,
-		BaseContext:       func(_ net.Listener) context.Context { return ctx },
-	}
+	srv := NewServer(db)
+	srv.BaseContext = func(_ net.Listener) context.Context { return ctx }
 	defer func() {
 		fmt.Println("Shutting down API server...")
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -80,7 +67,15 @@ func StartServer(ctx context.Context) {
 	}
 }
 
-func NewRouter(h *Handler) http.Handler {
+func NewServer(db *sql.DB) *http.Server {
+	h := &Handler{
+		DB: db,
+		UserService: user.Service{
+			DB:  db,
+			Now: func() time.Time { return time.Now() },
+		},
+	}
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", h.getHealth)
 	mux.HandleFunc("GET /newspapers/today", h.getTodaysNewspaper)
@@ -98,7 +93,13 @@ func NewRouter(h *Handler) http.Handler {
 	mux.HandleFunc("PATCH /reading-list/{id}", h.setReadingListItemArchivedStatus)
 	mux.HandleFunc("POST /signup", h.SignUp)
 	mux.HandleFunc("POST /signin", h.signIn)
-	return mux
+
+	return &http.Server{
+		Addr:    ":8080",
+		Handler: mux,
+		// Slowloris attack prevention
+		ReadHeaderTimeout: 5 * time.Second,
+	}
 }
 
 type Handler struct {

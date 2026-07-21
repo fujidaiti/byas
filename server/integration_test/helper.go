@@ -38,14 +38,14 @@ func mustTimeUTC(s string) time.Time {
 
 func scanRowOrFatal(t *testing.T, query string, args []any, dest ...any) {
 	t.Helper()
-	err := testenv.DB.QueryRowContext(t.Context(), query, args...).Scan(dest...)
+	err := testenv.DB().QueryRowContext(t.Context(), query, args...).Scan(dest...)
 	if err != nil {
 		t.Fatalf("failed to scan a row: %v\nquery: %s", err, query)
 	}
 }
 
 func scanRowsOrFatal[T any](t *testing.T, query string, args []any, scan func(*sql.Rows, *T) error) []T {
-	rows, err := testenv.DB.QueryContext(t.Context(), query, args...)
+	rows, err := testenv.DB().QueryContext(t.Context(), query, args...)
 	if err != nil {
 		t.Fatalf("failed to scan rows: %v\nquery: %s", err, query)
 	}
