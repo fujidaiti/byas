@@ -19,7 +19,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// This is an E2E testing runner, which consists of four components:
+// This is an E2E testing runner, which consists of these four components:
 //
 //   - [testenv], which manages a test DB container that is shared across all test cases.
 //   - client, which is the Dart-side testing code that is driven by the Patrol framework.
@@ -39,7 +39,7 @@ import (
 // including the seeded data and server instance.
 //
 // The client is supposed to run tests in sequence. Sending multiple messages is not illegal,
-// but testing sessions never run in parallel as messages are processed one by one.
+// but testing sessions never run in parallel as sessionManager handles messages one by one.
 //
 // The sessionManager never stops even if errors occur while handling messages or during a test session.
 // This is a design decision so that non-fatal errors don't terminate the entire testing process.
