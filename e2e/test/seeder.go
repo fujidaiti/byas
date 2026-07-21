@@ -1,20 +1,21 @@
 package test
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 )
 
-type seeder = func(*sql.DB) error
+type seeder = func(ctx context.Context, db *sql.DB) error
 
 var seeders = map[string]seeder{
-	"reading_list": seedReadingListSuit_,
+	"newspaper_today": seedNewspaperSuit_Today,
 }
 
-func Seed(seederID string, db *sql.DB) error {
+func Seed(ctx context.Context, db *sql.DB, seederID string) error {
 	s, ok := seeders[seederID]
 	if !ok {
 		return fmt.Errorf("no seeder is registered for ID=%q", seederID)
 	}
-	return s(db)
+	return s(ctx, db)
 }

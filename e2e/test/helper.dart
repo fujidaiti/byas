@@ -1,6 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import 'package:paperdoll/app.dart';
+import 'package:patrol/patrol.dart';
+
+Future<void> pumpApp(PatrolIntegrationTester $) async {
+  await $.pumpWidget(const ProviderScope(child: PaperdollApp()));
+}
 
 Future<void> setUpServer({
   required String debugLabel,
@@ -17,7 +24,7 @@ Future<void> setUpServer({
           'scenario_id': scenarioId,
         }),
       )
-      .timeout(const Duration(seconds: 120));
+      .timeout(const Duration(seconds: 60));
   if (response.body != 'ready') {
     throw Exception(
       'setup request has finished with an error: ${response.body}',
