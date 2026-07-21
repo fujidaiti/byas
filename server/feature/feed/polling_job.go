@@ -33,9 +33,10 @@ type entryRecord struct {
 }
 
 type job struct {
-	db       *sql.DB
-	feed     feedRecord
-	interval newspaper.EditorialInterval
+	db           *sql.DB
+	feed         feedRecord
+	interval     newspaper.EditorialInterval
+	newspaperSvc *newspaper.Service
 }
 
 func (j *job) Timeout() time.Duration {
@@ -151,7 +152,7 @@ func (j *job) Do(ctx context.Context) error {
 		}
 	}
 
-	err = writeStories(ctx, feed, entriesToBeStories, j.db)
+	err = writeStories(ctx, j.newspaperSvc, feed, entriesToBeStories)
 	if err != nil {
 		fmt.Printf("Something went wrong while writing stories: %s\n", err)
 	}
@@ -159,7 +160,7 @@ func (j *job) Do(ctx context.Context) error {
 	return nil
 }
 
-func CollectJobs(ctx context.Context, db *sql.DB) ([]job, error) {
+func CollectJobs(ctx context.Context, db *sql.DB, newspaperSvc *newspaper.Service) ([]job, error) {
 	ei, err := newspaper.FindEditorialInterval(ctx, db, time.Now())
 	if err != nil {
 		fmt.Print(err)
@@ -186,7 +187,7 @@ func CollectJobs(ctx context.Context, db *sql.DB) ([]job, error) {
 		if err != nil {
 			return nil, err
 		}
-		jobs = append(jobs, job{db, feed, ei})
+		jobs = append(jobs, job{db, feed, ei, newspaperSvc})
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -222,7 +223,7 @@ func normalizeEntry(entry *gofeed.Item, feedId int) entryRecord {
 	return e
 }
 
-func writeStories(ctx context.Context, f feedRecord, es []entryRecord, db *sql.DB) error {
+func writeStories(ctx context.Context, svc *newspaper.Service, f feedRecord, es []entryRecord) error {
 	var ss []newspaper.Story
 	for _, e := range es {
 		var pubDate time.Time
@@ -243,7 +244,7 @@ func writeStories(ctx context.Context, f feedRecord, es []entryRecord, db *sql.D
 	if len(ss) == 0 {
 		return nil
 	}
-	return newspaper.SubmitStories(ctx, ss, db)
+	return svc.SubmitStories(ctx, ss)
 }
 
 const contentTemplate = `

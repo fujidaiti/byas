@@ -20,8 +20,8 @@ import (
 // join row here leaves the backing web_clips row unreachable (it can only be
 // reached via a reading_list_items row), so a background job should periodically
 // delete web_clips that have no referencing reading_list_items.
-func DeleteItem(ctx context.Context, db *sql.DB, id int) (bool, error) {
-	res, err := db.ExecContext(ctx, `
+func (s *Service) DeleteItem(ctx context.Context, id int) (bool, error) {
+	res, err := s.DB.ExecContext(ctx, `
 		DELETE FROM reading_list_items
 		WHERE id = $1;
 	`, id)
@@ -35,20 +35,20 @@ func DeleteItem(ctx context.Context, db *sql.DB, id int) (bool, error) {
 	}
 }
 
-func ArchiveItem(ctx context.Context, db *sql.DB, id int) error {
-	return setItemArchivedStatus(ctx, db, id, true)
+func (s *Service) ArchiveItem(ctx context.Context, id int) error {
+	return s.setItemArchivedStatus(ctx, id, true)
 }
 
-func UnarchiveItem(ctx context.Context, db *sql.DB, id int) error {
-	return setItemArchivedStatus(ctx, db, id, false)
+func (s *Service) UnarchiveItem(ctx context.Context, id int) error {
+	return s.setItemArchivedStatus(ctx, id, false)
 }
 
-func setItemArchivedStatus(ctx context.Context, db *sql.DB, id int, s bool) error {
-	res, err := db.ExecContext(ctx, `
+func (s *Service) setItemArchivedStatus(ctx context.Context, id int, archived bool) error {
+	res, err := s.DB.ExecContext(ctx, `
 		UPDATE reading_list_items
 		SET archived = $1
 		WHERE id = $2;
-	`, s, id)
+	`, archived, id)
 	if err != nil {
 		return err
 	}
@@ -70,9 +70,9 @@ type SavedItem struct {
 	SavedAt     time.Time
 }
 
-func SaveFeedEntry(ctx context.Context, db *sql.DB, id int) (SavedItem, error) {
+func (s *Service) SaveFeedEntry(ctx context.Context, id int) (SavedItem, error) {
 	var it SavedItem
-	err := db.QueryRowContext(ctx, `
+	err := s.DB.QueryRowContext(ctx, `
 		INSERT INTO reading_list_items (kind, feed_entry_id, title, description)
 		SELECT 'feed_entry', id, title, description
 		FROM feed_entries
@@ -83,11 +83,11 @@ func SaveFeedEntry(ctx context.Context, db *sql.DB, id int) (SavedItem, error) {
 	return it, err
 }
 
-func SaveWebClipByID(ctx context.Context, db *sql.DB, id int) (SavedItem, error) {
+func (s *Service) SaveWebClipByID(ctx context.Context, id int) (SavedItem, error) {
 	// reading_list_items.title is NOT NULL but web_clips.title is nullable,
 	// so coalesce to keep the placeholder well-formed.
 	var it SavedItem
-	err := db.QueryRowContext(ctx, `
+	err := s.DB.QueryRowContext(ctx, `
 		INSERT INTO reading_list_items (kind, web_clip_id, title, description)
 		SELECT 'web_clip', id, COALESCE(title, ''), description
 		FROM web_clips
@@ -104,11 +104,11 @@ func SaveWebClipByID(ctx context.Context, db *sql.DB, id int) (SavedItem, error)
 // Note that this function immediately returns after creating a placeholder reading list item.
 // It then tries fetching the clip itself asynchronously, and fills the
 // placeholders with actual metadata.
-func SaveWebClip(ctx context.Context, db *sql.DB, u url.URL, title string) (SavedItem, error) {
+func (s *Service) SaveWebClip(ctx context.Context, u url.URL, title string) (SavedItem, error) {
 	// TODO: Cleanup URL
 	// TODO: Validate URL (schema, host)
 	var it SavedItem
-	tx, err := db.BeginTx(ctx, nil)
+	tx, err := s.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return it, err
 	}
@@ -139,7 +139,7 @@ func SaveWebClip(ctx context.Context, db *sql.DB, u url.URL, title string) (Save
 	}
 	go func() {
 		// TODO: Recover from panic
-		err := tryFetchWebClip(db, it.ID, clipID, u)
+		err := s.tryFetchWebClip(it.ID, clipID, u)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -147,16 +147,16 @@ func SaveWebClip(ctx context.Context, db *sql.DB, u url.URL, title string) (Save
 	return it, nil
 }
 
-func tryFetchWebClip(db *sql.DB, rID, clipID int, u url.URL) error {
+func (s *Service) tryFetchWebClip(rID, clipID int, u url.URL) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	err := fetchWebClip(ctx, db, rID, clipID, u)
+	err := s.fetchWebClip(ctx, rID, clipID, u)
 	if err == nil {
 		return nil
 	}
 	ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	_, dbErr := db.ExecContext(ctx, `
+	_, dbErr := s.DB.ExecContext(ctx, `
 		UPDATE web_clips
 		SET fetch_status = 'failed'
 		WHERE id = $1;
@@ -168,7 +168,7 @@ func tryFetchWebClip(db *sql.DB, rID, clipID int, u url.URL) error {
 }
 
 // TODO: DRY scraping logic
-func fetchWebClip(ctx context.Context, db *sql.DB, rID, clipID int, u url.URL) error {
+func (s *Service) fetchWebClip(ctx context.Context, rID, clipID int, u url.URL) error {
 	fmt.Printf("Fetching reading list clip from %s\n", u.String())
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
@@ -216,7 +216,7 @@ func fetchWebClip(ctx context.Context, db *sql.DB, rID, clipID int, u url.URL) e
 	}
 	content := fmt.Sprintf(contentTemplate, buf)
 
-	tx, err := db.BeginTx(ctx, nil)
+	tx, err := s.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}

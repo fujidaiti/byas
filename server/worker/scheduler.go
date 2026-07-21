@@ -32,6 +32,8 @@ func StartScheduler(ctx context.Context) {
 		panic(err)
 	}
 
+	newspaperSvc := &newspaper.Service{DB: db}
+
 	p := &pool{}
 	p.start(ctx, 16)
 	defer func() {
@@ -54,7 +56,7 @@ func StartScheduler(ctx context.Context) {
 		gocron.NewTask(func() {
 			fmt.Println("--------------------------")
 			fmt.Println("Rfreshing feeds...")
-			jobs, err := feed.CollectJobs(ctx, db)
+			jobs, err := feed.CollectJobs(ctx, db, newspaperSvc)
 			if err != nil {
 				fmt.Println(err)
 				return
