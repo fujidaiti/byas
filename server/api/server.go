@@ -70,10 +70,12 @@ func StartServer(ctx context.Context) {
 func NewServer(db *sql.DB) *http.Server {
 	h := &Handler{
 		DB: db,
-		UserService: user.Service{
+		UserService: &user.Service{
 			DB:  db,
 			Now: func() time.Time { return time.Now() },
 		},
+		ReadingListService: &readinglist.Service{DB: db},
+		FeedService:        &feed.Service{DB: db},
 	}
 
 	mux := http.NewServeMux()
@@ -103,8 +105,10 @@ func NewServer(db *sql.DB) *http.Server {
 }
 
 type Handler struct {
-	DB          *sql.DB
-	UserService user.Service
+	DB                 *sql.DB
+	UserService        *user.Service
+	ReadingListService *readinglist.Service
+	FeedService        *feed.Service
 }
 
 func (h *Handler) getHealth(w http.ResponseWriter, _ *http.Request) {
@@ -639,7 +643,7 @@ func (h *Handler) subscribeToFeed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	fd, err := feed.Subscribe(ctx, h.DB, *u)
+	fd, err := h.FeedService.Subscribe(ctx, *u)
 	if err != nil {
 		fmt.Print(err)
 		serverError(w, http.StatusInternalServerError, "Failed to subscribe to feed")
@@ -718,7 +722,7 @@ func (h *Handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 		if b.Title != nil {
 			title = *b.Title
 		}
-		saved, err = readinglist.SaveWebClip(ctx, h.DB, *u, title)
+		saved, err = h.ReadingListService.SaveWebClip(ctx, *u, title)
 		if err != nil {
 			fmt.Println(err)
 			serverError(w, http.StatusInternalServerError, "Failed to save clip")
@@ -728,7 +732,7 @@ func (h *Handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 	case b.FeedEntryID != nil:
 		// TODO: Return 404 instead of 500 when the given ID doesn't exist
 		var err error
-		saved, err = readinglist.SaveFeedEntry(ctx, h.DB, *b.FeedEntryID)
+		saved, err = h.ReadingListService.SaveFeedEntry(ctx, *b.FeedEntryID)
 		if err != nil {
 			fmt.Println(err)
 			serverError(w, http.StatusInternalServerError, "Failed to save feed entry")
@@ -738,7 +742,7 @@ func (h *Handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 	case b.WebClipID != nil:
 		// TODO: Return 404 instead of 500 when the given ID doesn't exist
 		var err error
-		saved, err = readinglist.SaveWebClipByID(ctx, h.DB, *b.WebClipID)
+		saved, err = h.ReadingListService.SaveWebClipByID(ctx, *b.WebClipID)
 		if err != nil {
 			fmt.Println(err)
 			serverError(w, http.StatusInternalServerError, "Failed to save web clip")
@@ -956,7 +960,7 @@ func (h *Handler) deleteReadingListItem(w http.ResponseWriter, r *http.Request) 
 		serverError(w, http.StatusBadRequest, "Malformed ID")
 		return
 	}
-	ok, err := readinglist.DeleteItem(r.Context(), h.DB, id)
+	ok, err := h.ReadingListService.DeleteItem(r.Context(), id)
 	if err != nil {
 		fmt.Println(err)
 		serverError(w, http.StatusInternalServerError, "Something went wrong.")
@@ -994,9 +998,9 @@ func (h *Handler) setReadingListItemArchivedStatus(w http.ResponseWriter, r *htt
 		return
 	}
 	if *b.Archived {
-		err = readinglist.ArchiveItem(r.Context(), h.DB, id)
+		err = h.ReadingListService.ArchiveItem(r.Context(), id)
 	} else {
-		err = readinglist.UnarchiveItem(r.Context(), h.DB, id)
+		err = h.ReadingListService.UnarchiveItem(r.Context(), id)
 	}
 	if err != nil {
 		fmt.Println(err)

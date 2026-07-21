@@ -45,21 +45,21 @@ func DraftStory(
 
 // SubmitStories queues the stories that will be published in the next issue.
 // The stories should have valid fields except the ID and NewspaperID.
-func SubmitStories(ctx context.Context, ss []Story, db *sql.DB) error {
+func (s *Service) SubmitStories(ctx context.Context, ss []Story) error {
 	if len(ss) == 0 {
 		return nil
 	}
 	var vals []string
 	var args []any
-	for i, s := range ss {
-		desc := sql.NullString{String: s.Description, Valid: s.Description != ""}
-		src := sql.NullString{String: s.Source, Valid: s.Source != ""}
-		pubDate := sql.NullTime{Time: s.PublishedAt, Valid: !s.PublishedAt.IsZero()}
+	for i, story := range ss {
+		desc := sql.NullString{String: story.Description, Valid: story.Description != ""}
+		src := sql.NullString{String: story.Source, Valid: story.Source != ""}
+		pubDate := sql.NullTime{Time: story.PublishedAt, Valid: !story.PublishedAt.IsZero()}
 		k := i * 5
 		vals = append(vals, fmt.Sprintf("($%d, $%d, $%d, $%d, $%d)", k+1, k+2, k+3, k+4, k+5))
-		args = append(args, s.Title, desc, src, s.FeedEntryID, pubDate)
+		args = append(args, story.Title, desc, src, story.FeedEntryID, pubDate)
 	}
-	_, err := db.ExecContext(ctx, fmt.Sprintf(`
+	_, err := s.DB.ExecContext(ctx, fmt.Sprintf(`
 			INSERT INTO stories (title, description, source, feed_entry_id, published_at)
 			VALUES %s;
 		`, strings.Join(vals, ",")), args...)
