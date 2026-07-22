@@ -104,7 +104,7 @@ func (s *Service) SaveWebClipByID(ctx context.Context, id int) (SavedItem, error
 // Note that this function immediately returns after creating a placeholder reading list item.
 // It then tries fetching the clip itself asynchronously, and fills the
 // placeholders with actual metadata.
-func (s *Service) SaveWebClip(ctx context.Context, u url.URL, title string) (SavedItem, error) {
+func (s *Service) SaveWebClip(ctx context.Context, ln url.URL, title string) (SavedItem, error) {
 	// TODO: Cleanup URL
 	// TODO: Validate URL (schema, host)
 	var it SavedItem
@@ -122,7 +122,7 @@ func (s *Service) SaveWebClip(ctx context.Context, u url.URL, title string) (Sav
 		INSERT INTO web_clips (url)
 		VALUES ($1)
 		RETURNING id;
-	`, u.String()).Scan(&clipID)
+	`, ln.String()).Scan(&clipID)
 	if err != nil {
 		return it, err
 	}
@@ -139,7 +139,7 @@ func (s *Service) SaveWebClip(ctx context.Context, u url.URL, title string) (Sav
 	}
 	go func() {
 		// TODO: Recover from panic
-		err := s.tryFetchWebClip(it.ID, clipID, u)
+		err := s.tryFetchWebClip(it.ID, clipID, ln)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -147,8 +147,8 @@ func (s *Service) SaveWebClip(ctx context.Context, u url.URL, title string) (Sav
 	return it, nil
 }
 
-func (s *Service) tryFetchWebClip(rID, clipID int, u url.URL) error {
-	err := s.fetchWebClip(rID, clipID, u)
+func (s *Service) tryFetchWebClip(rID, clipID int, ln url.URL) error {
+	err := s.fetchWebClip(rID, clipID, ln)
 	if err == nil {
 		return nil
 	}
@@ -167,9 +167,9 @@ func (s *Service) tryFetchWebClip(rID, clipID int, u url.URL) error {
 }
 
 // TODO: DRY scraping logic
-func (s *Service) fetchWebClip(rID, clipID int, u url.URL) error {
-	fmt.Printf("Fetching reading list clip from %s\n", u.String())
-	res, err := s.scraper.Fetch(context.Background(), u)
+func (s *Service) fetchWebClip(rID, clipID int, ln url.URL) error {
+	fmt.Printf("Fetching reading list clip from %s\n", ln.String())
+	res, err := s.scraper.Fetch(context.Background(), ln)
 	if err != nil {
 		return err
 	}
@@ -187,7 +187,7 @@ func (s *Service) fetchWebClip(rID, clipID int, u url.URL) error {
 		return fmt.Errorf("the body is empty")
 	}
 
-	baseUrl := new(u)
+	baseUrl := new(ln)
 	baseUrl.Path = ""
 	baseUrl.RawPath = ""
 	baseUrl.Fragment = ""
