@@ -7,7 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/fujidaiti/paperdoll/server/feat"
+	"github.com/fujidaiti/paperdoll/server/feature/feed"
+	"github.com/fujidaiti/paperdoll/server/feature/newspaper"
 	"github.com/go-co-op/gocron/v2"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -31,7 +32,7 @@ func StartScheduler(ctx context.Context) {
 		panic(err)
 	}
 
-	svc := feat.NewService(db)
+	newspaperSvc := &newspaper.Service{DB: db}
 
 	p := &pool{}
 	p.start(ctx, 16)
@@ -55,7 +56,7 @@ func StartScheduler(ctx context.Context) {
 		gocron.NewTask(func() {
 			fmt.Println("--------------------------")
 			fmt.Println("Rfreshing feeds...")
-			jobs, err := feat.CollectFeedPollingJobs(ctx, db, svc)
+			jobs, err := feed.CollectJobs(ctx, db, newspaperSvc)
 			if err != nil {
 				fmt.Println(err)
 				return
@@ -80,7 +81,7 @@ func StartScheduler(ctx context.Context) {
 	_, err = scheduler.NewJob(
 		gocron.DurationJob(5*time.Minute),
 		gocron.NewTask(func() {
-			jobs, err := feat.CollectNewspaperAssemblyJobs(ctx, db)
+			jobs, err := newspaper.CollectJobs(ctx, db)
 			if err != nil {
 				fmt.Println(err)
 			}

@@ -1,4 +1,4 @@
-package feat
+package newspaper
 
 import (
 	"context"
