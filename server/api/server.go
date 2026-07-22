@@ -14,9 +14,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/fujidaiti/paperdoll/server/feature/feed"
-	"github.com/fujidaiti/paperdoll/server/feature/readinglist"
-	"github.com/fujidaiti/paperdoll/server/feature/user"
+	"github.com/fujidaiti/paperdoll/server/feat"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -69,13 +67,8 @@ func StartServer(ctx context.Context) {
 
 func NewServer(db *sql.DB) *http.Server {
 	h := &Handler{
-		DB: db,
-		UserService: &user.Service{
-			DB:  db,
-			Now: func() time.Time { return time.Now() },
-		},
-		ReadingListService: &readinglist.Service{DB: db},
-		FeedService:        &feed.Service{DB: db},
+		DB:      db,
+		Service: feat.NewService(db),
 	}
 
 	mux := http.NewServeMux()
@@ -105,10 +98,8 @@ func NewServer(db *sql.DB) *http.Server {
 }
 
 type Handler struct {
-	DB                 *sql.DB
-	UserService        *user.Service
-	ReadingListService *readinglist.Service
-	FeedService        *feed.Service
+	DB      *sql.DB
+	Service *feat.Service
 }
 
 func (h *Handler) getHealth(w http.ResponseWriter, _ *http.Request) {
@@ -587,7 +578,7 @@ type searchFeedsResBody struct {
 
 func (h *Handler) searchFeeds(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
-	fs, err := feed.SearchFeeds(r.Context(), q)
+	fs, err := feat.SearchFeeds(r.Context(), q)
 	if err != nil {
 		fmt.Println(err)
 		serverError(w, http.StatusNotFound, "Failed to search feeds")
@@ -643,7 +634,7 @@ func (h *Handler) subscribeToFeed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	fd, err := h.FeedService.Subscribe(ctx, *u)
+	fd, err := h.Service.SubscribeToFeed(ctx, *u)
 	if err != nil {
 		fmt.Print(err)
 		serverError(w, http.StatusInternalServerError, "Failed to subscribe to feed")
@@ -708,7 +699,7 @@ func (h *Handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	var saved readinglist.SavedItem
+	var saved feat.SavedItem
 	switch {
 	case b.URL != nil:
 		// TODO: Validate URL (schema and host)
@@ -722,7 +713,7 @@ func (h *Handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 		if b.Title != nil {
 			title = *b.Title
 		}
-		saved, err = h.ReadingListService.SaveWebClip(ctx, *u, title)
+		saved, err = h.Service.SaveWebClip(ctx, *u, title)
 		if err != nil {
 			fmt.Println(err)
 			serverError(w, http.StatusInternalServerError, "Failed to save clip")
@@ -732,7 +723,7 @@ func (h *Handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 	case b.FeedEntryID != nil:
 		// TODO: Return 404 instead of 500 when the given ID doesn't exist
 		var err error
-		saved, err = h.ReadingListService.SaveFeedEntry(ctx, *b.FeedEntryID)
+		saved, err = h.Service.SaveFeedEntry(ctx, *b.FeedEntryID)
 		if err != nil {
 			fmt.Println(err)
 			serverError(w, http.StatusInternalServerError, "Failed to save feed entry")
@@ -742,7 +733,7 @@ func (h *Handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 	case b.WebClipID != nil:
 		// TODO: Return 404 instead of 500 when the given ID doesn't exist
 		var err error
-		saved, err = h.ReadingListService.SaveWebClipByID(ctx, *b.WebClipID)
+		saved, err = h.Service.SaveWebClipByID(ctx, *b.WebClipID)
 		if err != nil {
 			fmt.Println(err)
 			serverError(w, http.StatusInternalServerError, "Failed to save web clip")
@@ -960,7 +951,7 @@ func (h *Handler) deleteReadingListItem(w http.ResponseWriter, r *http.Request) 
 		serverError(w, http.StatusBadRequest, "Malformed ID")
 		return
 	}
-	ok, err := h.ReadingListService.DeleteItem(r.Context(), id)
+	ok, err := h.Service.DeleteItem(r.Context(), id)
 	if err != nil {
 		fmt.Println(err)
 		serverError(w, http.StatusInternalServerError, "Something went wrong.")
@@ -998,9 +989,9 @@ func (h *Handler) setReadingListItemArchivedStatus(w http.ResponseWriter, r *htt
 		return
 	}
 	if *b.Archived {
-		err = h.ReadingListService.ArchiveItem(r.Context(), id)
+		err = h.Service.ArchiveItem(r.Context(), id)
 	} else {
-		err = h.ReadingListService.UnarchiveItem(r.Context(), id)
+		err = h.Service.UnarchiveItem(r.Context(), id)
 	}
 	if err != nil {
 		fmt.Println(err)
@@ -1032,9 +1023,9 @@ func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	email, err := user.ParseEmail(req.Email)
+	email, err := feat.ParseEmail(req.Email)
 	switch {
-	case errors.Is(err, user.ErrEmailInvalid):
+	case errors.Is(err, feat.ErrEmailInvalid):
 		serverError(w, http.StatusBadRequest, "Email has invalid format")
 		return
 	case err != nil:
@@ -1042,9 +1033,9 @@ func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pswd, err := user.ValidatePassword(req.Password)
+	pswd, err := feat.ValidatePassword(req.Password)
 	switch {
-	case errors.Is(err, user.ErrPswdInvalid):
+	case errors.Is(err, feat.ErrPswdInvalid):
 		serverError(w, http.StatusBadRequest, "Password has invalid format")
 		return
 	case err != nil:
@@ -1052,12 +1043,12 @@ func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.UserService.SignUp(r.Context(), email, pswd, req.Device)
+	token, err := h.Service.SignUp(r.Context(), email, pswd, req.Device)
 	switch {
-	case errors.Is(err, user.ErrDeviceEmpty):
+	case errors.Is(err, feat.ErrDeviceEmpty):
 		serverError(w, http.StatusBadRequest, "Device is empty")
 		return
-	case errors.Is(err, user.ErrEmailTaken):
+	case errors.Is(err, feat.ErrEmailTaken):
 		serverError(w, http.StatusConflict, "Email already exists")
 		return
 	case err != nil:
@@ -1095,19 +1086,19 @@ func (h *Handler) signIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	email, err := user.ParseEmail(req.Email)
+	email, err := feat.ParseEmail(req.Email)
 	switch {
 	case err != nil:
 		serverError(w, http.StatusUnauthorized, "Email or password is incorrect")
 		return
 	}
 
-	token, err := h.UserService.SignIn(r.Context(), email, req.Password, req.Device)
+	token, err := h.Service.SignIn(r.Context(), email, req.Password, req.Device)
 	switch {
-	case errors.Is(err, user.ErrDeviceEmpty):
+	case errors.Is(err, feat.ErrDeviceEmpty):
 		serverError(w, http.StatusBadRequest, "Device is empty")
 		return
-	case errors.Is(err, user.ErrAuthFailed):
+	case errors.Is(err, feat.ErrAuthFailed):
 		serverError(w, http.StatusUnauthorized, "Email or password is incorrect")
 		return
 	case err != nil:

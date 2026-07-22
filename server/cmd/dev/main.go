@@ -6,8 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/fujidaiti/paperdoll/server/feature/feed"
-	"github.com/fujidaiti/paperdoll/server/feature/newspaper"
+	"github.com/fujidaiti/paperdoll/server/feat"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -40,7 +39,7 @@ func poll() {
 		}
 	}()
 
-	jobs, err := feed.CollectJobs(ctx, db, &newspaper.Service{DB: db})
+	jobs, err := feat.CollectFeedPollingJobs(ctx, db, feat.NewService(db))
 	if err != nil {
 		panic(err)
 	}

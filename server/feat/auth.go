@@ -1,5 +1,5 @@
 // TODO: Garbage-collect expired tokens
-package user
+package feat
 
 import (
 	"context"
