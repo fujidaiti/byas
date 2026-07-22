@@ -8,6 +8,7 @@ import (
 
 	"github.com/fujidaiti/paperdoll/server/feature/feed"
 	"github.com/fujidaiti/paperdoll/server/feature/newspaper"
+	"github.com/fujidaiti/paperdoll/server/feature/scraper"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -40,7 +41,7 @@ func poll() {
 		}
 	}()
 
-	jobs, err := feed.CollectJobs(ctx, db, &newspaper.Service{DB: db})
+	jobs, err := feed.CollectJobs(ctx, db, &newspaper.Service{DB: db}, scraper.NewService(nil))
 	if err != nil {
 		panic(err)
 	}

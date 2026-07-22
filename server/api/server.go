@@ -16,6 +16,7 @@ import (
 
 	"github.com/fujidaiti/paperdoll/server/feature/feed"
 	"github.com/fujidaiti/paperdoll/server/feature/readinglist"
+	"github.com/fujidaiti/paperdoll/server/feature/scraper"
 	"github.com/fujidaiti/paperdoll/server/feature/user"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -68,14 +69,16 @@ func StartServer(ctx context.Context) {
 }
 
 func NewServer(db *sql.DB) *http.Server {
+	scrp := scraper.NewService(nil)
 	h := &Handler{
 		DB: db,
 		UserService: &user.Service{
 			DB:  db,
 			Now: func() time.Time { return time.Now() },
 		},
-		ReadingListService: &readinglist.Service{DB: db},
-		FeedService:        &feed.Service{DB: db},
+		ReadingListService: readinglist.NewService(db, scrp),
+		FeedService:        feed.NewService(db, scrp),
+		ScraperService:     scrp,
 	}
 
 	mux := http.NewServeMux()
@@ -104,11 +107,13 @@ func NewServer(db *sql.DB) *http.Server {
 	}
 }
 
+// TODO: rename to handler (lowercase)
 type Handler struct {
 	DB                 *sql.DB
 	UserService        *user.Service
 	ReadingListService *readinglist.Service
 	FeedService        *feed.Service
+	ScraperService     *scraper.Service
 }
 
 func (h *Handler) getHealth(w http.ResponseWriter, _ *http.Request) {
@@ -587,7 +592,7 @@ type searchFeedsResBody struct {
 
 func (h *Handler) searchFeeds(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
-	fs, err := feed.SearchFeeds(r.Context(), q)
+	fs, err := h.FeedService.SearchFeeds(r.Context(), q)
 	if err != nil {
 		fmt.Println(err)
 		serverError(w, http.StatusNotFound, "Failed to search feeds")

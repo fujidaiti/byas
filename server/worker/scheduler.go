@@ -9,6 +9,7 @@ import (
 
 	"github.com/fujidaiti/paperdoll/server/feature/feed"
 	"github.com/fujidaiti/paperdoll/server/feature/newspaper"
+	"github.com/fujidaiti/paperdoll/server/feature/scraper"
 	"github.com/go-co-op/gocron/v2"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -33,6 +34,7 @@ func StartScheduler(ctx context.Context) {
 	}
 
 	newspaperSvc := &newspaper.Service{DB: db}
+	scraperSvc := scraper.NewService(nil)
 
 	p := &pool{}
 	p.start(ctx, 16)
@@ -56,7 +58,7 @@ func StartScheduler(ctx context.Context) {
 		gocron.NewTask(func() {
 			fmt.Println("--------------------------")
 			fmt.Println("Rfreshing feeds...")
-			jobs, err := feed.CollectJobs(ctx, db, newspaperSvc)
+			jobs, err := feed.CollectJobs(ctx, db, newspaperSvc, scraperSvc)
 			if err != nil {
 				fmt.Println(err)
 				return
