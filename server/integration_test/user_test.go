@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fujidaiti/paperdoll/server/feat"
+	"github.com/fujidaiti/paperdoll/server/feature/user"
 	"github.com/fujidaiti/paperdoll/server/integration_test/testenv"
 	"github.com/google/go-cmp/cmp"
 )
@@ -51,16 +51,16 @@ func TestAuth_SignUp_Success(t *testing.T) {
 		},
 	}
 
-	s := feat.Service{DB: testenv.DB()}
+	s := user.Service{DB: testenv.DB()}
 	var gotPswdHashes []string
-	var gotTokens []feat.AuthToken
+	var gotTokens []user.AuthToken
 	for i, tt := range test {
 		t.Run(tt.name, func(t *testing.T) {
 			s.Now = func() time.Time { return tt.signUpAt }
 			gotToken, err := s.SignUp(
 				t.Context(),
-				must(feat.ParseEmail(tt.email)),
-				must(feat.ValidatePassword(tt.password)),
+				must(user.ParseEmail(tt.email)),
+				must(user.ValidatePassword(tt.password)),
 				tt.device,
 			)
 			if err != nil {
@@ -138,25 +138,25 @@ func TestAuth_SignUp_EmailUniqueness(t *testing.T) {
 			email:    "alice@gmail.com",
 			password: "test$Password987",
 			device:   "Pixel9a/Android16",
-			wantErr:  feat.ErrEmailTaken,
+			wantErr:  user.ErrEmailTaken,
 		},
 		{
 			name:     "same email and same password",
 			email:    "alice@gmail.com",
 			password: "test$Password123",
 			device:   "Pixel9a/Android16",
-			wantErr:  feat.ErrEmailTaken,
+			wantErr:  user.ErrEmailTaken,
 		},
 		{
 			name:     "same but capitalized email",
 			email:    "ALICE@GMAIL.COM",
 			password: "test$Password123",
 			device:   "Pixel9a/Android16",
-			wantErr:  feat.ErrEmailTaken,
+			wantErr:  user.ErrEmailTaken,
 		},
 	}
 
-	s := feat.Service{
+	s := user.Service{
 		DB:  testenv.DB(),
 		Now: func() time.Time { return time.Now() },
 	}
@@ -165,8 +165,8 @@ func TestAuth_SignUp_EmailUniqueness(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			_, gotErr := s.SignUp(
 				t.Context(),
-				must(feat.ParseEmail(tt.email)),
-				must(feat.ValidatePassword(tt.password)),
+				must(user.ParseEmail(tt.email)),
+				must(user.ValidatePassword(tt.password)),
 				tt.device,
 			)
 			if !errors.Is(gotErr, tt.wantErr) {
@@ -255,15 +255,15 @@ func TestAuth_SignIn_Success(t *testing.T) {
 		},
 	}
 
-	s := feat.Service{DB: testenv.DB()}
+	s := user.Service{DB: testenv.DB()}
 	// Seed users
 	for _, u := range users {
 		s.Now = func() time.Time { return u.signUpAt }
 		var err error
 		_, err = s.SignUp(
 			t.Context(),
-			must(feat.ParseEmail(u.email)),
-			must(feat.ValidatePassword(u.password)),
+			must(user.ParseEmail(u.email)),
+			must(user.ValidatePassword(u.password)),
 			u.signUpDevice,
 		)
 		if err != nil {
@@ -271,11 +271,11 @@ func TestAuth_SignIn_Success(t *testing.T) {
 		}
 	}
 
-	var gotTokens []feat.AuthToken
+	var gotTokens []user.AuthToken
 	for i, tt := range test {
 		s.Now = func() time.Time { return tt.signInAt }
 		t.Run(tt.name, func(t *testing.T) {
-			email := must(feat.ParseEmail(tt.user.email))
+			email := must(user.ParseEmail(tt.user.email))
 			gotToken, err := s.SignIn(t.Context(), email, tt.user.password, tt.device)
 			if err != nil {
 				t.Fatalf("failed to sign-in: %v", err)
@@ -298,7 +298,7 @@ func TestAuth_SignIn_Success(t *testing.T) {
 			scanRowOrFatal(t, `
 				SELECT email FROM users WHERE id = $1
 			`, []any{gotRec.UserId}, &gotEmail)
-			if got, err := feat.ParseEmail(gotEmail); err != nil {
+			if got, err := user.ParseEmail(gotEmail); err != nil {
 				t.Errorf("saved email %q is malformed, want %v", gotEmail, email)
 			} else if got != email {
 				t.Errorf("token was issued for wrong user %v, want %v", got, email)
@@ -344,7 +344,7 @@ func TestAuth_SignIn_Failure(t *testing.T) {
 			password:   "wrong#" + alice.password,
 			device:     alice.signUpDevice,
 			signedInAt: mustTimeUTC("2026-07-01 09:16:00"),
-			wantErr:    feat.ErrAuthFailed,
+			wantErr:    user.ErrAuthFailed,
 		},
 		{
 			name:       "unregistered user",
@@ -352,7 +352,7 @@ func TestAuth_SignIn_Failure(t *testing.T) {
 			password:   alice.password,
 			device:     alice.signUpDevice,
 			signedInAt: mustTimeUTC("2026-07-01 09:16:00"),
-			wantErr:    feat.ErrAuthFailed,
+			wantErr:    user.ErrAuthFailed,
 		},
 		{
 			name:       "no device info",
@@ -360,17 +360,17 @@ func TestAuth_SignIn_Failure(t *testing.T) {
 			password:   alice.password,
 			device:     "",
 			signedInAt: mustTimeUTC("2026-07-01 09:16:00"),
-			wantErr:    feat.ErrDeviceEmpty,
+			wantErr:    user.ErrDeviceEmpty,
 		},
 	}
 
 	// Seed user
-	s := feat.Service{DB: testenv.DB(), Now: func() time.Time { return alice.signUpAt }}
+	s := user.Service{DB: testenv.DB(), Now: func() time.Time { return alice.signUpAt }}
 	var err error
 	_, err = s.SignUp(
 		t.Context(),
-		must(feat.ParseEmail(alice.email)),
-		must(feat.ValidatePassword(alice.password)),
+		must(user.ParseEmail(alice.email)),
+		must(user.ValidatePassword(alice.password)),
 		alice.signUpDevice,
 	)
 	if err != nil {
@@ -381,7 +381,7 @@ func TestAuth_SignIn_Failure(t *testing.T) {
 		s.Now = func() time.Time { return tt.signedInAt }
 		t.Run(tt.name, func(t *testing.T) {
 			got1, got2 := s.SignIn(
-				t.Context(), must(feat.ParseEmail(tt.email)),
+				t.Context(), must(user.ParseEmail(tt.email)),
 				tt.password, tt.device,
 			)
 			if !errors.Is(got2, tt.wantErr) {

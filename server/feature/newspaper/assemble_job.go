@@ -1,4 +1,4 @@
-package feat
+package newspaper
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func CollectNewspaperAssemblyJobs(ctx context.Context, db *sql.DB) ([]newspaperAssemblyJob, error) {
+func CollectJobs(ctx context.Context, db *sql.DB) ([]job, error) {
 	now := time.Now()
 	ei, err := FindEditorialInterval(ctx, db, now)
 	pubDate := ei.Next
@@ -17,7 +17,7 @@ func CollectNewspaperAssemblyJobs(ctx context.Context, db *sql.DB) ([]newspaperA
 	}
 	if pubDate.Sub(now) > 10*time.Minute {
 		fmt.Printf("Not yet close enough to the next schedule %s. Skipping.\n", pubDate)
-		return []newspaperAssemblyJob{}, nil
+		return []job{}, nil
 	}
 	fmt.Printf("Prepare for next schedule: %s\n", pubDate)
 
@@ -35,24 +35,24 @@ func CollectNewspaperAssemblyJobs(ctx context.Context, db *sql.DB) ([]newspaperA
 			"The newspaper for %s already exists or is being assembled. Skipping.\n",
 			pubDate,
 		)
-		return []newspaperAssemblyJob{}, nil
+		return []job{}, nil
 	} else if err != nil {
 		return nil, err
 	}
 
-	return []newspaperAssemblyJob{{db, newspaperID}}, nil
+	return []job{{db, newspaperID}}, nil
 }
 
-type newspaperAssemblyJob struct {
+type job struct {
 	db          *sql.DB
 	newspaperID int
 }
 
-func (j *newspaperAssemblyJob) Timeout() time.Duration {
+func (j *job) Timeout() time.Duration {
 	return time.Minute
 }
 
-func (j *newspaperAssemblyJob) Do(ctx context.Context) error {
+func (j *job) Do(ctx context.Context) error {
 	fmt.Printf("Assembling newspaper (ID=%d)\n", j.newspaperID)
 	n, err := j.assembleAndPublish(ctx)
 	if err != nil {
@@ -72,7 +72,7 @@ func (j *newspaperAssemblyJob) Do(ctx context.Context) error {
 	return err
 }
 
-func (j *newspaperAssemblyJob) assembleAndPublish(ctx context.Context) (int64, error) {
+func (j *job) assembleAndPublish(ctx context.Context) (int64, error) {
 	tx, err := j.db.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, err

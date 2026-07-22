@@ -1,4 +1,4 @@
-package feat
+package feed
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"codeberg.org/readeck/go-readability/v2"
+	"github.com/fujidaiti/paperdoll/server/feature/newspaper"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/mmcdole/gofeed"
@@ -31,18 +32,18 @@ type entryRecord struct {
 	publishedAt sql.NullTime
 }
 
-type feedPollingJob struct {
+type job struct {
 	db           *sql.DB
 	feed         feedRecord
-	interval     EditorialInterval
-	newspaperSvc *Service
+	interval     newspaper.EditorialInterval
+	newspaperSvc *newspaper.Service
 }
 
-func (j *feedPollingJob) Timeout() time.Duration {
+func (j *job) Timeout() time.Duration {
 	return 30 * time.Second
 }
 
-func (j *feedPollingJob) Do(ctx context.Context) error {
+func (j *job) Do(ctx context.Context) error {
 	feed, db := j.feed, j.db
 	fmt.Println("Fetching feed: ", feed.url)
 
@@ -159,8 +160,8 @@ func (j *feedPollingJob) Do(ctx context.Context) error {
 	return nil
 }
 
-func CollectFeedPollingJobs(ctx context.Context, db *sql.DB, newspaperSvc *Service) ([]feedPollingJob, error) {
-	ei, err := FindEditorialInterval(ctx, db, time.Now())
+func CollectJobs(ctx context.Context, db *sql.DB, newspaperSvc *newspaper.Service) ([]job, error) {
+	ei, err := newspaper.FindEditorialInterval(ctx, db, time.Now())
 	if err != nil {
 		fmt.Print(err)
 		// Fail-soft: we don't exit here.
@@ -179,14 +180,14 @@ func CollectFeedPollingJobs(ctx context.Context, db *sql.DB, newspaperSvc *Servi
 		}
 	}()
 
-	var jobs []feedPollingJob
+	var jobs []job
 	for rows.Next() {
 		feed := feedRecord{}
 		err := rows.Scan(&feed.id, &feed.url, &feed.title)
 		if err != nil {
 			return nil, err
 		}
-		jobs = append(jobs, feedPollingJob{db, feed, ei, newspaperSvc})
+		jobs = append(jobs, job{db, feed, ei, newspaperSvc})
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -222,8 +223,8 @@ func normalizeEntry(entry *gofeed.Item, feedId int) entryRecord {
 	return e
 }
 
-func writeStories(ctx context.Context, svc *Service, f feedRecord, es []entryRecord) error {
-	var ss []Story
+func writeStories(ctx context.Context, svc *newspaper.Service, f feedRecord, es []entryRecord) error {
+	var ss []newspaper.Story
 	for _, e := range es {
 		var pubDate time.Time
 		if e.publishedAt.Valid {
@@ -233,7 +234,7 @@ func writeStories(ctx context.Context, svc *Service, f feedRecord, es []entryRec
 		if e.description.Valid {
 			desc = e.description.String
 		}
-		s, err := DraftStory(e.title, desc, f.title, e.id, pubDate)
+		s, err := newspaper.DraftStory(e.title, desc, f.title, e.id, pubDate)
 		if err != nil {
 			fmt.Printf("Cannot write a story from this entry ID=%d. Skipping.\n", e.id)
 		} else {
@@ -245,6 +246,18 @@ func writeStories(ctx context.Context, svc *Service, f feedRecord, es []entryRec
 	}
 	return svc.SubmitStories(ctx, ss)
 }
+
+const contentTemplate = `
+<!DOCTYPE html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+%s
+</body>
+</html>
+`
 
 func fetchContent(ctx context.Context, entry entryRecord, db *sql.DB) error {
 	entryUrl, err := url.Parse(entry.url)

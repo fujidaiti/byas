@@ -1,4 +1,4 @@
-package feat
+package feed
 
 import (
 	"context"
@@ -23,10 +23,10 @@ type FeedAttrs struct {
 	Description *string
 }
 
-// SubscribeToFeed registers a web feed by its URL.
+// Subscribe registers a web feed by its URL.
 // Feeds are identified by URL and this operation is idempotent;
 // subscribing to the same feed (URL) twice has no additional effect.
-func (s *Service) SubscribeToFeed(ctx context.Context, fu url.URL) (Feed, error) {
+func (s *Service) Subscribe(ctx context.Context, fu url.URL) (Feed, error) {
 	// TODO: Check if the f already exists first
 	// TODO: Validate and cleanup the url (check schema, remove tracking params, etc.)
 	var f Feed
