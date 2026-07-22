@@ -11,6 +11,7 @@ import (
 
 	"codeberg.org/readeck/go-readability/v2"
 	"github.com/fujidaiti/paperdoll/server/feature/newspaper"
+	"github.com/fujidaiti/paperdoll/server/feature/scraper"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/mmcdole/gofeed"
@@ -37,6 +38,7 @@ type job struct {
 	feed         feedRecord
 	interval     newspaper.EditorialInterval
 	newspaperSvc *newspaper.Service
+	scrpSvc      *scraper.Service
 }
 
 func (j *job) Timeout() time.Duration {
@@ -47,12 +49,12 @@ func (j *job) Do(ctx context.Context) error {
 	feed, db := j.feed, j.db
 	fmt.Println("Fetching feed: ", feed.url)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, feed.url, nil)
+	link, err := url.Parse(feed.url)
 	if err != nil {
 		return err
 	}
 	// TODO: Use a custom client
-	res, err := http.DefaultClient.Do(req)
+	res, err := j.scrpSvc.Fetch(ctx, *link)
 	if err != nil {
 		return err
 	}
@@ -141,7 +143,7 @@ func (j *job) Do(ctx context.Context) error {
 			entriesToBeStories = append(entriesToBeStories, e)
 			fmt.Printf("Fetching content for %s\n", e.url)
 			st := time.Now()
-			err := fetchContent(ctx, e, db)
+			err := fetchContent(ctx, j.scrpSvc, e, db)
 			if err != nil {
 				fmt.Print(err)
 			}
@@ -160,7 +162,12 @@ func (j *job) Do(ctx context.Context) error {
 	return nil
 }
 
-func CollectJobs(ctx context.Context, db *sql.DB, newspaperSvc *newspaper.Service) ([]job, error) {
+func CollectJobs(
+	ctx context.Context,
+	db *sql.DB,
+	newspaperSvc *newspaper.Service,
+	scrpSvc *scraper.Service,
+) ([]job, error) {
 	ei, err := newspaper.FindEditorialInterval(ctx, db, time.Now())
 	if err != nil {
 		fmt.Print(err)
@@ -187,7 +194,7 @@ func CollectJobs(ctx context.Context, db *sql.DB, newspaperSvc *newspaper.Servic
 		if err != nil {
 			return nil, err
 		}
-		jobs = append(jobs, job{db, feed, ei, newspaperSvc})
+		jobs = append(jobs, job{db, feed, ei, newspaperSvc, scrpSvc})
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -259,18 +266,18 @@ const contentTemplate = `
 </html>
 `
 
-func fetchContent(ctx context.Context, entry entryRecord, db *sql.DB) error {
+func fetchContent(ctx context.Context, scrp *scraper.Service, entry entryRecord, db *sql.DB) error {
 	entryUrl, err := url.Parse(entry.url)
 	if err != nil {
 		return err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, entry.url, nil)
+	link, err := url.Parse(entry.url)
 	if err != nil {
 		return err
 	}
 	// TODO: Use a custom client
-	res, err := http.DefaultClient.Do(req)
+	res, err := scrp.Fetch(ctx, *link)
 	if err != nil {
 		return err
 	}

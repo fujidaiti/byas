@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/fujidaiti/paperdoll/server/feature/scraper"
 	"github.com/mmcdole/gofeed"
 )
 
@@ -26,11 +27,11 @@ type FeedAttrs struct {
 // Subscribe registers a web feed by its URL.
 // Feeds are identified by URL and this operation is idempotent;
 // subscribing to the same feed (URL) twice has no additional effect.
-func (s *Service) Subscribe(ctx context.Context, fu url.URL) (Feed, error) {
+func (s *Service) Subscribe(ctx context.Context, scrp *scraper.Service, fu url.URL) (Feed, error) {
 	// TODO: Check if the f already exists first
 	// TODO: Validate and cleanup the url (check schema, remove tracking params, etc.)
 	var f Feed
-	if a, err := fetchFeed(ctx, fu); err != nil {
+	if a, err := fetchFeed(ctx, scrp, fu); err != nil {
 		fmt.Println(err)
 		return Feed{}, err
 	} else {
@@ -59,27 +60,22 @@ func (s *Service) Subscribe(ctx context.Context, fu url.URL) (Feed, error) {
 }
 
 // SearchFeeds searches subscriptable feeds by the given query.
-func SearchFeeds(ctx context.Context, query string) ([]FeedAttrs, error) {
+func SearchFeeds(ctx context.Context, scrp *scraper.Service, query string) ([]FeedAttrs, error) {
 	// TODO: Accept arbitrary keywards as a query
 	// TODO: Validate and cleanup the url (check schema, remove tracking params, etc.)
 	u, err := url.Parse(query)
 	if err != nil {
 		return []FeedAttrs{}, nil
 	}
-	a, err := fetchFeed(ctx, *u)
+	a, err := fetchFeed(ctx, scrp, *u)
 	if err != nil {
 		return nil, err
 	}
 	return []FeedAttrs{a}, nil
 }
 
-func fetchFeed(ctx context.Context, fu url.URL) (FeedAttrs, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fu.String(), nil)
-	if err != nil {
-		return FeedAttrs{}, err
-	}
-	// TODO: Use a custom client to mitigate SSRF attacks (+ timeout)
-	res, err := http.DefaultClient.Do(req)
+func fetchFeed(ctx context.Context, scrp *scraper.Service, fu url.URL) (FeedAttrs, error) {
+	res, err := scrp.Fetch(ctx, fu)
 	if err != nil {
 		return FeedAttrs{}, err
 	}

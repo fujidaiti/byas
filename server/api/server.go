@@ -16,6 +16,7 @@ import (
 
 	"github.com/fujidaiti/paperdoll/server/feature/feed"
 	"github.com/fujidaiti/paperdoll/server/feature/readinglist"
+	"github.com/fujidaiti/paperdoll/server/feature/scraper"
 	"github.com/fujidaiti/paperdoll/server/feature/user"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -76,6 +77,7 @@ func NewServer(db *sql.DB) *http.Server {
 		},
 		ReadingListService: &readinglist.Service{DB: db},
 		FeedService:        &feed.Service{DB: db},
+		ScraperService:     scraper.NewService(nil),
 	}
 
 	mux := http.NewServeMux()
@@ -104,11 +106,13 @@ func NewServer(db *sql.DB) *http.Server {
 	}
 }
 
+// TODO: rename to handler (lowercase)
 type Handler struct {
 	DB                 *sql.DB
 	UserService        *user.Service
 	ReadingListService *readinglist.Service
 	FeedService        *feed.Service
+	ScraperService     *scraper.Service
 }
 
 func (h *Handler) getHealth(w http.ResponseWriter, _ *http.Request) {
@@ -587,7 +591,7 @@ type searchFeedsResBody struct {
 
 func (h *Handler) searchFeeds(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
-	fs, err := feed.SearchFeeds(r.Context(), q)
+	fs, err := feed.SearchFeeds(r.Context(), h.ScraperService, q)
 	if err != nil {
 		fmt.Println(err)
 		serverError(w, http.StatusNotFound, "Failed to search feeds")
@@ -643,7 +647,7 @@ func (h *Handler) subscribeToFeed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	fd, err := h.FeedService.Subscribe(ctx, *u)
+	fd, err := h.FeedService.Subscribe(ctx, h.ScraperService, *u)
 	if err != nil {
 		fmt.Print(err)
 		serverError(w, http.StatusInternalServerError, "Failed to subscribe to feed")
@@ -722,7 +726,7 @@ func (h *Handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 		if b.Title != nil {
 			title = *b.Title
 		}
-		saved, err = h.ReadingListService.SaveWebClip(ctx, *u, title)
+		saved, err = h.ReadingListService.SaveWebClip(ctx, h.ScraperService, *u, title)
 		if err != nil {
 			fmt.Println(err)
 			serverError(w, http.StatusInternalServerError, "Failed to save clip")
