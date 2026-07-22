@@ -53,7 +53,6 @@ func (j *job) Do(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	// TODO: Use a custom client
 	res, err := j.scrpSvc.Fetch(ctx, *link)
 	if err != nil {
 		return err
@@ -272,12 +271,7 @@ func fetchContent(ctx context.Context, scrp *scraper.Service, entry entryRecord,
 		return err
 	}
 
-	link, err := url.Parse(entry.url)
-	if err != nil {
-		return err
-	}
-	// TODO: Use a custom client
-	res, err := scrp.Fetch(ctx, *link)
+	res, err := scrp.Fetch(ctx, *entryUrl)
 	if err != nil {
 		return err
 	}
