@@ -18,13 +18,13 @@ import (
 var container *postgres.PostgresContainer
 var db *sql.DB
 
-// DB returns the test database handle. It is only valid between SetUp and TearDown.
+// DB returns the test database handle. It is only valid between [SetUp] and [ShutDown].
 func DB() *sql.DB {
 	return db
 }
 
 // SetUp initializes a test container and migrate the database.
-// Make sure to always call [TearDown] even if this returns a non-nil error.
+// Make sure to always call [ShutDown] even if this returns a non-nil error.
 func SetUp(ctx context.Context) error {
 	if container != nil || db != nil {
 		panic("do not call SetUp twice")
@@ -63,7 +63,7 @@ func SetUp(ctx context.Context) error {
 	return nil
 }
 
-func TearDown(ctx context.Context) error {
+func ShutDown(ctx context.Context) error {
 	var err1, err2 error
 	if db != nil {
 		err1 = db.Close()

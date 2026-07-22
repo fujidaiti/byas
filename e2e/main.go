@@ -56,7 +56,7 @@ func run() error {
 
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-		if err := testenv.TearDown(ctx); err != nil {
+		if err := testenv.ShutDown(ctx); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 		}
 		cancel()
