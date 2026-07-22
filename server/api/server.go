@@ -69,15 +69,16 @@ func StartServer(ctx context.Context) {
 }
 
 func NewServer(db *sql.DB) *http.Server {
+	scrp := scraper.NewService(nil)
 	h := &Handler{
 		DB: db,
 		UserService: &user.Service{
 			DB:  db,
 			Now: func() time.Time { return time.Now() },
 		},
-		ReadingListService: &readinglist.Service{DB: db},
-		FeedService:        &feed.Service{DB: db},
-		ScraperService:     scraper.NewService(nil),
+		ReadingListService: readinglist.NewService(db, scrp),
+		FeedService:        feed.NewService(db, scrp),
+		ScraperService:     scrp,
 	}
 
 	mux := http.NewServeMux()
@@ -591,7 +592,7 @@ type searchFeedsResBody struct {
 
 func (h *Handler) searchFeeds(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
-	fs, err := feed.SearchFeeds(r.Context(), h.ScraperService, q)
+	fs, err := h.FeedService.SearchFeeds(r.Context(), q)
 	if err != nil {
 		fmt.Println(err)
 		serverError(w, http.StatusNotFound, "Failed to search feeds")
@@ -647,7 +648,7 @@ func (h *Handler) subscribeToFeed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	fd, err := h.FeedService.Subscribe(ctx, h.ScraperService, *u)
+	fd, err := h.FeedService.Subscribe(ctx, *u)
 	if err != nil {
 		fmt.Print(err)
 		serverError(w, http.StatusInternalServerError, "Failed to subscribe to feed")
@@ -726,7 +727,7 @@ func (h *Handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 		if b.Title != nil {
 			title = *b.Title
 		}
-		saved, err = h.ReadingListService.SaveWebClip(ctx, h.ScraperService, *u, title)
+		saved, err = h.ReadingListService.SaveWebClip(ctx, *u, title)
 		if err != nil {
 			fmt.Println(err)
 			serverError(w, http.StatusInternalServerError, "Failed to save clip")
