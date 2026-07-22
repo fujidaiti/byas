@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -61,7 +62,8 @@ func run() error {
 		}
 		cancel()
 	}()
-	if err := testenv.SetUp(ctx); err != nil {
+	// TODO: make the stub server address configurable
+	if err := testenv.SetUp(ctx, "127.0.0.1:8081"); err != nil {
 		return err
 	}
 
@@ -201,7 +203,9 @@ func session(ctx context.Context, done chan struct{}, msg message) {
 		return
 	}
 
-	srv := api.NewServer(testenv.DB())
+	// TODO: make stub HTTP server address configurable
+	proxyURL, _ := url.Parse("http://127.0.0.1:8081")
+	srv := api.NewServer(testenv.DB(), proxyURL)
 	defer func() {
 		sctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()

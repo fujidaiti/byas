@@ -40,7 +40,7 @@ func StartServer(ctx context.Context) {
 		panic(err)
 	}
 
-	srv := NewServer(db)
+	srv := NewServer(db, nil)
 	srv.BaseContext = func(_ net.Listener) context.Context { return ctx }
 	defer func() {
 		fmt.Println("Shutting down API server...")
@@ -68,8 +68,8 @@ func StartServer(ctx context.Context) {
 	}
 }
 
-func NewServer(db *sql.DB) *http.Server {
-	scrp := scraper.NewService(nil)
+func NewServer(db *sql.DB, httpProxy *url.URL) *http.Server {
+	scrp := scraper.NewService(httpProxy)
 	h := &Handler{
 		DB: db,
 		UserService: &user.Service{
