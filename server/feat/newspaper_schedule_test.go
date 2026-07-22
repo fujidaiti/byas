@@ -1,4 +1,4 @@
-package newspaper
+package feat
 
 import (
 	"testing"
