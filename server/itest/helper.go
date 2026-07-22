@@ -1,11 +1,11 @@
-package integration_test
+package itest
 
 import (
 	"database/sql"
 	"testing"
 	"time"
 
-	"github.com/fujidaiti/paperdoll/server/integration_test/testenv"
+	"github.com/fujidaiti/paperdoll/server/itest/testenv"
 )
 
 // isDistinct checks if all comparable elements in v are uniqueue.
