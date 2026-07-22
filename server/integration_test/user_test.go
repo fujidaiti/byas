@@ -29,7 +29,7 @@ type authTokenRecord struct {
 }
 
 func TestAuth_SignUp_Success(t *testing.T) {
-	t.Cleanup(testenv.RestoreDB)
+	t.Cleanup(testenv.TearDown)
 
 	test := []struct {
 		name, email, password, device string
@@ -120,7 +120,7 @@ func TestAuth_SignUp_Success(t *testing.T) {
 }
 
 func TestAuth_SignUp_EmailUniqueness(t *testing.T) {
-	t.Cleanup(testenv.RestoreDB)
+	t.Cleanup(testenv.TearDown)
 
 	test := []struct {
 		name, email, password, device string
@@ -194,7 +194,7 @@ func TestAuth_SignUp_EmailUniqueness(t *testing.T) {
 }
 
 func TestAuth_SignIn_Success(t *testing.T) {
-	t.Cleanup(testenv.RestoreDB)
+	t.Cleanup(testenv.TearDown)
 	type User struct {
 		email, password, signUpDevice string
 		signUpAt                      time.Time
@@ -324,7 +324,7 @@ func TestAuth_SignIn_Success(t *testing.T) {
 }
 
 func TestAuth_SignIn_Failure(t *testing.T) {
-	t.Cleanup(testenv.RestoreDB)
+	t.Cleanup(testenv.TearDown)
 
 	alice := struct {
 		email, password, signUpDevice string

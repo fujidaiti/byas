@@ -77,7 +77,7 @@ func ShutDown(ctx context.Context) error {
 }
 
 // TODO: return an error if any
-func RestoreDB() {
+func TearDown() {
 	// container.Restore force-kills open connections to the db, so a later
 	// test could be handed a dead pooled connection and fail. Close/reopen
 	// the pool around it so every test starts with a known-good connection.
