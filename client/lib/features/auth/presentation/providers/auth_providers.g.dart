@@ -128,7 +128,7 @@ final class AuthSessionProvider
   AuthSession create() => AuthSession();
 }
 
-String _$authSessionHash() => r'5700558688f60a835c7e248117a548c78a38d164';
+String _$authSessionHash() => r'7ed6997de015a2d624ca4f4aadfa20fae83817e6';
 
 /// The signed-in session: `null` when signed out, the bearer token when
 /// signed in. [build] resolves the persisted token at startup; [signIn] and

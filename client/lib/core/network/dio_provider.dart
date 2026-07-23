@@ -11,7 +11,11 @@ const _connectTimeout = Duration(seconds: 10);
 const _receiveTimeout = Duration(seconds: 15);
 const _sendTimeout = Duration(seconds: 15);
 
-@riverpod
+// Kept alive for the app's lifetime: the client owns a connection pool and is
+// a singleton. Auto-disposing it would let an in-flight request (e.g. sign-in,
+// where nothing watches this provider during the round-trip) close the client
+// mid-flight, failing with a "connection after it was closed" error.
+@Riverpod(keepAlive: true)
 Dio dio(Ref ref) {
   final config = ref.watch(appConfigProvider);
   final client = Dio(
