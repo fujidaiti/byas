@@ -14,7 +14,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/fujidaiti/paperdoll/e2e/test"
 	"github.com/fujidaiti/paperdoll/server/api"
 	"github.com/fujidaiti/paperdoll/server/itest/testenv"
 	"golang.org/x/sync/errgroup"
@@ -75,16 +74,21 @@ func run() error {
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error { return messageHandler(ctx, msgc) })
 	g.Go(func() error { sessionManager(ctx, msgc); return nil })
-	g.Go(func() error {
-		// stop() must be called here, otherwise a deadlock occurs in a happy path:
-		//   1. all tests pass, runTests returns with no error.
-		//   2. if messageHandler doesn't get any error, it doesn't return unless ctx is canceled.
-		//   3. sessionManager never returns unless ctx is canceled.
-		//   4. ctx is never canceled, as no goroutine returns an error.
-		//   5. g.Wait() can't return until those two goroutines finish.
-		defer stop()
-		return runTests(ctx)
-	})
+	// In serve-only mode the runner just keeps the seeding/API backend up (until
+	// SIGINT/SIGTERM) so `patrol develop` can drive the tests interactively; it
+	// does not shell out to `patrol test` itself.
+	if os.Getenv("E2E_SERVE_ONLY") == "" {
+		g.Go(func() error {
+			// stop() must be called here, otherwise a deadlock occurs in a happy path:
+			//   1. all tests pass, runTests returns with no error.
+			//   2. if messageHandler doesn't get any error, it doesn't return unless ctx is canceled.
+			//   3. sessionManager never returns unless ctx is canceled.
+			//   4. ctx is never canceled, as no goroutine returns an error.
+			//   5. g.Wait() can't return until those two goroutines finish.
+			defer stop()
+			return runTests(ctx)
+		})
+	}
 	return g.Wait()
 }
 
@@ -99,9 +103,22 @@ func runTests(ctx context.Context) error {
 		"-d",
 		// TODO: make the target device configurable
 		"emulator-5554",
-		"--dart-define-from-file",
-		"test.env",
+		// Run only the E2E scenarios (client/e2e/), built as part of the real
+		// client app. They live outside integration_test/ (the mock suite) but
+		// still compile into the app via the patrol test bundle.
+		"-t",
+		"e2e/",
+		// The API server (session()) listens on the host's :8080; from the
+		// Android emulator the host is reached via 10.0.2.2, so localhost would
+		// silently point back at the emulator.
+		// TODO: make the API base URL configurable.
+		"--dart-define",
+		"API_BASE_URL=http://10.0.2.2:8080",
 	)
+	// patrol builds and drives the client app (which carries the full native
+	// plugin configuration), not a separate throwaway Flutter package. The
+	// runner lives in client/e2e/, so the client package root is one level up.
+	cmd.Dir = ".."
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -196,7 +213,7 @@ func sessionManager(ctx context.Context, msgc <-chan message) {
 func session(ctx context.Context, done chan struct{}, msg message) {
 	defer close(done)
 	defer testenv.TearDown()
-	if err := test.Seed(ctx, testenv.DB(), msg.body.SeederID); err != nil {
+	if err := Seed(ctx, testenv.DB(), msg.body.SeederID); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to seed DB for scenario %q: %v", msg.body.SeederID, err)
 		// TODO: return a better response message
 		msg.resultc <- "failed to seed DB"

@@ -29,6 +29,7 @@ dev_dependencies:
 
   freezed: ^3.2.6-dev.1
   patrol: ^4.7.1
+  http: ^1.6.0
   http_mock_adapter: ^0.6.1
 
 flutter:
