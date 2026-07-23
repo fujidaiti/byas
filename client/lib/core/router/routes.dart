@@ -1,4 +1,7 @@
 // Route names (used with context.goNamed / pushNamed).
+const routeSplashName = 'splash';
+const routeSignInName = 'signIn';
+const routeSignUpName = 'signUp';
 const routeTodayName = 'today';
 const routeTodayFeedEntryReaderName = 'todayFeedEntryReader';
 const routeReadingListName = 'readingList';
@@ -11,6 +14,9 @@ const routeFeedDetailName = 'feedDetail';
 const routeFeedEntryReaderName = 'feedEntryReader';
 
 // Route paths (used when declaring the GoRoute tree).
+const routeSplashPath = '/';
+const routeSignInPath = '/sign-in';
+const routeSignUpPath = '/sign-up';
 const routeTodayPath = '/today';
 const routeTodayFeedEntryReaderPath = 'feed-entries/:feedEntryId';
 const routeReadingListPath = '/reading-list';
