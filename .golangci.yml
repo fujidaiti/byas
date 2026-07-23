@@ -12,6 +12,7 @@ linters:
     - bodyclose
     - errorlint
     - misspell
+    - modernize
   settings:
     lll:
       line-length: 120
