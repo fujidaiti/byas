@@ -158,3 +158,60 @@ func TestFeed_Subscribe(t *testing.T) {
 		})
 	}
 }
+
+func TestFeed_SearchFeeds(t *testing.T) {
+	t.Cleanup(testenv.TearDown)
+
+	tests := []struct {
+		name, host, path, fixture, query string
+		want                             feed.FeedAttrs
+	}{
+		{
+			name:    "wikipedia recent changes",
+			host:    "en.wikipedia.org",
+			path:    "/w/api.php",
+			fixture: "./testdata/wikipedia_recent_changes.xml",
+			query:   "http://en.wikipedia.org/w/api.php?limit=50&action=feedrecentchanges&feedformat=rss",
+			want: feed.FeedAttrs{
+				URL:         *must(url.Parse("http://en.wikipedia.org/w/api.php?limit=50&action=feedrecentchanges&feedformat=rss")),
+				SiteURL:     must(url.Parse("https://en.wikipedia.org/wiki/Special:RecentChanges")),
+				IconURL:     nil, // no <image> in the feed
+				Title:       "Wikipedia  - Recent changes [en]",
+				Description: new("Track the most recent changes to the wiki in this feed."),
+			},
+		},
+		{
+			name:    "bbc news front page",
+			host:    "feeds.bbci.co.uk",
+			path:    "/news/rss.xml",
+			fixture: "./testdata/bbc_news_rss.xml",
+			query:   "http://feeds.bbci.co.uk/news/rss.xml",
+			want: feed.FeedAttrs{
+				URL:         *must(url.Parse("http://feeds.bbci.co.uk/news/rss.xml")),
+				SiteURL:     must(url.Parse("https://www.bbc.co.uk/news")),
+				IconURL:     must(url.Parse("https://news.bbcimg.co.uk/nol/shared/img/bbc_news_120x60.gif")),
+				Title:       "BBC News",
+				Description: new("BBC News - News Front Page"),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		testenv.StubHTTP(tt.host, tt.path, tt.fixture)
+		t.Run(tt.name, func(t *testing.T) {
+			s := feed.NewService(testenv.DB(), scraper.NewService(stubServerAddr))
+			got, err := s.SearchFeeds(t.Context(), tt.query)
+			if err != nil {
+				t.Fatalf("got %v, want a nil error", err)
+			}
+
+			if len(got) != 1 {
+				t.Fatalf("got %d results, want exactly 1", len(got))
+			}
+			wantValue := newFeedValue(feed.Feed{FeedAttrs: tt.want})
+			if d := cmp.Diff(wantValue, newFeedValue(feed.Feed{FeedAttrs: got[0]})); d != "" {
+				t.Errorf("returned feed mismatch:\n%s", d)
+			}
+		})
+	}
+}
