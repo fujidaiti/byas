@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -56,12 +57,13 @@ func run() error {
 
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-		if err := testenv.TearDown(ctx); err != nil {
+		if err := testenv.ShutDown(ctx); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 		}
 		cancel()
 	}()
-	if err := testenv.SetUp(ctx); err != nil {
+	// TODO: make the stub server address configurable
+	if err := testenv.SetUp(ctx, "127.0.0.1:8081"); err != nil {
 		return err
 	}
 
@@ -193,7 +195,7 @@ func sessionManager(ctx context.Context, msgc <-chan message) {
 
 func session(ctx context.Context, done chan struct{}, msg message) {
 	defer close(done)
-	defer testenv.RestoreDB()
+	defer testenv.TearDown()
 	if err := test.Seed(ctx, testenv.DB(), msg.body.SeederID); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to seed DB for scenario %q: %v", msg.body.SeederID, err)
 		// TODO: return a better response message
@@ -201,7 +203,9 @@ func session(ctx context.Context, done chan struct{}, msg message) {
 		return
 	}
 
-	srv := api.NewServer(testenv.DB())
+	// TODO: make stub HTTP server address configurable
+	proxyURL, _ := url.Parse("http://127.0.0.1:8081")
+	srv := api.NewServer(testenv.DB(), proxyURL)
 	defer func() {
 		sctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()

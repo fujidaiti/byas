@@ -6,6 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
+	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/fujidaiti/paperdoll/server/db/migration"
@@ -16,17 +20,11 @@ import (
 )
 
 var container *postgres.PostgresContainer
-var db *sql.DB
-
-// DB returns the test database handle. It is only valid between SetUp and TearDown.
-func DB() *sql.DB {
-	return db
-}
 
 // SetUp initializes a test container and migrate the database.
-// Make sure to always call [TearDown] even if this returns a non-nil error.
-func SetUp(ctx context.Context) error {
-	if container != nil || db != nil {
+// Make sure to always call [ShutDown] even if this returns a non-nil error.
+func SetUp(ctx context.Context, stubAddr string) error {
+	if container != nil || db != nil || stubServer != nil {
 		panic("do not call SetUp twice")
 	}
 	var err error
@@ -60,11 +58,18 @@ func SetUp(ctx context.Context) error {
 	if err := openDB(ctx); err != nil {
 		return fmt.Errorf("failed to reopen the DB: %w", err)
 	}
+
+	ln, err := net.Listen("tcp", stubAddr)
+	if err != nil {
+		return fmt.Errorf("failed to open a socket for stub HTTP server: %w", err)
+	}
+	go startStubServer(ln)
+
 	return nil
 }
 
-func TearDown(ctx context.Context) error {
-	var err1, err2 error
+func ShutDown(ctx context.Context) error {
+	var err1, err2, err3 error
 	if db != nil {
 		err1 = db.Close()
 		db = nil
@@ -73,11 +78,15 @@ func TearDown(ctx context.Context) error {
 		err2 = container.Terminate(ctx)
 		container = nil
 	}
-	return errors.Join(err1, err2)
+	if stubServer != nil {
+		err3 = stubServer.Shutdown(ctx)
+		stubServer = nil
+	}
+	return errors.Join(err1, err2, err3)
 }
 
 // TODO: return an error if any
-func RestoreDB() {
+func TearDown() {
 	// container.Restore force-kills open connections to the db, so a later
 	// test could be handed a dead pooled connection and fail. Close/reopen
 	// the pool around it so every test starts with a known-good connection.
@@ -92,6 +101,15 @@ func RestoreDB() {
 	if err := openDB(ctx); err != nil {
 		log.Printf("Failed to reopen DB after restore: %v\n", err)
 	}
+
+	clear(stubHTTPRules)
+}
+
+var db *sql.DB
+
+// DB returns the test database handle. It is only valid between [SetUp] and [ShutDown].
+func DB() *sql.DB {
+	return db
 }
 
 // openDB modifies the global db variable. Errors should be handled on the call site.
@@ -107,4 +125,65 @@ func openDB(ctx context.Context) error {
 		return fmt.Errorf("failed to ping: %w", err)
 	}
 	return nil
+}
+
+var stubServer *http.Server
+
+func startStubServer(ln net.Listener) {
+	if stubServer != nil {
+		panic("stub HTTP server is already running")
+	}
+	stubServer = &http.Server{
+		Addr:    ln.Addr().String(),
+		Handler: http.HandlerFunc(handleHTTPRequest),
+	}
+	if err := stubServer.Serve(ln); !errors.Is(err, http.ErrServerClosed) {
+		panic(fmt.Sprintf("stub HTTP server exited abnormally: %v", err))
+	}
+}
+
+var stubHTTPRules = map[string]string{}
+
+// StubHTTP registers a rule so the stub server (which the API server uses as
+// its outbound HTTP proxy) replies with the file at fp for requests to
+// host+path. The content type is inferred from fp's extension:
+//
+//	testenv.StubHTTP("en.wikipedia.org", "/w/api.php", "./testdata/wikipedia_feed.xml")
+//
+// The stub only handles plain HTTP; it can't tunnel HTTPS, so stubbed requests
+// must be made over http://.
+func StubHTTP(host, path, fp string) {
+	stubHTTPRules[host+path] = fp
+}
+
+func handleHTTPRequest(w http.ResponseWriter, r *http.Request) {
+	key := r.URL.Host + r.URL.Path
+	fp, ok := stubHTTPRules[key]
+	if !ok {
+		http.Error(w, fmt.Sprintf("no stub rule found for %q", key), http.StatusNotFound)
+		return
+	}
+
+	var mime string
+	switch ext := filepath.Ext(fp); ext {
+	case ".html":
+		mime = "text/html; charset=utf-8"
+	case ".json":
+		mime = "application/json"
+	case ".xml":
+		mime = "application/xml; charset=utf-8"
+	default:
+		panic(fmt.Sprintf("unsupported stub file extension: %q", ext))
+	}
+
+	data, err := os.ReadFile(fp)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("request matched rule %q, but fixture not found in %q", key, fp), http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", mime)
+	if _, err := w.Write(data); err != nil {
+		log.Printf("failed to write stub response for %q: %v", key, err)
+	}
 }

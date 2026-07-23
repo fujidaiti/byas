@@ -29,6 +29,7 @@ type FeedAttrs struct {
 func (s *Service) Subscribe(ctx context.Context, fu url.URL) (Feed, error) {
 	// TODO: Check if the f already exists first
 	// TODO: Validate and cleanup the url (check schema, remove tracking params, etc.)
+	// TODO: Save fetched entries to DB
 	var f Feed
 	if a, err := s.fetchFeed(ctx, fu); err != nil {
 		fmt.Println(err)
