@@ -24,6 +24,8 @@ type feedRecord struct {
 
 // feedValue is a cmp-friendly view of a [feed.Feed]'s attributes where every
 // URL and the optional description are flattened to strings ("" for nil).
+//
+// TODO: add a custom comparable URL type and use it throughout the codebase
 type feedValue struct {
 	URL         string
 	SiteURL     string

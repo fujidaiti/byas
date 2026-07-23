@@ -144,6 +144,14 @@ func startStubServer(ln net.Listener) {
 
 var stubHTTPRules = map[string]string{}
 
+// StubHTTP registers a rule so the stub server (which the API server uses as
+// its outbound HTTP proxy) replies with the file at fp for requests to
+// host+path. The content type is inferred from fp's extension:
+//
+//	testenv.StubHTTP("en.wikipedia.org", "/w/api.php", "./testdata/wikipedia_feed.xml")
+//
+// The stub only handles plain HTTP; it can't tunnel HTTPS, so stubbed requests
+// must be made over http://.
 func StubHTTP(host, path, fp string) {
 	stubHTTPRules[host+path] = fp
 }
