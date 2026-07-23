@@ -14,9 +14,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/fujidaiti/paperdoll/feature/feed"
-	"github.com/fujidaiti/paperdoll/feature/readinglist"
-	"github.com/fujidaiti/paperdoll/feature/user"
+	"github.com/fujidaiti/paperdoll/server/feature/feed"
+	"github.com/fujidaiti/paperdoll/server/feature/readinglist"
+	"github.com/fujidaiti/paperdoll/server/feature/scraper"
+	"github.com/fujidaiti/paperdoll/server/feature/user"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -39,21 +40,8 @@ func StartServer(ctx context.Context) {
 		panic(err)
 	}
 
-	h := &Handler{
-		DB: db,
-		UserService: user.Service{
-			DB:  db,
-			Now: func() time.Time { return time.Now() },
-		},
-	}
-
-	srv := http.Server{
-		Addr:    ":8080",
-		Handler: NewRouter(h),
-		// Slowloris attack prevention
-		ReadHeaderTimeout: 5 * time.Second,
-		BaseContext:       func(_ net.Listener) context.Context { return ctx },
-	}
+	srv := NewServer(db, nil)
+	srv.BaseContext = func(_ net.Listener) context.Context { return ctx }
 	defer func() {
 		fmt.Println("Shutting down API server...")
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -80,7 +68,19 @@ func StartServer(ctx context.Context) {
 	}
 }
 
-func NewRouter(h *Handler) http.Handler {
+func NewServer(db *sql.DB, httpProxy *url.URL) *http.Server {
+	scrp := scraper.NewService(httpProxy)
+	h := &Handler{
+		DB: db,
+		UserService: &user.Service{
+			DB:  db,
+			Now: func() time.Time { return time.Now() },
+		},
+		ReadingListService: readinglist.NewService(db, scrp),
+		FeedService:        feed.NewService(db, scrp),
+		ScraperService:     scrp,
+	}
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", h.getHealth)
 	mux.HandleFunc("GET /newspapers/today", h.getTodaysNewspaper)
@@ -98,12 +98,22 @@ func NewRouter(h *Handler) http.Handler {
 	mux.HandleFunc("PATCH /reading-list/{id}", h.setReadingListItemArchivedStatus)
 	mux.HandleFunc("POST /signup", h.SignUp)
 	mux.HandleFunc("POST /signin", h.signIn)
-	return mux
+
+	return &http.Server{
+		Addr:    ":8080",
+		Handler: mux,
+		// Slowloris attack prevention
+		ReadHeaderTimeout: 5 * time.Second,
+	}
 }
 
+// TODO: rename to handler (lowercase)
 type Handler struct {
-	DB          *sql.DB
-	UserService user.Service
+	DB                 *sql.DB
+	UserService        *user.Service
+	ReadingListService *readinglist.Service
+	FeedService        *feed.Service
+	ScraperService     *scraper.Service
 }
 
 func (h *Handler) getHealth(w http.ResponseWriter, _ *http.Request) {
@@ -582,7 +592,7 @@ type searchFeedsResBody struct {
 
 func (h *Handler) searchFeeds(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
-	fs, err := feed.SearchFeeds(r.Context(), q)
+	fs, err := h.FeedService.SearchFeeds(r.Context(), q)
 	if err != nil {
 		fmt.Println(err)
 		serverError(w, http.StatusNotFound, "Failed to search feeds")
@@ -638,7 +648,7 @@ func (h *Handler) subscribeToFeed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	fd, err := feed.Subscribe(ctx, h.DB, *u)
+	fd, err := h.FeedService.Subscribe(ctx, *u)
 	if err != nil {
 		fmt.Print(err)
 		serverError(w, http.StatusInternalServerError, "Failed to subscribe to feed")
@@ -717,7 +727,7 @@ func (h *Handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 		if b.Title != nil {
 			title = *b.Title
 		}
-		saved, err = readinglist.SaveWebClip(ctx, h.DB, *u, title)
+		saved, err = h.ReadingListService.SaveWebClip(ctx, *u, title)
 		if err != nil {
 			fmt.Println(err)
 			serverError(w, http.StatusInternalServerError, "Failed to save clip")
@@ -727,7 +737,7 @@ func (h *Handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 	case b.FeedEntryID != nil:
 		// TODO: Return 404 instead of 500 when the given ID doesn't exist
 		var err error
-		saved, err = readinglist.SaveFeedEntry(ctx, h.DB, *b.FeedEntryID)
+		saved, err = h.ReadingListService.SaveFeedEntry(ctx, *b.FeedEntryID)
 		if err != nil {
 			fmt.Println(err)
 			serverError(w, http.StatusInternalServerError, "Failed to save feed entry")
@@ -737,7 +747,7 @@ func (h *Handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 	case b.WebClipID != nil:
 		// TODO: Return 404 instead of 500 when the given ID doesn't exist
 		var err error
-		saved, err = readinglist.SaveWebClipByID(ctx, h.DB, *b.WebClipID)
+		saved, err = h.ReadingListService.SaveWebClipByID(ctx, *b.WebClipID)
 		if err != nil {
 			fmt.Println(err)
 			serverError(w, http.StatusInternalServerError, "Failed to save web clip")
@@ -955,7 +965,7 @@ func (h *Handler) deleteReadingListItem(w http.ResponseWriter, r *http.Request) 
 		serverError(w, http.StatusBadRequest, "Malformed ID")
 		return
 	}
-	ok, err := readinglist.DeleteItem(r.Context(), h.DB, id)
+	ok, err := h.ReadingListService.DeleteItem(r.Context(), id)
 	if err != nil {
 		fmt.Println(err)
 		serverError(w, http.StatusInternalServerError, "Something went wrong.")
@@ -993,9 +1003,9 @@ func (h *Handler) setReadingListItemArchivedStatus(w http.ResponseWriter, r *htt
 		return
 	}
 	if *b.Archived {
-		err = readinglist.ArchiveItem(r.Context(), h.DB, id)
+		err = h.ReadingListService.ArchiveItem(r.Context(), id)
 	} else {
-		err = readinglist.UnarchiveItem(r.Context(), h.DB, id)
+		err = h.ReadingListService.UnarchiveItem(r.Context(), id)
 	}
 	if err != nil {
 		fmt.Println(err)

@@ -1,0 +1,27 @@
+version: "2"
+
+run:
+  build-tags:
+    - integration
+
+linters:
+  enable:
+    - lll
+    - sqlclosecheck
+    - rowserrcheck
+    - bodyclose
+    - errorlint
+    - misspell
+    - modernize
+  settings:
+    lll:
+      line-length: 120
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+    - golines
+  settings:
+    golines:
+      max-len: 120

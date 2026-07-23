@@ -30,8 +30,7 @@ dev_dependencies:
   riverpod_generator: ^4.0.0
 
   freezed: ^3.2.6-dev.1
-  # Pinned as lower versions don't support SPM
-  patrol: ^4.7.0-dev.1
+  patrol: ^4.7.1
   http_mock_adapter: ^0.6.1
 
 flutter:

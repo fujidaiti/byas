@@ -26,11 +26,12 @@ type FeedAttrs struct {
 // Subscribe registers a web feed by its URL.
 // Feeds are identified by URL and this operation is idempotent;
 // subscribing to the same feed (URL) twice has no additional effect.
-func Subscribe(ctx context.Context, db *sql.DB, fu url.URL) (Feed, error) {
+func (s *Service) Subscribe(ctx context.Context, fu url.URL) (Feed, error) {
 	// TODO: Check if the f already exists first
 	// TODO: Validate and cleanup the url (check schema, remove tracking params, etc.)
+	// TODO: Save fetched entries to DB
 	var f Feed
-	if a, err := fetchFeed(ctx, fu); err != nil {
+	if a, err := s.fetchFeed(ctx, fu); err != nil {
 		fmt.Println(err)
 		return Feed{}, err
 	} else {
@@ -46,7 +47,7 @@ func Subscribe(ctx context.Context, db *sql.DB, fu url.URL) (Feed, error) {
 	if d := f.Description; d != nil {
 		desc = sql.NullString{String: *d, Valid: true}
 	}
-	err := db.QueryRowContext(ctx, `
+	err := s.DB.QueryRowContext(ctx, `
 		INSERT INTO feeds (url, site_url, icon_url, title, description)
 		VALUES ($1, $2, $3, $4, $5)
 		ON CONFLICT (url) DO UPDATE SET url = EXCLUDED.url
@@ -59,27 +60,22 @@ func Subscribe(ctx context.Context, db *sql.DB, fu url.URL) (Feed, error) {
 }
 
 // SearchFeeds searches subscriptable feeds by the given query.
-func SearchFeeds(ctx context.Context, query string) ([]FeedAttrs, error) {
+func (s *Service) SearchFeeds(ctx context.Context, query string) ([]FeedAttrs, error) {
 	// TODO: Accept arbitrary keywards as a query
 	// TODO: Validate and cleanup the url (check schema, remove tracking params, etc.)
 	u, err := url.Parse(query)
 	if err != nil {
 		return []FeedAttrs{}, nil
 	}
-	a, err := fetchFeed(ctx, *u)
+	a, err := s.fetchFeed(ctx, *u)
 	if err != nil {
 		return nil, err
 	}
 	return []FeedAttrs{a}, nil
 }
 
-func fetchFeed(ctx context.Context, fu url.URL) (FeedAttrs, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fu.String(), nil)
-	if err != nil {
-		return FeedAttrs{}, err
-	}
-	// TODO: Use a custom client to mitigate SSRF attacks (+ timeout)
-	res, err := http.DefaultClient.Do(req)
+func (s *Service) fetchFeed(ctx context.Context, fu url.URL) (FeedAttrs, error) {
+	res, err := s.scraper.Fetch(ctx, fu)
 	if err != nil {
 		return FeedAttrs{}, err
 	}

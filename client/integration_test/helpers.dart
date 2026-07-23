@@ -1,11 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
+import 'package:paperdoll/app.dart';
 import 'package:paperdoll/core/config/app_config.dart';
 import 'package:paperdoll/core/config/app_config_provider.dart';
 import 'package:paperdoll/core/network/dio_provider.dart';
 import 'package:paperdoll/features/auth/data/token_storage.dart';
 import 'package:paperdoll/features/auth/presentation/providers/auth_providers.dart';
-import 'package:paperdoll/main.dart';
 import 'package:patrol/patrol.dart';
 
 /// Boots the app. Defaults to a pre-seeded [token] so feature tests land
