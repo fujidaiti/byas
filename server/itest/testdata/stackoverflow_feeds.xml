@@ -1,0 +1,565 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:creativeCommons="http://backend.userland.com/creativeCommonsRssModule" xmlns:re="http://purl.org/atompub/rank/1.0">
+    <title type="text">Recent Questions - Stack Overflow</title>
+    <link rel="self" href="https://stackoverflow.com/feeds" type="application/atom+xml" />
+    <link rel="alternate" href="https://stackoverflow.com/questions" type="text/html" />
+    <subtitle>most recent 30 from stackoverflow.com</subtitle>
+    <updated>2026-07-23T04:38:10Z</updated>
+    <id>https://stackoverflow.com/feeds</id>
+    <creativeCommons:license>https://creativecommons.org/licenses/by-sa/4.0/rdf</creativeCommons:license> 
+    <entry>
+        <id>https://stackoverflow.com/q/79984043</id>
+        <re:rank scheme="https://stackoverflow.com">0</re:rank>
+        <title type="text">How can i reply Google Reviews with API</title>
+            <category scheme="https://stackoverflow.com/tags" term="google-api" />
+            <category scheme="https://stackoverflow.com/tags" term="google-reviews" />
+            <category scheme="https://stackoverflow.com/tags" term="google-business-profile-api" />
+            <category scheme="https://stackoverflow.com/tags" term="google-business" />
+            <category scheme="https://stackoverflow.com/tags" term="google-business-profile" />
+        <author>
+            <name>heda127</name>
+            <uri>https://stackoverflow.com/users/21068514</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/79984043/how-can-i-reply-google-reviews-with-api" />
+        <published>2026-07-23T04:31:12Z</published>
+        <updated>2026-07-23T04:31:12Z</updated>
+        <summary type="html">
+            &lt;p&gt;I&#x27;m actually using this API to get all the reviews from specific locations:&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;GET https://mybusiness.googleapis.com/v4/accounts/{accountID}/locations/{locationID}/reviews&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;Now I want to reply to different reviews. Reading the documentation for updateReply, I tested this API in Postman using the PUT method:&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;PUT https://mybusiness.googleapis.com/v4/accounts/{accountID}/locations/{locationID}/reviews/{reviewID}/reply&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;&lt;a href=&quot;https://mybusiness.googleapis.com/v4/accounts/1058228257168752918/locations/13397993880477306/reviews/AbFvOqkn2Zv7_pRncN42LSD3NqQc1-pL-IEfgdhgjeFHSDOVY6LPw-HsItmlRWMi9A_kQd8d85JgGg/reply&quot; rel=&quot;nofollow noreferrer&quot;&gt;https://mybusiness.googleapis.com/v4/accounts/1058228257168752918/locations/13397993880477306/reviews/AbFvOqkn2Zv7_pRncN42LSD3NqQc1-pL-IEfgdhgjeFHSDOVY6LPw-HsItmlRWMi9A_kQd8d85JgGg/reply&lt;/a&gt;&lt;/p&gt;&#xA;&lt;p&gt;HEADERS&lt;/p&gt;&#xA;&lt;p&gt;&lt;a href=&quot;https://i.sstatic.net/Jtfjru2C.png&quot; rel=&quot;nofollow noreferrer&quot;&gt;headers_image&lt;/a&gt;&lt;/p&gt;&#xA;&lt;p&gt;BODY&lt;/p&gt;&#xA;&lt;pre class=&quot;lang-json prettyprint-override&quot;&gt;&lt;code&gt;{&#xA;    &amp;quot;comment&amp;quot;: &amp;quot;Muchas gracias por tu opini&#xF3;n.&amp;quot;&#xA;}&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;I get 200 OK and this response. As I read in the documentation, it seems to be correct, but the reply is not visible on the review in my location. Even if I fetch the specific reviewId via the API, it&#x27;s not showing the reply element:&lt;/p&gt;&#xA;&lt;pre class=&quot;lang-json prettyprint-override&quot;&gt;&lt;code&gt;{&#xA;    &amp;quot;comment&amp;quot;: &amp;quot;Muchas gracias por tu opini&#xF3;n.&amp;quot;,&#xA;    &amp;quot;updateTime&amp;quot;: &amp;quot;2026-07-22T18:42:16.400060Z&amp;quot;&#xA;}&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;However, if I send the exact same request again, I get this error:&lt;/p&gt;&#xA;&lt;pre class=&quot;lang-json prettyprint-override&quot;&gt;&lt;code&gt;{&#xA;    &amp;quot;error&amp;quot;: {&#xA;        &amp;quot;code&amp;quot;: 500,&#xA;        &amp;quot;message&amp;quot;: &amp;quot;Internal error encountered.&amp;quot;,&#xA;        &amp;quot;status&amp;quot;: &amp;quot;INTERNAL&amp;quot;&#xA;    }&#xA;}&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;I don&#x27;t know if I&#x27;m missing some configuration or permissions in my account that allow me to respond to reviews via API, or if there is another method.&lt;/p&gt;&#xA;
+        </summary>
+    </entry>
+    <entry>
+        <id>https://stackoverflow.com/q/79984041</id>
+        <re:rank scheme="https://stackoverflow.com">0</re:rank>
+        <title type="text">Retrieving datetime vales in SQL db and converting to UNIX time</title>
+            <category scheme="https://stackoverflow.com/tags" term="advice" />
+            <category scheme="https://stackoverflow.com/tags" term="c#" />
+            <category scheme="https://stackoverflow.com/tags" term=".net" />
+            <category scheme="https://stackoverflow.com/tags" term="sql-server" />
+            <category scheme="https://stackoverflow.com/tags" term="datetime" />
+        <author>
+            <name>Ross Kelly</name>
+            <uri>https://stackoverflow.com/users/7492645</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/79984041/retrieving-datetime-vales-in-sql-db-and-converting-to-unix-time" />
+        <published>2026-07-23T04:17:22Z</published>
+        <updated>2026-07-23T04:28:25Z</updated>
+        <summary type="html">
+            &lt;p&gt;I store dates in an SQL db in SmallDateTime data type as follows:&lt;/p&gt;&#xA;&lt;p&gt;2026-07-18 10:00:00 (YYYY-MM-DD hh:mm:ss)&lt;/p&gt;&#xA;&lt;p&gt;In my Web API code I retrieve dates as:&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;long unix_dt = ((DateTimeOffset)sqlDR.GetDateTime(0)).ToUnixTimeSeconds();&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;This has worked fine as my clients and SQL Server are both based in the same time zone (Eastern Standard Time - Australia).&lt;/p&gt;&#xA;&lt;p&gt;However, my server will soon be based in the US and when testing on the US server, the API returns the above date as: 2026-07-19 02:00:00 (which is &#x2B;16 hours).&lt;/p&gt;&#xA;&lt;p&gt;I realised this is happening because reader.GetDateTime() returns a DateTime with an unspecified time zone. So when I implicitly cast to DateTimeOffset and call .ToUnixTimeSeconds(), .NET assumes the date is in the server&#x27;s local time zone. The different servers calculate different UNIX timestamps for the exact same database value.&lt;/p&gt;&#xA;&lt;p&gt;SERVER #1: AUSTRALIA&lt;/p&gt;&#xA;&lt;p&gt;AU Eastern Standard Time (AEST): UTC&#x2B;10&lt;/p&gt;&#xA;&lt;p&gt;AU Eastern Daylight Time (AEDT): UTC&#x2B;11&lt;/p&gt;&#xA;&lt;p&gt;SERVER #2: USA (West Coast)&lt;/p&gt;&#xA;&lt;p&gt;Mountain Standard Time (MST): UTC-7&lt;/p&gt;&#xA;&lt;p&gt;Mountain Daylight Time (MDT): UTC-6&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;SELECT CURRENT_TIMEZONE()&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;returns (UTC-07:00) Mountain Time (US &amp;amp; Canada)&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;SELECT CURRENT_TIMEZONE_ID()&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;returns Mountain Standard Time&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;SELECT SYSDATETIMEOFFSET() AS CurrentDateTimeWithOffset&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;returns 2026-07-22 02:58:56.6158651 -06:00&lt;/p&gt;&#xA;&lt;p&gt;As a quick fix to this problem I created the following method:&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;const string AU_TIMEZONE = &amp;quot;AUS Eastern Standard Time&amp;quot;;&#xA;TimeZoneInfo tzi = TimeZoneInfo.FindSystemTimeZoneById(AU_TIMEZONE);&#xA;...&#xA;public long GetUNIXTime(DateTime dt)&#xA;{&#xA;   // get the correct UTC offset for the specific date/time (accounts for DST)&#xA;   TimeSpan offset = tzi.GetUtcOffset(dt);&#xA;   return new DateTimeOffset(dt, offset).ToUnixTimeSeconds();&#xA;}&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;I call GetUNIXTime() when reading the date from the db:&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;long unix_dt = GetUNIXTime(sqlDR.GetDateTime(0));&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;However, it&#x27;s possible that I&#x27;ll soon have clients who are not located in AU_TIMEZONE, and I&#x27;ll need a solution that works for all/any time zone.&lt;/p&gt;&#xA;&lt;p&gt;What approach should I take? Do I need to store timezone info for each db record, or somehow build a solution by storing and retrieving timezone info for each client?&lt;/p&gt;&#xA;
+        </summary>
+    </entry>
+    <entry>
+        <id>https://stackoverflow.com/q/79984040</id>
+        <re:rank scheme="https://stackoverflow.com">0</re:rank>
+        <title type="text">Get the locally assigned name of a pandas Series or dataframe</title>
+            <category scheme="https://stackoverflow.com/tags" term="python-3.x" />
+            <category scheme="https://stackoverflow.com/tags" term="pandas" />
+        <author>
+            <name>punsoca</name>
+            <uri>https://stackoverflow.com/users/5109125</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/79984040/get-the-locally-assigned-name-of-a-pandas-series-or-dataframe" />
+        <published>2026-07-23T04:12:39Z</published>
+        <updated>2026-07-23T04:12:39Z</updated>
+        <summary type="html">
+            &lt;p&gt;I have created a function that is being passed the &lt;code&gt;obj&lt;/code&gt;  object and  print the &lt;code&gt;obj&lt;/code&gt; columns if it is a pandas dataframe , or  print &lt;code&gt;&amp;lt; local variable name assigned to the obj&amp;gt; has no columns&lt;/code&gt; if it is a pandas Series.   I understand  the &lt;code&gt;obj.name&lt;/code&gt; does not return the locally assigned variable name so I am stuck.&lt;/p&gt;&#xA;&lt;blockquote&gt;&#xA;&lt;pre&gt;&lt;code&gt;import pandas as pd&#xA;&#xA;&#xA;def print_df_columns(obj):&#xA;    print(f&amp;quot;\n{obj.name} does NOT have columns\n&amp;quot; if isinstance(obj,pd.Series)&#xA;          else f&amp;quot;\n{obj.name}.columns:\n{obj.columns}\n&amp;quot;)&#xA;&#xA;# pandas series &#xA;data = [10, 20, 30]&#xA;my_series = pd.Series(data)&#xA;&#xA;# pandas dataframe&#xA;data2 = {&#xA;    &amp;quot;Name&amp;quot;: [&amp;quot;John&amp;quot;, &amp;quot;Alice&amp;quot;, &amp;quot;Bob&amp;quot;],&#xA;    &amp;quot;Age&amp;quot;: [25, 30, 35],&#xA;    &amp;quot;City&amp;quot;: [&amp;quot;New York&amp;quot;, &amp;quot;London&amp;quot;, &amp;quot;Paris&amp;quot;]&#xA;}&#xA;employees = pd.DataFrame(data2)&#xA;&#xA;print_df_columns(my_series)&#xA;print_df_columns(employees)&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;/blockquote&gt;&#xA;
+        </summary>
+    </entry>
+    <entry>
+        <id>https://stackoverflow.com/q/79984039</id>
+        <re:rank scheme="https://stackoverflow.com">0</re:rank>
+        <title type="text">Density Splits on unity</title>
+            <category scheme="https://stackoverflow.com/tags" term="android" />
+            <category scheme="https://stackoverflow.com/tags" term="unity-game-engine" />
+            <category scheme="https://stackoverflow.com/tags" term="google-play" />
+        <author>
+            <name>Purple Ninja Girl</name>
+            <uri>https://stackoverflow.com/users/242806</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/79984039/density-splits-on-unity" />
+        <published>2026-07-23T04:09:42Z</published>
+        <updated>2026-07-23T04:09:42Z</updated>
+        <summary type="html">
+            &lt;p&gt;A recent version of my game got flagged with a technical issue on Google Play. The full text is here:&lt;/p&gt;&#xA;&lt;blockquote&gt;&#xA;&lt;p&gt;&lt;strong&gt;Improve your app&#x2019;s performance with density splits&lt;/strong&gt;&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;You can reduce your app&#x2019;s memory usage and prevent performance issues caused by scaling, by enabling image density splitting in your Android app bundle. Once enabled, devices will only receive assets tailored to their specific screen density, preventing the system from performing on the fly scaling. To manage this setting, update your bundle configuration so that it supports configuration-specific resources.&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;/blockquote&gt;&#xA;&lt;p&gt;I already have the &#x201C;Split Application Binary&#x201D; setting checked in my project settings for Android, but this apparently is not enough.  I&#x27;ve checked the gradle file that Unity is using and there&#x27;s nothing in there overriding the default behavior of allowing density splits.&lt;/p&gt;&#xA;&lt;p&gt;The closest thing I&#x27;ve found to an answer is &lt;a href=&quot;https://docs.unity3d.com/2022.3/Documentation/Manual/android-asset-packs-in-unity.html&quot; rel=&quot;nofollow noreferrer&quot;&gt;this page&lt;/a&gt; which mentions in passing that density splits don&#x27;t do anything with content in addressables (which I &lt;em&gt;am&lt;/em&gt; using), but then points you to this github project with a &amp;quot;good luck figuring it out for yourself based on this example&amp;quot; but I can&#x27;t find anything in this project that is applicable.&lt;/p&gt;&#xA;&lt;p&gt;Any chance somewhere here can point me in the right direction?&lt;/p&gt;&#xA;
+        </summary>
+    </entry>
+    <entry>
+        <id>https://stackoverflow.com/q/79984027</id>
+        <re:rank scheme="https://stackoverflow.com">0</re:rank>
+        <title type="text">How to migrate EWS authentication to MS Graph authentication in VB.NET</title>
+            <category scheme="https://stackoverflow.com/tags" term="authentication" />
+            <category scheme="https://stackoverflow.com/tags" term="microsoft-graph-api" />
+            <category scheme="https://stackoverflow.com/tags" term="exchangewebservices" />
+        <author>
+            <name>Robert Q</name>
+            <uri>https://stackoverflow.com/users/1898301</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/79984027/how-to-migrate-ews-authentication-to-ms-graph-authentication-in-vb-net" />
+        <published>2026-07-23T02:03:40Z</published>
+        <updated>2026-07-23T02:37:29Z</updated>
+        <summary type="html">
+            &lt;p&gt;I have the code below working in VB.NET to authenticate a non-interactive application to MS Exchange. I can&#x27;t figure out what needs to change (other than the scope) to make this work with MS Graph instead of EWS.&lt;/p&gt;&#xA;&lt;p&gt;-----------------------------------------&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;                Dim ccBuilder As ConfidentialClientApplicationBuilder&#xA;                Dim clientApp As ConfidentialClientApplication&#xA;                Dim ewsScopes = New String() {&amp;quot;https://outlook.office365.com/.default&amp;quot;}&#xA;                Dim authResult As AuthenticationResult = Nothing&#xA;&#xA;                ccBuilder = ConfidentialClientApplicationBuilder.Create(AppSetting.OutlookMail.AzureAppID)&#xA;                ccBuilder.WithClientSecret(AppSetting.OutlookMail.AzureClientSecret)&#xA;                ccBuilder.WithTenantId(AppSetting.OutlookMail.AzureTenantID)&#xA;                ccBuilder.WithClientCapabilities(&amp;quot;&amp;quot;)&#xA;                clientApp = ccBuilder.Build()&#xA;&#xA;                Try&#xA;                    authResult = clientApp.AcquireTokenForClient(ewsScopes).ExecuteAsync().Result&#xA;                    g_MailTokenExpiration = authResult.ExpiresOn&#xA;&#xA;                Catch ex As System.Exception&#xA;                    Throw ex&#xA;&#xA;                End Try&#xA;&#xA;                Try&#xA;                    Dim mailboxname As String = CType(AppSettingsReader.GetValue(&amp;quot;MailboxName&amp;quot;, GetType(System.String)), String)&#xA;&#xA;                    mEWSService = New Microsoft.Exchange.WebServices.Data.ExchangeService(Microsoft.Exchange.WebServices.Data.ExchangeVersion.Exchange2013)&#xA;&#xA;                    mEWSService.Url = New Uri(AppSetting.OutlookMail.MailboxURL)&#xA;&#xA;                    mEWSService.Credentials = New OAuthCredentials(authResult.AccessToken)&#xA;                    mEWSService.ImpersonatedUserId = New ImpersonatedUserId(ConnectingIdType.SmtpAddress, mailboxname)&#xA;&#xA;                    mEWSService.HttpHeaders.Add(&amp;quot;X-AnchorMailbox&amp;quot;, mailboxname)&#xA;&#xA;                Catch ex As System.Exception&#xA;                    Throw ex&#xA;&#xA;                End Try&#xA;&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;
+        </summary>
+    </entry>
+    <entry>
+        <id>https://stackoverflow.com/q/79984022</id>
+        <re:rank scheme="https://stackoverflow.com">-2</re:rank>
+        <title type="text">How can I directly declare Unicode rather than finding a string to encode?</title>
+            <category scheme="https://stackoverflow.com/tags" term="python" />
+            <category scheme="https://stackoverflow.com/tags" term="unicode" />
+            <category scheme="https://stackoverflow.com/tags" term="decode" />
+            <category scheme="https://stackoverflow.com/tags" term="encode" />
+            <category scheme="https://stackoverflow.com/tags" term="large-language-model" />
+        <author>
+            <name>Xianzhe Meng</name>
+            <uri>https://stackoverflow.com/users/31407443</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/79984022/how-can-i-directly-declare-unicode-rather-than-finding-a-string-to-encode" />
+        <published>2026-07-23T01:35:11Z</published>
+        <updated>2026-07-23T04:06:46Z</updated>
+        <summary type="html">
+            &lt;p&gt;If we want to declare a unicode, for example we use:&lt;br /&gt;&#xA;&lt;code&gt;string_encoder=string.encode(&amp;quot;utf-8&amp;quot;)&lt;/code&gt;&lt;/p&gt;&#xA;&lt;p&gt;But I want to declare unicode that cannot be converted into string.&lt;/p&gt;&#xA;&lt;p&gt;So what can I do? (CS336 Assignment)&lt;/p&gt;&#xA;
+        </summary>
+    </entry>
+    <entry>
+        <id>https://stackoverflow.com/q/79984015</id>
+        <re:rank scheme="https://stackoverflow.com">0</re:rank>
+        <title type="text">java.lang.ClassNotFoundException despite having the dependency</title>
+            <category scheme="https://stackoverflow.com/tags" term="java" />
+            <category scheme="https://stackoverflow.com/tags" term="maven" />
+            <category scheme="https://stackoverflow.com/tags" term="classnotfoundexception" />
+            <category scheme="https://stackoverflow.com/tags" term="noclassdeffounderror" />
+            <category scheme="https://stackoverflow.com/tags" term="apache-commons-lang3" />
+        <author>
+            <name>Someone</name>
+            <uri>https://stackoverflow.com/users/11190262</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/79984015/java-lang-classnotfoundexception-despite-having-the-dependency" />
+        <published>2026-07-23T00:42:59Z</published>
+        <updated>2026-07-23T03:19:40Z</updated>
+        <summary type="html">
+            &lt;p&gt;So my code compiles fine but when it starts to run I get this&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;Exception in thread &amp;quot;main&amp;quot; java.lang.NoClassDefFoundError: org/apache/commons/lang/ArrayUtils&#xA;    at com.citigroup.futures.fear.stagedworkflow.clientserver.impl.AbstractWorkflowClient.handleCommandLine(AbstractWorkflowClient.java:294)&#xA;    at com.citigroup.futures.gem.citigategoldpub.CitiGateGoldPubServerClient.main(CitiGateGoldPubServerClient.java:30)&#xA;Caused by: java.lang.ClassNotFoundException: org.apache.commons.lang.ArrayUtils&#xA;    at java.base/jdk.internal.loader.BuiltinClassLoader.loadClass(BuiltinClassLoader.java:641)&#xA;    at java.base/jdk.internal.loader.ClassLoaders$AppClassLoader.loadClass(ClassLoaders.java:188)&#xA;    at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:525)&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;pom has commons lang&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;&amp;lt;dependency&amp;gt;&#xA;   &amp;lt;groupId&amp;gt;org.apache.commons&amp;lt;/groupId&amp;gt;&#xA;   &amp;lt;artifactId&amp;gt;commons-lang3&amp;lt;/artifactId&amp;gt;&#xA;   &amp;lt;version&amp;gt;3.20.0&amp;lt;/version&amp;gt;&#xA;&amp;lt;/dependency&amp;gt;&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;Made sure there was no version conflict and I can find the jar where its meant to be&lt;/p&gt;&#xA;&lt;p&gt;I noticed the log said&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;org/apache/commons/lang/ArrayUtils&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;instead of&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;org/apache/commons/lang3&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;but I only search results for the later when I search the former&lt;/p&gt;&#xA;&lt;p&gt;results from mvn dependency:tree&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;     &#x2B;- com.fasterxml.jackson.core:jackson-databind:jar:2.22.0:compile&#xA;[INFO] |  &#x2B;- com.fasterxml.jackson.core:jackson-annotations:jar:2.22:compile&#xA;[INFO] |  \- com.fasterxml.jackson.core:jackson-core:jar:2.22.0:compile&#xA;[INFO] &#x2B;- org.codehaus.castor:castor-xml:jar:1.4.1:compile&#xA;[INFO] |  &#x2B;- org.codehaus.castor:castor-core:jar:1.4.1:compile&#xA;[INFO] |  &#x2B;- commons-logging:commons-logging:jar:1.2:compile&#xA;[INFO] |  &#x2B;- org.apache.commons:commons-collections4:jar:4.1:compile&#xA;[INFO] |  \- javax.inject:javax.inject:jar:1:compile&#xA;[INFO] &#x2B;- org.springframework:spring-context:jar:6.2.19:compile&#xA;[INFO] |  &#x2B;- org.springframework:spring-aop:jar:6.2.19:compile&#xA;[INFO] |  &#x2B;- org.springframework:spring-beans:jar:6.2.19:compile&#xA;[INFO] |  &#x2B;- org.springframework:spring-core:jar:6.2.19:compile&#xA;[INFO] |  |  \- org.springframework:spring-jcl:jar:6.2.19:compile&#xA;[INFO] |  &#x2B;- org.springframework:spring-expression:jar:6.2.19:compile&#xA;[INFO] |  \- io.micrometer:micrometer-observation:jar:1.15.12:compile&#xA;[INFO] |     \- io.micrometer:micrometer-commons:jar:1.15.12:compile&#xA;[INFO] &#x2B;- org.springframework:spring-context-support:jar:6.2.19:compile&#xA;[INFO] &#x2B;- org.springframework:spring-jdbc:jar:6.2.19:compile&#xA;[INFO] |  \- org.springframework:spring-tx:jar:6.2.19:compile&#xA;[INFO] &#x2B;- org.springframework:spring-jms:jar:6.2.19:compile&#xA;[INFO] |  \- org.springframework:spring-messaging:jar:6.2.19:compile&#xA;[INFO] &#x2B;- org.springframework:spring-orm:jar:6.2.19:compile&#xA;[INFO] &#x2B;- com.sun.mail:jakarta.mail:jar:2.0.2:compile&#xA;[INFO] |  \- com.sun.activation:jakarta.activation:jar:2.0.1:compile&#xA;[INFO] &#x2B;- jakarta.jms:jakarta.jms-api:jar:3.1.0:compile&#xA;[INFO] &#x2B;- com.citi.1463:gold-core-all:jar:7.6.39:compile&#xA;[INFO] |  &#x2B;- org.springframework:spring-test:jar:5.3.39:compile&#xA;[INFO] |  &#x2B;- org.objectweb.joram:joram-client:jar:5.0.9:compile&#xA;[INFO] |  |  \- org.objectweb.joram:joram-shared:jar:5.0.9:compile&#xA;[INFO] |  |     &#x2B;- org.apache.geronimo.specs:geronimo-jms_1.1_spec:jar:1.1:compile&#xA;[INFO] |  |     \- org.objectweb.monolog:monolog:jar:2.1.8:compile&#xA;[INFO] |  &#x2B;- com.sun.xml.bind:jaxb1-impl:jar:2.2:compile&#xA;[INFO] |  &#x2B;- org.hibernate:hibernate-core:jar:5.6.9.Final:compile&#xA;[INFO] |  |  &#x2B;- org.jboss.logging:jboss-logging:jar:3.4.3.Final:compile&#xA;[INFO] |  |  &#x2B;- javax.persistence:javax.persistence-api:jar:2.2:compile&#xA;[INFO] |  |  &#x2B;- net.bytebuddy:byte-buddy:jar:1.12.9:compile&#xA;[INFO] |  |  &#x2B;- antlr:antlr:jar:2.7.7:compile&#xA;[INFO] |  |  &#x2B;- org.jboss.spec.javax.transaction:jboss-transaction-api_1.2_spec:jar:1.1.1.Final:compile&#xA;[INFO] |  |  &#x2B;- org.jboss:jandex:jar:2.4.2.Final:compile&#xA;[INFO] |  |  &#x2B;- com.fasterxml:classmate:jar:1.5.1:compile&#xA;[INFO] |  |  &#x2B;- javax.activation:javax.activation-api:jar:1.2.0:compile&#xA;[INFO] |  |  &#x2B;- org.hibernate.common:hibernate-commons-annotations:jar:5.1.2.Final:compile&#xA;[INFO] |  |  \- org.glassfish.jaxb:jaxb-runtime:jar:2.3.1:compile&#xA;[INFO] |  |     &#x2B;- org.glassfish.jaxb:txw2:jar:2.3.1:compile&#xA;[INFO] |  |     &#x2B;- com.sun.istack:istack-commons-runtime:jar:3.0.7:compile&#xA;[INFO] |  |     &#x2B;- org.jvnet.staxex:stax-ex:jar:1.8:compile&#xA;[INFO] |  |     \- com.sun.xml.fastinfoset:FastInfoset:jar:1.2.15:compile&#xA;[INFO] |  &#x2B;- org.hibernate:hibernate-ehcache:jar:5.6.9.Final:compile&#xA;[INFO] |  |  \- net.sf.ehcache:ehcache:jar:2.10.6:compile&#xA;[INFO] |  &#x2B;- org.javassist:javassist:jar:3.29.2-GA:compile&#xA;[INFO] |  &#x2B;- com.ibm.mq:com.ibm.mq.allclient:jar:9.4.5.1:compile&#xA;[INFO] |  |  &#x2B;- org.bouncycastle:bcutil-jdk18on:jar:1.84:compile&#xA;[INFO] |  |  &#x2B;- javax.jms:javax.jms-api:jar:2.0.1:compile&#xA;[INFO] |  |  \- org.json:json:jar:20251224:compile&#xA;[INFO] |  &#x2B;- com.ibm:com.ibm.mq.commonservices:jar:7.5.0.6:compile&#xA;[INFO] |  &#x2B;- com.ibm:com.ibm.mqjms:jar:7.5.0.6:compile&#xA;[INFO] |  &#x2B;- com.ibm:com.ibm.mq.soap:jar:7.5.0.6:compile&#xA;[INFO] |  &#x2B;- javax.resource:connector:jar:1.5:compile&#xA;[INFO] |  &#x2B;- com.ibm:com.ibm.dhbcore:jar:7.0.1:compile&#xA;[INFO] |  &#x2B;- com.ibm:CL3Nonexport:jar:7.5.0.6:compile&#xA;[INFO] |  &#x2B;- com.ibm:com.ibm.mqetclient:jar:7.0.1:compile&#xA;[INFO] |  &#x2B;- org.springframework:spring-aspects:jar:5.3.39:compile&#xA;[INFO] |  |  \- org.aspectj:aspectjweaver:jar:1.9.7:compile&#xA;[INFO] |  &#x2B;- org.springframework:spring-web:jar:6.2.19:compile&#xA;[INFO] |  &#x2B;- org.springframework.retry:spring-retry:jar:2.0.13:compile&#xA;[INFO] |  &#x2B;- org.springframework.integration:spring-integration-core:jar:5.5.18:compile&#xA;[INFO] |  |  \- io.projectreactor:reactor-core:jar:3.4.29:compile&#xA;[INFO] |  |     \- org.reactivestreams:reactive-streams:jar:1.0.4:compile&#xA;[INFO] |  &#x2B;- org.springframework.integration:spring-integration-jms:jar:5.5.18:compile&#xA;[INFO] |  &#x2B;- org.springframework.integration:spring-integration-jdbc:jar:5.5.18:compile&#xA;[INFO] |  &#x2B;- com.sun.mail:javax.mail:jar:1.5.1:compile&#xA;[INFO] |  |  \- javax.activation:activation:jar:1.1:compile&#xA;[INFO] |  &#x2B;- org.apache.velocity:velocity-engine-core:jar:2.3:compile&#xA;[INFO] |  &#x2B;- org.apache.velocity:spring-velocity-support:jar:2.3:compile&#xA;[INFO] |  &#x2B;- sshtools:j2ssh-common:jar:0.2.9:compile&#xA;[INFO] |  &#x2B;- sshtools:j2ssh-core:jar:0.2.9:compile&#xA;[INFO] |  &#x2B;- sshtools:j2ssh-daemon:jar:0.2.9:compile&#xA;[INFO] |  &#x2B;- commons-io:commons-io:jar:2.17.0:compile&#xA;[INFO] |  &#x2B;- commons-codec:commons-codec:jar:1.15:compile&#xA;[INFO] |  &#x2B;- commons-dbcp:commons-dbcp:jar:1.4:compile&#xA;[INFO] |  |  \- commons-pool:commons-pool:jar:1.5.4:compile&#xA;[INFO] |  &#x2B;- commons-net:commons-net:jar:3.9.0:compile&#xA;[INFO] |  &#x2B;- commons-beanutils:commons-beanutils:jar:1.11.0:compile&#xA;[INFO] |  &#x2B;- jakarta-regexp:jakarta-regexp:jar:1.4:compile&#xA;[INFO] |  &#x2B;- org.bouncycastle:bcprov-jdk18on:jar:1.84:compile&#xA;[INFO] |  &#x2B;- org.bouncycastle:bcpkix-jdk18on:jar:1.84:compile&#xA;[INFO] |  &#x2B;- xml-apis:xml-apis:jar:1.4.01:compile&#xA;[INFO] |  &#x2B;- xml-resolver:xml-resolver:jar:1.2:compile&#xA;[INFO] |  &#x2B;- com.sun.xml.bind:jaxb-core:jar:4.0.1:compile&#xA;[INFO] |  |  &#x2B;- jakarta.xml.bind:jakarta.xml.bind-api:jar:4.0.0:compile&#xA;[INFO] |  |  |  \- jakarta.activation:jakarta.activation-api:jar:2.1.0:compile&#xA;[INFO] |  |  \- org.eclipse.angus:angus-activation:jar:1.0.0:runtime&#xA;[INFO] |  &#x2B;- org.slf4j:log4j-over-slf4j:jar:1.7.36:compile&#xA;[INFO] |  &#x2B;- aopalliance:aopalliance:jar:1.0:compile&#xA;[INFO] |  &#x2B;- cglib:cglib:jar:3.0:compile&#xA;[INFO] |  |  \- org.ow2.asm:asm:jar:4.0:compile&#xA;[INFO] |  &#x2B;- commons-validator:commons-validator:jar:1.3.1:compile&#xA;[INFO] |  |  \- commons-digester:commons-digester:jar:1.6:compile&#xA;[INFO] |  &#x2B;- org.apache.httpcomponents:httpclient:jar:4.5.13:compile&#xA;[INFO] |  |  \- org.apache.httpcomponents:httpcore:jar:4.4.13:compile&#xA;[INFO] |  &#x2B;- javax.xml.bind:jaxb-api:jar:2.3.1:compile&#xA;[INFO] |  &#x2B;- com.sun.xml.bind:jaxb-impl:jar:4.0.1:compile&#xA;[INFO] |  &#x2B;- com.sun.xml.bind:jaxb-xjc:jar:4.0.1:compile&#xA;[INFO] |  &#x2B;- com.tibco:tibjms:jar:8.6.0.2:compile&#xA;[INFO] |  &#x2B;- javax.jms:jms:jar:2.0:compile&#xA;[INFO] |  &#x2B;- org.quartz-scheduler:quartz:jar:2.5.2:compile&#xA;[INFO] |  &#x2B;- org.apache.commons:commons-math3:jar:3.1:compile&#xA;[INFO] |  &#x2B;- commons-collections:commons-collections:jar:3.2.2:compile&#xA;[INFO] |  &#x2B;- com.sun.jndi:fscontext:jar:1.2.1:compile&#xA;[INFO] |  &#x2B;- com.sun.jndi:providerutil:jar:1.2:compile&#xA;[INFO] |  &#x2B;- com.oracle.ojdbc:ojdbc8:jar:19.3.0.0:compile&#xA;[INFO] |  |  &#x2B;- com.oracle.ojdbc:oraclepki:jar:19.3.0.0:compile&#xA;[INFO] |  |  &#x2B;- com.oracle.ojdbc:osdt_cert:jar:19.3.0.0:compile&#xA;[INFO] |  |  &#x2B;- com.oracle.ojdbc:osdt_core:jar:19.3.0.0:compile&#xA;[INFO] |  |  &#x2B;- com.oracle.ojdbc:simplefan:jar:19.3.0.0:compile&#xA;[INFO] |  |  \- com.oracle.ojdbc:ons:jar:19.3.0.0:compile&#xA;[INFO] |  \- com.oracle.ojdbc:ucp:jar:19.3.0.0:compile&#xA;[INFO] &#x2B;- ch.qos.logback:logback-classic:jar:1.5.34:compile&#xA;[INFO] &#x2B;- ch.qos.logback:logback-core:jar:1.5.34:compile&#xA;[INFO] &#x2B;- org.slf4j:slf4j-api:jar:2.0.18:compile&#xA;[INFO] &#x2B;- org.slf4j:slf4j-simple:jar:2.0.18:compile&#xA;[INFO] &#x2B;- org.slf4j:jcl-over-slf4j:jar:2.0.18:compile&#xA;[INFO] &#x2B;- joda-time:joda-time:jar:2.14.2:compile&#xA;[INFO] &#x2B;- org.apache.commons:commons-lang3:jar:3.20.0:compile&#xA;[INFO] &#x2B;- org.apache.kafka:kafka-clients:jar:3.9.2:compile&#xA;[INFO] |  &#x2B;- com.github.luben:zstd-jni:jar:1.5.6-4:runtime&#xA;[INFO] |  \- at.yawk.lz4:lz4-java:jar:1.10.1:runtime&#xA;[INFO] \- jakarta.persistence:jakarta.persistence-api:jar:3.1.0:compile&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;Full pom is far too big to actually post&lt;/p&gt;&#xA;
+        </summary>
+    </entry>
+    <entry>
+        <id>https://stackoverflow.com/q/79984005</id>
+        <re:rank scheme="https://stackoverflow.com">0</re:rank>
+        <title type="text">Swift warning about possible isolated conformance of &quot;some View&quot;</title>
+            <category scheme="https://stackoverflow.com/tags" term="swift" />
+            <category scheme="https://stackoverflow.com/tags" term="xcode" />
+            <category scheme="https://stackoverflow.com/tags" term="swift-concurrency" />
+        <author>
+            <name>tmlen</name>
+            <uri>https://stackoverflow.com/users/4108376</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/79984005/swift-warning-about-possible-isolated-conformance-of-some-view" />
+        <published>2026-07-22T23:36:59Z</published>
+        <updated>2026-07-23T04:03:31Z</updated>
+        <summary type="html">
+            &lt;p&gt;This code:&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;@MainActor&#xA;import SwiftUI&#xA;&#xA;@MainActor&#xA;func renderImage(_ view: some View) -&amp;gt; CGImage? {&#xA;    let renderer = ImageRenderer(content: view)&#xA;    return renderer.cgImage&#xA;}&#xA;&#xA;let image = renderImage(&#xA;    ZStack {&#xA;        Image(systemName: &amp;quot;drop.fill&amp;quot;).foregroundStyle(.white)&#xA;        Image(systemName: &amp;quot;drop&amp;quot;).foregroundStyle(.black)&#xA;    }.font(.system(size: 30))&#xA;)&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;Compiles but shows warning:&lt;/p&gt;&#xA;&lt;p&gt;Conformance of underlying type of &#x27;some View&#x27; to protocol &#x27;View&#x27; may be isolated and cannot be passed to main actor-isolated context&lt;/p&gt;&#xA;&lt;p&gt;Xcode 27.0 beta 4&lt;br /&gt;&#xA;Swift Concurrency Checking: Complete&lt;br /&gt;&#xA;Approachable Concurrency: No&lt;br /&gt;&#xA;Default Actor Isolation: nonisolated&lt;/p&gt;&#xA;&lt;p&gt;If I understand correctly:&lt;br /&gt;&#xA;The issue seems to be that .font() returns an opaque type &amp;quot;some View&amp;quot;.&lt;br /&gt;&#xA;And &amp;quot;some View&amp;quot; may also conform to View only constrained to some actor.&lt;br /&gt;&#xA;(as in &amp;quot;struct A: @someGlobalActor View&amp;quot;).&lt;/p&gt;&#xA;&lt;p&gt;But renderImage() is @MainActor, and thus the view it is passed, needs to conform to View from the main actor.&#xA;renderImage() needs to be @MainActor, because ImageRenderer.init() is @MainActor.&lt;/p&gt;&#xA;&lt;p&gt;Is there any way to fix this warning?&lt;/p&gt;&#xA;
+        </summary>
+    </entry>
+    <entry>
+        <id>https://stackoverflow.com/q/79983985</id>
+        <re:rank scheme="https://stackoverflow.com">0</re:rank>
+        <title type="text">Need help in 419 token Mismatch in Laravel Sanctum SPA</title>
+            <category scheme="https://stackoverflow.com/tags" term="javascript" />
+            <category scheme="https://stackoverflow.com/tags" term="php" />
+            <category scheme="https://stackoverflow.com/tags" term="csrf-token" />
+        <author>
+            <name>Syed Muhammad Irtaza</name>
+            <uri>https://stackoverflow.com/users/29461124</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/79983985/need-help-in-419-token-mismatch-in-laravel-sanctum-spa" />
+        <published>2026-07-22T21:49:47Z</published>
+        <updated>2026-07-23T04:25:21Z</updated>
+        <summary type="html">
+            &lt;p&gt;The issue what i am facing is like i have configured Laravel Sanctum SPA just hours ago. It was literally working and now when i again used it it did not work i configured everthing which i will show below but keeps giving me 419 mismatch. When i open cookies i see the X-CSRF-TOKEN and Laravel_session. But the token mismatch error occurs at specific api which is send-email.&lt;br /&gt;&#xA;Error:&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;aaaa{&#xA;    &amp;quot;message&amp;quot;: &amp;quot;CSRF token mismatch.&amp;quot;,&#xA;    &amp;quot;exception&amp;quot;: &amp;quot;Symfony\\Component\\HttpKernel\\Exception\\HttpException&amp;quot;,&#xA;    &amp;quot;file&amp;quot;: &amp;quot;D:\\Choti Market\\backend-choti-market\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Exceptions\\Handler.php&amp;quot;,&#xA;    &amp;quot;line&amp;quot;: 707,&#xA;    &amp;quot;trace&amp;quot;: [&#xA;        {&#xA;            &amp;quot;file&amp;quot;: &amp;quot;D:\\Choti Market\\backend-choti-market\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Exceptions\\Handler.php&amp;quot;,&#xA;            &amp;quot;line&amp;quot;: 649,&#xA;            &amp;quot;function&amp;quot;: &amp;quot;prepareException&amp;quot;,&#xA;            &amp;quot;class&amp;quot;: &amp;quot;Illuminate\\Foundation\\Exceptions\\Handler&amp;quot;,&#xA;            &amp;quot;type&amp;quot;: &amp;quot;-&amp;gt;&amp;quot;&#xA;        },&#xA;        {&#xA;            &amp;quot;file&amp;quot;: &amp;quot;D:\\Choti Market\\backend-choti-market\\vendor\\laravel\\framework\\src\\Illuminate\\Routing\\Pipeline.php&amp;quot;,&#xA;            &amp;quot;line&amp;quot;: 51,&#xA;            &amp;quot;function&amp;quot;: &amp;quot;render&amp;quot;,&#xA;            &amp;quot;class&amp;quot;: &amp;quot;Illuminate\\Foundation\\Exceptions\\Handler&amp;quot;,&#xA;            &amp;quot;type&amp;quot;: &amp;quot;-&amp;gt;&amp;quot;&#xA;        },&#xA;        {&#xA;            &amp;quot;file&amp;quot;: &amp;quot;D:\\Choti Market\\backend-choti-market\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php&amp;quot;,&#xA;            &amp;quot;line&amp;quot;: 224,&#xA;            &amp;quot;function&amp;quot;: &amp;quot;handleException&amp;quot;,&#xA;            &amp;quot;class&amp;quot;: &amp;quot;Illuminate\\Routing\\Pipeline&amp;quot;,&#xA;            &amp;quot;type&amp;quot;: &amp;quot;-&amp;gt;&amp;quot;&#xA;        },&#xA;        {&#xA;            &amp;quot;file&amp;quot;: &amp;quot;D:\\Choti Market\\backend-choti-market\\vendor\\laravel\\framework\\src\\Illuminate\\Session\\Middleware\\StartSession.php&amp;quot;,&#xA;            &amp;quot;line&amp;quot;: 120,&#xA;            &amp;quot;function&amp;quot;: &amp;quot;{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}&amp;quot;,&#xA;            &amp;quot;class&amp;quot;: &amp;quot;Illuminate\\Pipeline\\Pipeline&amp;quot;,&#xA;            &amp;quot;type&amp;quot;: &amp;quot;-&amp;gt;&amp;quot;&#xA;        },&#xA;        {&#xA;            &amp;quot;file&amp;quot;: &amp;quot;D:\\Choti Market\\backend-choti-market\\vendor\\laravel\\framework\\src\\Illuminate\\Session\\Middleware\\StartSession.php&amp;quot;,&#xA;            &amp;quot;line&amp;quot;: 63,&#xA;            &amp;quot;function&amp;quot;: &amp;quot;handleStatefulRequest&amp;quot;,&#xA;            &amp;quot;class&amp;quot;: &amp;quot;Illuminate\\Session\\Middleware\\StartSession&amp;quot;,&#xA;            &amp;quot;type&amp;quot;: &amp;quot;-&amp;gt;&amp;quot;&#xA;        },&#xA;        {&#xA;            &amp;quot;file&amp;quot;: &amp;quot;D:\\Choti Market\\backend-choti-market\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php&amp;quot;,&#xA;            &amp;quot;line&amp;quot;: 219,&#xA;            &amp;quot;function&amp;quot;: &amp;quot;handle&amp;quot;,&#xA;            &amp;quot;class&amp;quot;: &amp;quot;Illuminate\\Session\\Middleware\\StartSession&amp;quot;,&#xA;            &amp;quot;type&amp;quot;: &amp;quot;-&amp;gt;&amp;quot;&#xA;        },&#xA;        {&#xA;            &amp;quot;file&amp;quot;: &amp;quot;D:\\Choti Market\\backend-choti-market\\vendor\\laravel\\framework\\src\\Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse.php&amp;quot;,&#xA;            &amp;quot;line&amp;quot;: 36,&#xA;            &amp;quot;function&amp;quot;: &amp;quot;{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}&amp;quot;,&#xA;            &amp;quot;class&amp;quot;: &amp;quot;Illuminate\\Pipeline\\Pipeline&amp;quot;,&#xA;            &amp;quot;type&amp;quot;: &amp;quot;-&amp;gt;&amp;quot;&#xA;        },&#xA;        {&#xA;            &amp;quot;file&amp;quot;: &amp;quot;D:\\Choti Market\\backend-choti-market\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php&amp;quot;,&#xA;            &amp;quot;line&amp;quot;: 219,&#xA;            &amp;quot;function&amp;quot;: &amp;quot;handle&amp;quot;,&#xA;            &amp;quot;class&amp;quot;: &amp;quot;Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse&amp;quot;,&#xA;            &amp;quot;type&amp;quot;: &amp;quot;-&amp;gt;&amp;quot;&#xA;        },&#xA;        {&#xA;            &amp;quot;file&amp;quot;: &amp;quot;D:\\Choti Market\\backend-choti-market\\vendor\\laravel\\framework\\src\\Illuminate\\Cookie\\Middleware\\EncryptCookies.php&amp;quot;,&#xA;            &amp;quot;line&amp;quot;: 74,&#xA;            &amp;quot;function&amp;quot;: &amp;quot;{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}&amp;quot;,&#xA;            &amp;quot;class&amp;quot;: &amp;quot;Illuminate\\Pipeline\\Pipeline&amp;quot;,&#xA;            &amp;quot;type&amp;quot;: &amp;quot;-&amp;gt;&amp;quot;&#xA;        },&#xA;        {&#xA;            &amp;quot;file&amp;quot;: &amp;quot;D:\\Choti Market\\backend-choti-market\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php&amp;quot;,&#xA;            &amp;quot;line&amp;quot;: 219,&#xA;            &amp;quot;function&amp;quot;: &amp;quot;handle&amp;quot;,&#xA;            &amp;quot;class&amp;quot;: &amp;quot;Illuminate\\Cookie\\Middleware\\EncryptCookies&amp;quot;,&#xA;            &amp;quot;type&amp;quot;: &amp;quot;-&amp;gt;&amp;quot;&#xA;        },&#xA;        {&#xA;            &amp;quot;file&amp;quot;: &amp;quot;D:\\Choti Market\\backend-choti-market\\vendor\\laravel\\sanctum\\src\\Http\\Middleware\\EnsureFrontendRequestsAreStateful.php&amp;quot;,&#xA;            &amp;quot;line&amp;quot;: 61,&#xA;            &amp;quot;function&amp;quot;: &amp;quot;{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}&amp;quot;,&#xA;            &amp;quot;class&amp;quot;: &amp;quot;Illuminate\\Pipeline\\Pipeline&amp;quot;,&#xA;            &amp;quot;type&amp;quot;: &amp;quot;-&amp;gt;&amp;quot;&#xA;        },&#xA;        {&#xA;            &amp;quot;file&amp;quot;: &amp;quot;D:\\Choti Market\\backend-choti-market\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php&amp;quot;,&#xA;            &amp;quot;line&amp;quot;: 201,&#xA;            &amp;quot;function&amp;quot;: &amp;quot;{closure:Laravel\\Sanctum\\Http\\Middleware\\EnsureFrontendRequestsAreStateful::frontendMiddleware():58}&amp;quot;,&#xA;            &amp;quot;class&amp;quot;: &amp;quot;Laravel\\Sanctum\\Http\\Middleware\\EnsureFrontendRequestsAreStateful&amp;quot;,&#xA;            &amp;quot;type&amp;quot;: &amp;quot;-&amp;gt;&amp;quot;&#xA;        },&#xA;        {&#xA;            &amp;quot;file&amp;quot;: &amp;quot;D:\\Choti Market\\backend-choti-market\\vendor\\laravel\\framework\\src\\Illuminate\\Pipeline\\Pipeline.php&amp;quot;,&#xA;            &amp;quot;line&amp;quot;: 137,&#xA;            &amp;quot;function&amp;quot;: &amp;quot;{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}&amp;quot;,&#xA;            &amp;quot;class&amp;quot;: &amp;quot;Illuminate\\Pipeline\\Pipeline&amp;quot;,&#xA;            &amp;quot;type&amp;quot;: &amp;quot;-&amp;gt;&amp;quot;&#xA;        },&#xA;        {&#xA;            &amp;quot;file&amp;quot;: &amp;quot;D:\\Choti Market\\backend-choti-market\\vendor\\laravel\\sanctum\\src\\Http\\Middleware\\EnsureFrontendRequestsAreStateful.php&amp;quot;,&#xA;            &amp;quot;line&amp;quot;: 25,&#xA;            &amp;quot;function&amp;quot;: &amp;quot;then&amp;quot;,&#xA;            &amp;quot;class&amp;quot;: &amp;quot;Illuminate\\Pi&#xA;&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;Cors.php:&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;&amp;lt;?php&#xA;&#xA;return [&#xA;&#xA;    /*&#xA;    |--------------------------------------------------------------------------&#xA;    | Cross-Origin Resource Sharing (CORS) Configuration&#xA;    |--------------------------------------------------------------------------&#xA;    |&#xA;    | Here you may configure your settings for cross-origin resource sharing&#xA;    | or &amp;quot;CORS&amp;quot;. This determines what cross-origin operations may execute&#xA;    | in web browsers. You are free to adjust these settings as needed.&#xA;    |&#xA;    | To learn more: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS&#xA;    |&#xA;    */&#xA;&#xA;    &#x27;paths&#x27; =&amp;gt; [&#x27;api/*&#x27;, &#x27;sanctum/csrf-cookie&#x27;,&#x27;send-email&#x27;],&#xA;&#xA;    &#x27;allowed_methods&#x27; =&amp;gt; [&#x27;*&#x27;],&#xA;&#xA;    &#x27;allowed_origins&#x27; =&amp;gt; [&#x27;http://localhost:5173&#x27;],&#xA;&#xA;    &#x27;allowed_origins_patterns&#x27; =&amp;gt; [],&#xA;&#xA;    &#x27;allowed_headers&#x27; =&amp;gt; [&#x27;*&#x27;],&#xA;&#xA;    &#x27;exposed_headers&#x27; =&amp;gt; [],&#xA;&#xA;    &#x27;max_age&#x27; =&amp;gt; 0,&#xA;&#xA;    &#x27;supports_credentials&#x27; =&amp;gt; true,&#xA;&#xA;];&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;api.php:&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;&amp;lt;?php&#xA;&#xA;use App\Http\Controllers\MailController;&#xA;use App\Http\Controllers\OtpController;&#xA;use App\Http\Controllers\UserController;&#xA;use Illuminate\Http\Request;&#xA;use Illuminate\Support\Facades\Route;&#xA;&#xA;Route::get(&#x27;/user&#x27;, function (Request $request) {&#xA;    return $request-&amp;gt;user();&#xA;})-&amp;gt;middleware(&#x27;auth:sanctum&#x27;);&#xA;&#xA;Route::post(&#x27;/send-email&#x27;,[MailController::class, &#x27;Mail_trigger&#x27;]);&#xA;Route::post(&#x27;/verify-otp&#x27;,[OtpController::class, &#x27;verify_otp&#x27;]);&#xA;Route::post(&#x27;/resend-otp&#x27;,[OtpController::class, &#x27;resend_otp&#x27;]);&#xA;Route::post(&#x27;/login-user&#x27;,[UserController::class, &#x27;login&#x27;]);&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;React.jsx file:&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;const submit = async (e) =&amp;gt; {&#xA;    e.preventDefault();&#xA;    try {&#xA;      &#xA;      await axios.get(&amp;quot;/sanctum/csrf-cookie&amp;quot;);&#xA;      const response = await axios.post(&#x27;/api/send-email&#x27;,&#xA;        formData,&#xA;        {&#xA;          withCredentials: true,&#xA;        }&#xA;      );&#xA;      console.table(response.data);&#xA;      if (response.data.success) {&#xA;        setNext(2);&#xA;      }&#xA;      console.log(&amp;quot;Sent&amp;quot;);&#xA;    } catch (error) {&#xA;      console.log(error.response?.data);&#xA;    }&#xA;  }&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;axios.js file :&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;import axios from &amp;quot;axios&amp;quot;;&#xA;&#xA;export default axios.create(&#xA;    {&#xA;        baseURL: &amp;quot;http://localhost:8000&amp;quot;,&#xA;        withXSRFToken: true,&#xA;        withCredentials: true,&#xA;&#xA;        headers: {&#xA;            Accept: &amp;quot;application/json&amp;quot;,&#xA;        },&#xA;    }&#xA;);&#xA;&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;
+        </summary>
+    </entry>
+    <entry>
+        <id>https://stackoverflow.com/q/79983897</id>
+        <re:rank scheme="https://stackoverflow.com">-4</re:rank>
+        <title type="text">Google Drive and Google Docs API authentication exception: invalid scope, bad request</title>
+            <category scheme="https://stackoverflow.com/tags" term="python" />
+            <category scheme="https://stackoverflow.com/tags" term="google-drive-api" />
+            <category scheme="https://stackoverflow.com/tags" term="google-oauth" />
+            <category scheme="https://stackoverflow.com/tags" term="token" />
+            <category scheme="https://stackoverflow.com/tags" term="google-docs-api" />
+        <author>
+            <name>Pink Acorn</name>
+            <uri>https://stackoverflow.com/users/32955826</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/79983897/google-drive-and-google-docs-api-authentication-exception-invalid-scope-bad-re" />
+        <published>2026-07-22T15:12:24Z</published>
+        <updated>2026-07-23T04:35:33Z</updated>
+        <summary type="html">
+            &lt;p&gt;Learning the ropes of Python&#x27;s Google Drive and Google docs APIs, I&#x27;ve run into issues here and there, and solved them easily enough.&lt;/p&gt;&#xA;&lt;p&gt;I tried looking at some other threads but couldn&#x27;t find a solution to this. I&#x27;m getting an error for an invalid scope, but I can&#x27;t refresh/delete the &lt;code&gt;token.json&lt;/code&gt;, because a token never got generated. I don&#x27;t have one in my file path, and I couldn&#x27;t find one elsewhere.&lt;/p&gt;&#xA;&lt;pre class=&quot;lang-py prettyprint-override&quot;&gt;&lt;code&gt;import os.path&#xA;&#xA;from google.auth.transport.requests import Request&#xA;from google.oauth2.credentials import Credentials&#xA;from google_auth_oauthlib.flow import InstalledAppFlow&#xA;from googleapiclient.discovery import build&#xA;from googleapiclient.errors import HttpError&#xA;&#xA;# If modifying these scopes, delete the file token.json.&#xA;SCOPES = [&amp;quot;https://www.googleapis.com/auth/drive&amp;quot;, &amp;quot;https://www.googleapis.com/auth/documents&amp;quot;]&#xA;&#xA;def make_doc(title: str, drive_id):&#xA;    folder = drive_id&#xA;    doc_title = title&#xA;    #redefine credentials, using try with exception to print error to console&#xA;    creds = None&#xA;    # The file token.json stores the user&#x27;s access and refresh tokens, and is&#xA;    # created automatically when the authorization flow completes for the first&#xA;    # time.&#xA;    if os.path.exists(&amp;quot;token.json&amp;quot;):&#xA;      creds = Credentials.from_authorized_user_file(&amp;quot;token.json&amp;quot;, SCOPES)&#xA;    # If there are no (valid) credentials available, let the user log in.&#xA;    if not creds or not creds.valid:&#xA;      if creds and creds.expired and creds.refresh_token:&#xA;        creds.refresh(Request())&#xA;    else:&#xA;      flow = InstalledAppFlow.from_client_secrets_file(&#xA;          &amp;quot;C:\\Google python\\credentials.json&amp;quot;, SCOPES&#xA;      )&#xA;      creds = flow.run_local_server(port=0)&#xA;    # Save the credentials for the next run&#xA;    with open(&amp;quot;token.json&amp;quot;, &amp;quot;w&amp;quot;) as token:&#xA;      token.write(creds.to_json())&#xA;    try:&#xA;      drive_service = build(&amp;quot;drive&amp;quot;, &amp;quot;v3&amp;quot;, credentials=creds)&#xA;      docs_service = build(&amp;quot;docs&amp;quot;, &amp;quot;v1&amp;quot;, credentials=creds)&#xA;&#xA;    except HttpError as error:&#xA;      # TODO(developer) - Handle errors from drive API.&#xA;      print(f&amp;quot;An error occurred: {error}&amp;quot;)&#xA;&#xA;    #creates a dictionary that defines parameters for google doc&#xA;    doc_metadata = {&#xA;      &#x27;name&#x27; : doc_title,&#xA;      &#x27;parentFolder&#x27; : folder,&#xA;      &#x27;app_type&#x27; : &#x27;application/vnd.google-apps.document&#x27;&#xA;    }&#xA;&#xA;    #creates the document with metadata defined by above dictionary, then returns the document ID&#xA;    document = drive_service.files().create(body=doc_metadata).execute()&#xA;    id = document[&#x27;id&#x27;]&#xA;    return id&#xA;&#xA;make_doc(&amp;quot;Hai! :3c&amp;quot;, &#x27;[redacted]&#x27;)&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;I tried running the code with just the imports, and it still didn&#x27;t generate a token. I tried to run the individual bit that&#x27;s supposed to make the token, but I didn&#x27;t see anything happen. What&#x27;s supposed to happen is that it asks me to log in with a google account, and generates a google document in a drive folder.&lt;/p&gt;&#xA;&lt;p&gt;Here&#x27;s the generated error:&lt;/p&gt;&#xA;&lt;pre class=&quot;lang-none prettyprint-override&quot;&gt;&lt;code&gt;Traceback (most recent call last):&#xA;  File &amp;quot;c:\Google python\quickstart.py&amp;quot;, line 54, in &amp;lt;module&amp;gt;&#xA;    make_doc(&amp;quot;Hai! :3c&amp;quot;, &#x27;[redacted]&#x27;)&#xA;    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^&#xA;  File &amp;quot;c:\Google python\quickstart.py&amp;quot;, line 25, in make_doc&#xA;    creds.refresh(Request())&#xA;    ~~~~~~~~~~~~~^^^^^^^^^^^&#xA;  File &amp;quot;C:\Users\[redacted]\AppData\Local\Programs\Python\Python313\Lib\site-packages\google\auth\credentials.py&amp;quot;, line 517, in refresh&#xA;    self._perform_refresh_token(request)&#xA;    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^&#xA;  File &amp;quot;C:\Users\[redacted]\AppData\Local\Programs\Python\Python313\Lib\site-packages\google\oauth2\credentials.py&amp;quot;, line 435, in _perform_refresh_token&#xA;    ) = reauth.refresh_grant(&#xA;        ~~~~~~~~~~~~~~~~~~~~^&#xA;        request,&#xA;        ^^^^^^^^&#xA;    ...&amp;lt;6 lines&amp;gt;...&#xA;        enable_reauth_refresh=self._enable_reauth_refresh,&#xA;        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^&#xA;    )&#xA;    ^&#xA;  File &amp;quot;C:\Users\[redacted]\AppData\Local\Programs\Python\Python313\Lib\site-packages\google\oauth2\reauth.py&amp;quot;, line 370, in refresh_grant&#xA;    _client._handle_error_response(response_data, retryable_error)&#xA;    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^&#xA;  File &amp;quot;C:\Users\[redacted]\AppData\Local\Programs\Python\Python313\Lib\site-packages\google\oauth2\_client.py&amp;quot;, line 73, in _handle_error_response&#xA;    raise exceptions.RefreshError(&#xA;        error_details, response_data, retryable=retryable_error&#xA;    )&#xA;google.auth.exceptions.RefreshError: (&#x27;invalid_scope: Bad Request&#x27;, {&#x27;error&#x27;: &#x27;invalid_scope&#x27;, &#x27;error_description&#x27;: &#x27;Bad Request&#x27;})&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;Researching similar threads/QnAs on the same error:&lt;/p&gt;&#xA;&lt;blockquote&gt;&#xA;&lt;p&gt;(google.auth.exceptions.RefreshError: (&#x27;invalid_scope: Bad Request&#x27;, {&#x27;error&#x27;: &#x27;invalid_scope&#x27;, &#x27;error_description&#x27;: &#x27;Bad Request&#x27;})&amp;quot;&lt;/p&gt;&#xA;&lt;/blockquote&gt;&#xA;&lt;p&gt;only turned up versions of this error where people actually had a &lt;code&gt;token.json&lt;/code&gt; file in their directory. For some reason, I never got one when running any of the quickstart code, nor my own code, and despite that, the quickstart still worked. Hence, these threads were largely not useful to me, because I can&#x27;t delete a file that isn&#x27;t in my directory.&lt;/p&gt;&#xA;
+        </summary>
+    </entry>
+    <entry>
+        <id>https://stackoverflow.com/q/79983833</id>
+        <re:rank scheme="https://stackoverflow.com">1</re:rank>
+        <title type="text">Can Numba be used on a for loop without using a function?</title>
+            <category scheme="https://stackoverflow.com/tags" term="python" />
+            <category scheme="https://stackoverflow.com/tags" term="function" />
+            <category scheme="https://stackoverflow.com/tags" term="for-loop" />
+            <category scheme="https://stackoverflow.com/tags" term="numba" />
+        <author>
+            <name>Omar Osman Mahamoud</name>
+            <uri>https://stackoverflow.com/users/32930453</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/79983833/can-numba-be-used-on-a-for-loop-without-using-a-function" />
+        <published>2026-07-22T11:16:24Z</published>
+        <updated>2026-07-23T03:45:16Z</updated>
+        <summary type="html">
+            &lt;p&gt;I want to speed up the following code:&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;import numpy as np&#xA;import matplotlib.pyplot as plt&#xA;&#xA;x_sun, y_sun, vx_sun, vy_sun, ax_sun, ay_sun,m_sun= 0,0,0,0,0,0,1&#xA;&#xA;G=4*(np.pi)**2&#xA;&#xA;x=[1, 0.72, 1.5237, 5.2, 0.47, 9.36, 19.18,30.1]&#xA;&#xA;xpos=[[],[],[],[],[],[],[],[]]&#xA;&#xA;y=[0, 0, 0, 0, 0, 0, 0, 0]&#xA;&#xA;ypos=[[],[],[],[],[],[],[],[]]&#xA;&#xA;vx=[0, 0, 0, 0, 0, 0, 0, 0]&#xA;&#xA;vy=[6.281991687112502, 7.38, 5.0867271316753815, 2.74, 9.95, 2.04, 1.26, 1.145] &#xA;&#xA;ax=[0, 0, 0, 0, 0, 0, 0, 0]&#xA;&#xA;ay=[0, 0, 0, 0, 0, 0, 0, 0]&#xA;&#xA;mass=[&#xA;3.002513826043238e-06,&#xA;0.000002447,&#xA;3.2267471091000503e-07,&#xA;0.00050278543100000007166,&#xA;1.65e-07,&#xA;2.86e-04,&#xA;4.36e-05,&#xA;5.15e-05&#xA;]&#xA;&#xA;dt=0.001&#xA;&#xA;for i in range(10**4):&#xA;    for j in range(len(x)):&#xA;        # if x[j]&amp;gt;35 or y[j]&amp;gt;35:&#xA;        #     break&#xA;        # else:&#xA;        ax[j]=-G*(m_sun&#x2B;mass[j])*x[j]/((x[j]**2&#x2B;y[j]**2)**0.5)**3&#xA;        terme=0&#xA;        for k in range(len(x)):&#xA;            if k!=j:&#xA;                terme&#x2B;=G*mass[k]*(x[k]-x[j])/(((x[k]-x[j])**2&#x2B;(y[k]-y[j])**2)**0.5)**3&#xA;            else:&#xA;                continue&#xA;        ax[j]&#x2B;=terme&#xA;        ay[j]=-G*(m_sun&#x2B;mass[j])*y[j]/((x[j]**2&#x2B;y[j]**2)**0.5)**3&#xA;        terme2=0&#xA;        for k in range(len(x)):&#xA;            if k!=j:&#xA;                terme2&#x2B;=G*mass[k]*(y[k]-y[j])/(((x[k]-x[j])**2&#x2B;(y[k]-y[j])**2)**0.5)**3&#xA;            else:&#xA;                continue&#xA;        ay[j]&#x2B;=terme2 &#xA;        &#xA;        vx[j]&#x2B;=ax[j]*dt&#xA;        vy[j]&#x2B;=ay[j]*dt&#xA;&#xA;        xpos[j].append(x[j])&#xA;        ypos[j].append(y[j])&#xA;&#xA;        x[j]&#x2B;=vx[j]*dt&#xA;        y[j]&#x2B;=vy[j]*dt&#xA;&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;I would like to know whether it is possible to speed up the execution of a &lt;code&gt;for&lt;/code&gt; loop using Numba without first wrapping the loop inside a separate function. From what I understand, Numba is typically applied as a decorator (such as &lt;code&gt;@njit&lt;/code&gt;) to functions, but I was wondering if there is any way to compile or accelerate a standalone &lt;code&gt;for&lt;/code&gt; loop directly, without having to refactor my code into a dedicated function. If this is not possible, I would also appreciate an explanation of why Numba requires functions in order to optimize Python code.&lt;/p&gt;&#xA;
+        </summary>
+    </entry>
+    <entry>
+        <id>https://stackoverflow.com/q/79983815</id>
+        <re:rank scheme="https://stackoverflow.com">2</re:rank>
+        <title type="text">Algorithm for adding large lists of rational numbers</title>
+            <category scheme="https://stackoverflow.com/tags" term="algorithm" />
+            <category scheme="https://stackoverflow.com/tags" term="rational-number" />
+        <author>
+            <name>vlad_tepesch</name>
+            <uri>https://stackoverflow.com/users/2331592</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/79983815/algorithm-for-adding-large-lists-of-rational-numbers" />
+        <published>2026-07-22T10:07:53Z</published>
+        <updated>2026-07-23T03:26:07Z</updated>
+        <summary type="html">
+            &lt;p&gt;I have lists (&amp;gt;3000) of (reduced) rational numbers in the form a/b.&lt;/p&gt;&#xA;&lt;p&gt;Is there an algorithm to determine the best possible order of summing those to avoid getting overflows of &lt;code&gt;a&lt;/code&gt; and &lt;code&gt;b&lt;/code&gt; (assuming that for the result a reduced form exist, that does not overflow)?&lt;/p&gt;&#xA;&lt;p&gt;I already tried the following things:&lt;/p&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;&lt;p&gt;order the numbers by denominator and sum up each group (and reduce afterwards) and repeat until all singular denominators remain&lt;/p&gt;&#xA;&lt;/li&gt;&#xA;&lt;li&gt;&lt;p&gt;pull two smallest denominator-numbers - sum, reduce, put back - repeat.&lt;/p&gt;&#xA;&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;p&gt;I also thought about n*(n-1) pairwise analysing for of least common multiples and choosing the largest group to sum first and then repeat.&lt;/p&gt;&#xA;&lt;p&gt;But that seems quite computationally expensive for questionable success.&lt;/p&gt;&#xA;&lt;p&gt;Are there any suggestions or  keywords I could search for?&lt;/p&gt;&#xA;&lt;p&gt;One possible solution would be to use an arbitrary precision BigInt library, but I would like to avoid this.&lt;/p&gt;&#xA;&#xA;
+        </summary>
+    </entry>
+    <entry>
+        <id>https://stackoverflow.com/q/79983720</id>
+        <re:rank scheme="https://stackoverflow.com">7</re:rank>
+        <title type="text">Conway&#x27;s Game of Life: How to colour the cells based on number of neighbours? (edit: change number of neighbours to age of cells) [closed]</title>
+            <category scheme="https://stackoverflow.com/tags" term="python" />
+            <category scheme="https://stackoverflow.com/tags" term="matplotlib" />
+            <category scheme="https://stackoverflow.com/tags" term="dynamic" />
+            <category scheme="https://stackoverflow.com/tags" term="colors" />
+            <category scheme="https://stackoverflow.com/tags" term="matplotlib-animation" />
+        <author>
+            <name>Bill Kerr</name>
+            <uri>https://stackoverflow.com/users/28728110</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/79983720/conways-game-of-life-how-to-colour-the-cells-based-on-number-of-neighbours-e" />
+        <published>2026-07-22T02:53:31Z</published>
+        <updated>2026-07-23T04:19:15Z</updated>
+        <summary type="html">
+            &lt;p&gt;I&#x27;ve coded Conway&#x27;s Game of Life in NumPy and matplotlib.&lt;/p&gt;&#xA;&lt;p&gt;It works but I want to alter the colours of the cells based on their numbers of neighbours. My code does set background colour and cell colour but only as a block. I can&#x27;t figure out how to change cell colour based on number of neighbours.&lt;/p&gt;&#xA;&lt;p&gt;Update: Based on comments my goal changed to changing the colour based on the age of the cells, not the number of neighbours.&lt;/p&gt;&#xA;&lt;p&gt;&lt;a href=&quot;https://conwaylife.appspot.com/pattern/rpentomino&quot; rel=&quot;nofollow noreferrer&quot;&gt;This&lt;/a&gt; example codes rpentonimo in 4 colours which are changing based on number of neighbours, although the exact formula is not clear to me. (edit: it was pointed out that the colours in this example change by age of cells, not colors) Linking that as an example of the sort of thing I want to achieve.&lt;/p&gt;&#xA;&lt;p&gt;Here is my code:&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;&amp;quot;&amp;quot;&amp;quot;&#xA;Game of Life&#xA;&amp;quot;&amp;quot;&amp;quot;&#xA;import numpy as np&#xA;import matplotlib.pyplot as plt&#xA;from matplotlib.animation import FuncAnimation&#xA;from matplotlib.colors import ListedColormap&#xA;&#xA;def create_universe(N=50, p=0.5):&#xA;    return np.random.choice([0, 1], size=(N, N), p=[1-p, p])&#xA;# generates random 1 and 0s with p probability in a N*N 2D array&#xA;N = 50 # array size&#xA;&#xA;universe = create_universe(N=N, p=0.5)&#xA;# universe determines image&#xA;&#xA;generations = 0 # measure the number of generations&#xA;&#xA;# Custom colormap for discrete values&#xA;colors = [&#x27;white&#x27;, &#x27;green&#x27;, &#x27;red&#x27;]&#xA;discrete_cmap = ListedColormap(colors)&#xA;&#xA;# animation function&#xA;def animate(frame, universe, img):&#xA;    global generations&#xA;    new_u = np.zeros((N, N), dtype = int)&#xA;    # new_u initialises as same size as universe, array of all 0s &#xA;    # then calculates neighbour count&#xA;    &#xA;    # set edges of universe to zero&#xA;    # to avoid edge calculation complications&#xA;    universe[0,:] = universe[-1,:] = universe[:,0] = universe[:,-1] = 0&#xA;    # universe is 2D array with 1s and 0s&#xA;    &#xA;    # count the neighbours of the universe cells (by grid displacement)&#xA;    # new_u is neighbour counts&#xA;    new_u[1:-1,1:-1] = (universe[ :-2, :-2] &#x2B; universe[ :-2,1:-1] &#x2B; universe[ :-2,2:] &#x2B;&#xA;                     universe[1:-1, :-2]                &#x2B; universe[1:-1,2:] &#x2B;&#xA;                     universe[2:  , :-2] &#x2B; universe[2:  ,1:-1] &#x2B; universe[2:  ,2:])&#xA;&#xA;    # boolean masks to implement GOL rules&#xA;    birth = (new_u==3)[1:-1,1:-1] &amp;amp; (universe[1:-1,1:-1]==0) &#xA;    # 3 neighbours for an empty cell -&amp;gt; birth&#xA;    survive = ((new_u==2) | (new_u==3))[1:-1,1:-1] &amp;amp; (universe[1:-1,1:-1]==1)&#xA;    # 2 or 3 neighbours in occupied cell -&amp;gt; survive&#xA;    &#xA;    # reset universe to zeros, make a new copy, then update 1s &amp;amp; 0s&#xA;    universe[:] = np.zeros((N, N), dtype = int) # new copy essential&#xA;    universe[1:-1,1:-1][birth | survive] = 1&#xA;    # count the population&#xA;    population = np.count_nonzero(universe)&#xA;    # update image with the data set method&#xA;    img.set_data(universe)&#xA;    # display generations and population&#xA;    ax.set_xlabel(&#x27;generations = {}, population = {}&#x27;.format(generations, population))&#xA;    generations &#x2B;= 1 # update generations&#xA;&#xA;fig = plt.figure(figsize=(5, 5)) # figure size&#xA;ax = plt.axes()&#xA;ax.set_yticklabels([]) # turn off axis ticks (but keep x axis label above)&#xA;ax.set_xticklabels([])&#xA;img = ax.imshow(universe, interpolation=&#x27;nearest&#x27;, &#xA;                cmap=discrete_cmap, vmin=0, vmax=1)&#xA;# imshow is the plotting method for AxesImage artist&#xA;ani = FuncAnimation(fig, animate, fargs=(universe, img,),&#xA;                    frames=200, interval=200)&#xA;# ani lives while animation runs, otherwise garbage collected&#xA;# fargs: arguments to pass to each call of the function &#xA;# interval in milliseconds&#xA;#ani.save(&amp;quot;GOL_random.gif&amp;quot;) # save the animations as a gif&#xA;plt.show()&#xA;&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;
+        </summary>
+    </entry>
+    <entry>
+        <id>https://stackoverflow.com/q/79983411</id>
+        <re:rank scheme="https://stackoverflow.com">-1</re:rank>
+        <title type="text">Using DbSchema Salesforce JDBC drivers with DataGrip</title>
+            <category scheme="https://stackoverflow.com/tags" term="jdbc" />
+            <category scheme="https://stackoverflow.com/tags" term="salesforce" />
+            <category scheme="https://stackoverflow.com/tags" term="datagrip" />
+            <category scheme="https://stackoverflow.com/tags" term="db-schema" />
+        <author>
+            <name>Gus D</name>
+            <uri>https://stackoverflow.com/users/602532</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/79983411/using-dbschema-salesforce-jdbc-drivers-with-datagrip" />
+        <published>2026-07-21T05:18:48Z</published>
+        <updated>2026-07-23T02:27:36Z</updated>
+        <summary type="html">
+            &lt;p&gt;How can I use the DbSchema open source JDBC drivers with the JetBrains DataGrip DB IDE?&lt;/p&gt;&#xA;&lt;p&gt;I cannot work out how to add the collection of JAR files in the downloadable zip to DataGrip and then how to get it to connect to Salesforce.&lt;/p&gt;&#xA;&lt;p&gt;I have not been able to find any detailed instructions for using these drivers with DataGrip.&lt;/p&gt;&#xA;&lt;p&gt;UPDATE: --&#xA;My question relates SPECIFCALLY with the DBSchema drivers and Datagrip, not the general usage of JDBC drivers in Datagrip.. I can read a manual !&lt;/p&gt;&#xA;&lt;p&gt;1.DBSchema provide a zip file full of jdbc jar files, I assume that they are all required.&#xA;2.Datagrip is not recognising the driver class from the jar files.&lt;/p&gt;&#xA;
+        </summary>
+    </entry>
+    <entry>
+        <id>https://stackoverflow.com/q/79978352</id>
+        <re:rank scheme="https://stackoverflow.com">-3</re:rank>
+        <title type="text">Why does `printf ... if ( $verbose)` result in a taint error [closed]</title>
+            <category scheme="https://stackoverflow.com/tags" term="perl" />
+            <category scheme="https://stackoverflow.com/tags" term="printf" />
+            <category scheme="https://stackoverflow.com/tags" term="taint" />
+        <author>
+            <name>U. Windl</name>
+            <uri>https://stackoverflow.com/users/32596570</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/79978352/why-does-printf-if-verbose-result-in-a-taint-error" />
+        <published>2026-07-09T13:49:40Z</published>
+        <updated>2026-07-23T04:17:00Z</updated>
+        <summary type="html">
+            &lt;p&gt;Flow control based on user-input shouldn&#x27;t lead to taint errors, so I don&#x27;t understand why the following code results in a taint error:&lt;/p&gt;&#xA;&lt;pre class=&quot;lang-perl prettyprint-override&quot;&gt;&lt;code&gt;#!/usr/bin/perl -T&#xA;use strict;&#xA;use warnings;&#xA;&#xA;use Scalar::Util qw(tainted);&#xA;&#xA;my $verbose = $ARGV[0] // 3;&#xA;my $me = &amp;quot;foo&amp;quot;;&#xA;&#xA;print &amp;quot;verbose: &amp;quot;, tainted( $verbose ) ? &amp;quot;tainted\n&amp;quot; : &amp;quot;not tainted\n&amp;quot;;&#xA;print &amp;quot;me: &amp;quot;,      tainted( $me      ) ? &amp;quot;tainted\n&amp;quot; : &amp;quot;not tainted\n&amp;quot;;&#xA;&#xA;printf( &amp;quot;$me\n&amp;quot; ) if $verbose &amp;gt; 2;&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;Output:&lt;/p&gt;&#xA;&lt;pre class=&quot;lang-none prettyprint-override&quot;&gt;&lt;code&gt;$ ./a.pl 3&#xA;verbose: tainted&#xA;me: not tainted&#xA;Insecure dependency in printf while running with -T switch at ./a.pl line 13.&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;Untainting &lt;code&gt;$verbose&lt;/code&gt; eliminates the taint error.&lt;/p&gt;&#xA;&lt;pre class=&quot;lang-none prettyprint-override&quot;&gt;&lt;code&gt;$ ./a.pl&#xA;verbose: not tainted&#xA;me: not tainted&#xA;foo&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;What&#x27;s going on here?&lt;/p&gt;&#xA;
+        </summary>
+    </entry>
+    <entry>
+        <id>https://stackoverflow.com/q/79924929</id>
+        <re:rank scheme="https://stackoverflow.com">0</re:rank>
+        <title type="text">How to reduce background noise when using voice AI APIs?</title>
+            <category scheme="https://stackoverflow.com/tags" term="artificial-intelligence" />
+            <category scheme="https://stackoverflow.com/tags" term="large-language-model" />
+            <category scheme="https://stackoverflow.com/tags" term="agent" />
+            <category scheme="https://stackoverflow.com/tags" term="audio-processing" />
+            <category scheme="https://stackoverflow.com/tags" term="openai-agents" />
+        <author>
+            <name>Rashmi R</name>
+            <uri>https://stackoverflow.com/users/32576970</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/79924929/how-to-reduce-background-noise-when-using-voice-ai-apis" />
+        <published>2026-04-13T17:33:18Z</published>
+        <updated>2026-07-23T03:02:20Z</updated>
+        <summary type="html">
+            &lt;p&gt;I am using a voice-based Generative AI agent, and in real-world scenarios with significant background noise, How can I reduce background noise to improve input clarity and generate more accurate responses?&lt;/p&gt;&#xA;&lt;p&gt;What are the best practices to reduce background noise in such cases?&lt;/p&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;&lt;p&gt;Are there recommended audio preprocessing techniques (e.g., noise suppression, filtering)?&lt;/p&gt;&#xA;&lt;/li&gt;&#xA;&lt;li&gt;&lt;p&gt;Should noise handling be done on the client side or backend?&lt;/p&gt;&#xA;&lt;/li&gt;&#xA;&lt;li&gt;&lt;p&gt;Are there specific configurations or tools that improve performance in noisy environments?&lt;/p&gt;&#xA;&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;p&gt;Looking for practical approaches to improve voice input quality and overall system reliability.&lt;/p&gt;&#xA;
+        </summary>
+    </entry>
+    <entry>
+        <id>https://stackoverflow.com/q/69280089</id>
+        <re:rank scheme="https://stackoverflow.com">1</re:rank>
+        <title type="text">Please enter the correct Email and password for a staff account. Note that both fields may be case-sensitive</title>
+            <category scheme="https://stackoverflow.com/tags" term="django" />
+            <category scheme="https://stackoverflow.com/tags" term="django-models" />
+            <category scheme="https://stackoverflow.com/tags" term="django-custom-user" />
+            <category scheme="https://stackoverflow.com/tags" term="superuser" />
+            <category scheme="https://stackoverflow.com/tags" term="user-mode-linux" />
+        <author>
+            <name>Motalib Hossain</name>
+            <uri>https://stackoverflow.com/users/13298803</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/69280089/please-enter-the-correct-email-and-password-for-a-staff-account-note-that-both" />
+        <published>2021-09-22T07:41:09Z</published>
+        <updated>2026-07-23T03:09:35Z</updated>
+        <summary type="html">
+            &lt;p&gt;I complete makemigrations and migrate then create a superuser. After this&#xA;&lt;a href=&quot;http://127.0.0.1:8000/admin&quot; rel=&quot;nofollow noreferrer&quot;&gt;http://127.0.0.1:8000/admin&lt;/a&gt; i try to log in then show this error&#xA;&lt;em&gt;&lt;strong&gt;Please enter the correct Email and password for a staff account. Note that both fields may be case-sensitive&lt;/strong&gt;&lt;/em&gt;&lt;/p&gt;&#xA;&lt;p&gt;&lt;strong&gt;seetings.py&lt;/strong&gt;&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;AUTH_USER_MODEL = &#x27;user.CustomUser&#x27;&#xA;&#xA;&#xA;**models.py**&#xA;from django.db import models&#xA;from django.contrib.auth.models import AbstractUser,BaseUserManager&#xA;&#xA;&#xA;class CustomUserManager(BaseUserManager):&#xA;    &amp;quot;&amp;quot;&amp;quot;&#xA;    Creates and saves a User with the given email, date of&#xA;    birth and password.&#xA;    &amp;quot;&amp;quot;&amp;quot;&#xA;    def create_user(self, email, password=None):&#xA;        if not email:&#xA;            raise ValueError(&#x27;User must have an email id&#x27;)&#xA;&#xA;        user=self.model(&#xA;            email=self.normalize_email(email)&#xA;        )&#xA;        user.set_password(password)&#xA;        user.save(using=self._db)&#xA;        return user&#xA;&#xA;    def create_superuser(self, email, password=None):&#xA;        user=self.create_user(&#xA;            email,&#xA;            password=password&#xA;        )&#xA;        user.is_admin = True&#xA;        user.save(using=self._db)&#xA;        return user&#xA;&#xA;&#xA;class CustomUser(AbstractUser):&#xA;    #only add email field for login&#xA;&#xA;    email = models.EmailField(&#xA;        verbose_name=&#x27;Email&#x27;,&#xA;        max_length=50,&#xA;        unique=True&#xA;    )&#xA;    is_active = models.BooleanField(default=True)&#xA;    is_admin = models.BooleanField(default=False)&#xA;&#xA;    objects = CustomUserManager()&#xA;&#xA;    USERNAME_FIELD = &#x27;email&#x27;&#xA;    REQUIRED_FIELDS = []&#xA;&#xA;    def __str__(self):&#xA;        return self.email&#xA;&#xA;&#xA;&#xA;***admin.py***&#xA;&#xA;from django.contrib import admin&#xA;from django.contrib.auth import get_user_model&#xA;&#xA;user=get_user_model()&#xA;&#xA;admin.site.register(user)&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;
+        </summary>
+    </entry>
+    <entry>
+        <id>https://stackoverflow.com/q/68707300</id>
+        <re:rank scheme="https://stackoverflow.com">7</re:rank>
+        <title type="text">@MockBean is returning null object</title>
+            <category scheme="https://stackoverflow.com/tags" term="java" />
+            <category scheme="https://stackoverflow.com/tags" term="spring" />
+            <category scheme="https://stackoverflow.com/tags" term="junit5" />
+            <category scheme="https://stackoverflow.com/tags" term="spring-boot-test" />
+        <author>
+            <name>bhavya</name>
+            <uri>https://stackoverflow.com/users/8300156</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/68707300/mockbean-is-returning-null-object" />
+        <published>2021-08-09T05:39:33Z</published>
+        <updated>2026-07-23T03:09:35Z</updated>
+        <summary type="html">
+            &lt;p&gt;I am trying to use @MockBean;  java version 11, Spring Framework Version (5.3.8), Spring Boot Version(2.5.1) and Junit Jupiter (5.7.2) .&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;    @SpringBootTest&#xA;    public class PostEventHandlerTest {&#xA;        @MockBean&#xA;        private AttachmentService attachmentService;&#xA;&#xA;        @Test&#xA;        public void handlePostBeforeCreateTest() throws Exception {&#xA;            Post post = new Post(&amp;quot;First Post&amp;quot;, &amp;quot;Post Added&amp;quot;, null, null, &amp;quot;&amp;quot;, &amp;quot;&amp;quot;);&#xA;            &#xA;            Mockito.when(attachmentService.storeFile(&amp;quot;abc.txt&amp;quot;, &amp;quot;&amp;quot;)).thenReturn(new Attachment());&#xA;     &#xA;            PostEventHandler postEventHandler = new PostEventHandler();&#xA;            postEventHandler.handlePostBeforeCreate(post);&#xA;            verify(attachmentService, times(1)).storeFile(&amp;quot;abc.txt&amp;quot;, &amp;quot;&amp;quot;);&#xA;       }&#xA;    }&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;pre&gt;&lt;code&gt;    @Slf4j&#xA;    @Component&#xA;    @Configuration&#xA;    @RepositoryEventHandler&#xA;    public class PostEventHandler {&#xA;           @Autowired&#xA;           private AttachmentService attachmentService;&#xA;&#xA;           @Autowired&#xA;           private PostRepository postRepository;&#xA;&#xA;           public void handlePostBeforeCreate(Post post) throws Exception {&#xA;             ...&#xA;             /* Here attachmentService is found null when we execute above test*/&#xA;             attachmentService.storeFile(fileName, content);&#xA;             ...&#xA;           }&#xA;    }&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;attachmentService is not being mocked it gives null in return&lt;/p&gt;&#xA;
+        </summary>
+    </entry>
+    <entry>
+        <id>https://stackoverflow.com/q/58117637</id>
+        <re:rank scheme="https://stackoverflow.com">11</re:rank>
+        <title type="text">Cleanup the /var/lib/jenkins/caches folder</title>
+            <category scheme="https://stackoverflow.com/tags" term="jenkins" />
+            <category scheme="https://stackoverflow.com/tags" term="jenkins-pipeline" />
+        <author>
+            <name>Rahul Mohan</name>
+            <uri>https://stackoverflow.com/users/5047622</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/58117637/cleanup-the-var-lib-jenkins-caches-folder" />
+        <published>2019-09-26T13:14:37Z</published>
+        <updated>2026-07-23T02:46:51Z</updated>
+        <summary type="html">
+            &lt;p&gt;my jenkins caches(&lt;code&gt;var/lib/jenkins/caches&lt;/code&gt;) folder is more that 8gb, I have to perform a backup of my Jenkins home directory.&lt;/p&gt;&#xA;&#xA;&lt;p&gt;Is it safe to delete entire files &lt;code&gt;/var/lib/jenkins/caches/*&lt;/code&gt; or cleanup the &lt;code&gt;/var/lib/jenkins/caches folder&lt;/code&gt;? &lt;/p&gt;&#xA;&#xA;&lt;p&gt;Will it affect my existing jobs?&lt;/p&gt;&#xA;
+        </summary>
+    </entry>
+    <entry>
+        <id>https://stackoverflow.com/q/54627372</id>
+        <re:rank scheme="https://stackoverflow.com">-1</re:rank>
+        <title type="text">Print array in Codeigniter</title>
+            <category scheme="https://stackoverflow.com/tags" term="php" />
+            <category scheme="https://stackoverflow.com/tags" term="codeigniter" />
+            <category scheme="https://stackoverflow.com/tags" term="datatables" />
+            <category scheme="https://stackoverflow.com/tags" term="codeigniter-3" />
+        <author>
+            <name>I. Rasel</name>
+            <uri>https://stackoverflow.com/users/7249044</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/54627372/print-array-in-codeigniter" />
+        <published>2019-02-11T09:26:50Z</published>
+        <updated>2026-07-23T02:26:13Z</updated>
+        <summary type="html">
+            &lt;p&gt;Sorry if the questions seams stupid but I have created an array in my controller and I pass it to the view with the $data[&#x27;sample&#x27;] array.&lt;/p&gt;&#xA;&#xA;&lt;p&gt;Here is my MYSQL Query:&lt;/p&gt;&#xA;&#xA;&lt;pre&gt;&lt;code&gt;SELECT  workplace.id, workplace.type,&#xA;    MAX(IF(workplace.region_id = 1, workplace.name,0)) &#x27;Dhaka South&#x27;,&#xA;    MAX(IF(workplace.region_id = 2, workplace.name,0)) &#x27;Dhaka North&#x27;,&#xA;    MAX(IF(workplace.region_id = 3, workplace.name,0)) &#x27;Savar&#x27;,&#xA;    MAX(IF(workplace.region_id = 4, workplace.name,0)) &#x27;Narayangonjh&#x27;,&#xA;    MAX(IF(workplace.region_id = 5, workplace.name,0)) &#x27;Mymensingh&#x27;,&#xA;    MAX(IF(workplace.region_id = 6, workplace.name,0)) &#x27;Barisal&#x27;,&#xA;    MAX(IF(workplace.region_id = 7, workplace.name,0)) &#x27;Faridpur&#x27;,&#xA;    MAX(IF(workplace.region_id = 8, workplace.name,0)) &#x27;Jessore&#x27;&#xA;FROM    workplace&#xA;WHERE   workplace.type=&#x27;area&#x27;&#xA;GROUP BY workplace.id&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&#xA;&lt;p&gt;If f print_r the sample it looks like&lt;/p&gt;&#xA;&#xA;&lt;pre&gt;&lt;code&gt;SELECT workplace.id, workplace.type, MAX(IF(workplace.region_id = 1, workplace.name,0)) &#x27;Dhaka South&#x27;, MAX(IF(workplace.region_id = 2, workplace.name,0)) &#x27;Dhaka North&#x27;, MAX(IF(workplace.region_id = 3, workplace.name,0)) &#x27;Savar&#x27;, MAX(IF(workplace.region_id = 4, workplace.name,0)) &#x27;Narayangonjh&#x27;, WHERE workplace.type=&#x27;area&#x27; GROUP BY workplace.id&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&#xA;&lt;blockquote&gt;&#xA;  &lt;p&gt;Array&#xA;  (&#xA;      [0] =&gt; stdClass Object&#xA;          (&#xA;              [id] =&gt; 15&#xA;              [type] =&gt; area&#xA;              [Dhaka South] =&gt; Jatrabari&#xA;              [Dhaka North] =&gt; 0&#xA;              [Savar] =&gt; 0&#xA;              [Narayangonjh] =&gt; 0&#xA;              [Mymensingh] =&gt; 0&#xA;              [Barisal] =&gt; 0&#xA;              [Faridpur] =&gt; 0&#xA;              [Jessore] =&gt; 0&#xA;          )&lt;/p&gt;&#xA;&lt;/blockquote&gt;&#xA;&#xA;&lt;pre&gt;&lt;code&gt;[1] =&amp;gt; stdClass Object&#xA;    (&#xA;        [id] =&amp;gt; 16&#xA;        [type] =&amp;gt; area&#xA;        [Dhaka South] =&amp;gt; Lalbag&#xA;        [Dhaka North] =&amp;gt; 0&#xA;        [Savar] =&amp;gt; 0&#xA;        [Narayangonjh] =&amp;gt; 0&#xA;        [Mymensingh] =&amp;gt; 0&#xA;        [Barisal] =&amp;gt; 0&#xA;        [Faridpur] =&amp;gt; 0&#xA;        [Jessore] =&amp;gt; 0&#xA;    )&#xA;&#xA;[2] =&amp;gt; stdClass Object&#xA;    (&#xA;        [id] =&amp;gt; 17&#xA;        [type] =&amp;gt; area&#xA;        [Dhaka South] =&amp;gt; Dhanmondi&#xA;        [Dhaka North] =&amp;gt; 0&#xA;        [Savar] =&amp;gt; 0&#xA;        [Narayangonjh] =&amp;gt; 0&#xA;        [Mymensingh] =&amp;gt; 0&#xA;        [Barisal] =&amp;gt; 0&#xA;        [Faridpur] =&amp;gt; 0&#xA;        [Jessore] =&amp;gt; 0&#xA;    )&#xA;&#xA;[3] =&amp;gt; stdClass Object&#xA;    (&#xA;        [id] =&amp;gt; 18&#xA;        [type] =&amp;gt; area&#xA;        [Dhaka South] =&amp;gt; 0&#xA;        [Dhaka North] =&amp;gt; Gulshan&#xA;        [Savar] =&amp;gt; 0&#xA;        [Narayangonjh] =&amp;gt; 0&#xA;        [Mymensingh] =&amp;gt; 0&#xA;        [Barisal] =&amp;gt; 0&#xA;        [Faridpur] =&amp;gt; 0&#xA;        [Jessore] =&amp;gt; 0&#xA;    )&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&#xA;&lt;p&gt;I want to use these data in a datatable where id,type,Dhaka South,Dhaka North,Savar,Narayangonjh,Mymensingh,Barisal,Faridpur,Jessore will be in thead as heading and values in tbody as value.&#xA;Please help if you can.&lt;/p&gt;&#xA;
+        </summary>
+    </entry>
+    <entry>
+        <id>https://stackoverflow.com/q/37508799</id>
+        <re:rank scheme="https://stackoverflow.com">0</re:rank>
+        <title type="text">Instantiate new typed object from domain model in Angular 2</title>
+            <category scheme="https://stackoverflow.com/tags" term="typescript" />
+            <category scheme="https://stackoverflow.com/tags" term="angular" />
+        <author>
+            <name>mrlund</name>
+            <uri>https://stackoverflow.com/users/5139583</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/37508799/instantiate-new-typed-object-from-domain-model-in-angular-2" />
+        <published>2016-05-29T10:29:16Z</published>
+        <updated>2026-07-23T03:09:35Z</updated>
+        <summary type="html">
+            &lt;p&gt;My Angular 2 (RC) app using TypeScript breaks every time I try to instantiate a new object from my domain models, with the error: &lt;/p&gt;&#xA;&#xA;&lt;blockquote&gt;&#xA;  &lt;p&gt;Error: TypeError: Cannot read property &#x27;prototype&#x27; of undefined(&#x2026;)&lt;/p&gt;&#xA;&lt;/blockquote&gt;&#xA;&#xA;&lt;pre&gt;&lt;code&gt;export class Reservation {&#xA;    public ReservationId: number;&#xA;    public SeatingId: number;&#xA;    public EventId: number;&#xA;&#xA;    // ...&#xA;&#xA;    constructor() {}&#xA;}&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&#xA;&lt;p&gt;then in my Component I use: &lt;/p&gt;&#xA;&#xA;&lt;pre&gt;&lt;code&gt;import { Reservation } from &#x27;../models/models&#x27;;&#xA;....&#xA;let booking = new Reservation();&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&#xA;&lt;p&gt;This and other model objects get instantiated by http services without issues, passed as parameters, and generally used throughout the application - all without issue, but the moment I add &quot;new Reservation()&quot; anywhere in the app I get this error. &lt;/p&gt;&#xA;&#xA;&lt;p&gt;I&#x27;ve seen plenty of examples using this syntax, and I&#x27;ve also tried to create an Injectable factory service to return the new object, and every other way I could think of, but no matter where in my app i add this line it breaks during bootstrap. There&#x27;s no TypeScript errors shown or anything during build. &lt;/p&gt;&#xA;&#xA;&lt;p&gt;UPDATE: &#xA;It seems that the issue only occurs with a class imported from another file. I created a dummy example, and when the class is in the same file as my component it works, but if the class is imported from another file it doesn&#x27;t, i.e. this works: &lt;/p&gt;&#xA;&#xA;&lt;pre&gt;&lt;code&gt;import { Component, OnInit } from &#x27;@angular/core&#x27;;&#xA;//import { Foo } from &#x27;../models/models&#x27;;&#xA;export class Foo {&#xA;    public Name: string;&#xA;    public Score: number; &#xA;}&#xA;&#xA;@Component({&#xA;    selector: &#x27;foo&#x27;,&#xA;    template: `&#xA;        &amp;lt;h1&amp;gt;{{bar.Name}}&amp;lt;/h1&amp;gt;&#xA;    `,&#xA;    directives: []&#xA;})&#xA;export class FooComponent implements OnInit {&#xA;    bar : Foo; &#xA;    constructor() { }&#xA;    ngOnInit() {&#xA;        this.bar = new Foo();&#xA;        this.bar.Name = &quot;Foobar&quot;;&#xA;    }&#xA;}&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&#xA;&lt;p&gt;This does not: &lt;/p&gt;&#xA;&#xA;&lt;pre&gt;&lt;code&gt;import { Component, OnInit } from &#x27;@angular/core&#x27;;&#xA;import { Foo } from &#x27;../models/models&#x27;;&#xA;&#xA;@Component({&#xA;    selector: &#x27;foo&#x27;,&#xA;    template: `&#xA;        &amp;lt;h1&amp;gt;{{bar.Name}}&amp;lt;/h1&amp;gt;&#xA;    `,&#xA;    directives: []&#xA;})&#xA;export class FooComponent implements OnInit {&#xA;    bar : Foo; &#xA;    constructor() { }&#xA;    ngOnInit() {&#xA;        this.bar = new Foo();&#xA;        this.bar.Name = &quot;Foobar&quot;;&#xA;    }&#xA;}&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&#xA;&lt;p&gt;In both cases the Foo class is identical. The path to the file is also correct. My editor is VS Code, and there&#x27;s no build errors or trouble resolving the imported class, or using the classes in any other way than new Foo();  &lt;/p&gt;&#xA;&#xA;&lt;p&gt;UPDATE 2: &lt;/p&gt;&#xA;&#xA;&lt;p&gt;I found out that the import statement in my ts file does not translate to a require statement in the corresponding compiled js file, hence my models.ts, which is compiled to models.js is not loaded by the browser, which I&#x27;m guessing would explain why I can&#x27;t instantiate any of the classes contained in it. &lt;/p&gt;&#xA;&#xA;&lt;p&gt;UPDATE 3: &lt;/p&gt;&#xA;&#xA;&lt;p&gt;Last update might be a red herring. If I try to inject the class I want to use in the component constructor the models.js is added as required in the js file and loaded by the browser, but the exact same error occurs.&lt;/p&gt;&#xA;
+        </summary>
+    </entry>
+    <entry>
+        <id>https://stackoverflow.com/q/25818082</id>
+        <re:rank scheme="https://stackoverflow.com">103</re:rank>
+        <title type="text">Vector of objects belonging to a trait</title>
+            <category scheme="https://stackoverflow.com/tags" term="polymorphism" />
+            <category scheme="https://stackoverflow.com/tags" term="rust" />
+        <author>
+            <name>Jacob Wang</name>
+            <uri>https://stackoverflow.com/users/2036669</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/25818082/vector-of-objects-belonging-to-a-trait" />
+        <published>2014-09-12T23:02:57Z</published>
+        <updated>2026-07-23T02:35:16Z</updated>
+        <summary type="html">
+            &lt;p&gt;Consider the following code:&lt;/p&gt;&#xA;&lt;pre class=&quot;lang-rust prettyprint-override&quot;&gt;&lt;code&gt;trait Animal {&#xA;    fn make_sound(&amp;amp;self) -&amp;gt; String;&#xA;}&#xA;&#xA;struct Cat;&#xA;impl Animal for Cat {&#xA;    fn make_sound(&amp;amp;self) -&amp;gt; String {&#xA;        &amp;quot;meow&amp;quot;.to_string()&#xA;    }&#xA;}&#xA;&#xA;struct Dog;&#xA;impl Animal for Dog {&#xA;    fn make_sound(&amp;amp;self) -&amp;gt; String {&#xA;        &amp;quot;woof&amp;quot;.to_string()&#xA;    }&#xA;}&#xA;&#xA;fn main () {&#xA;    let dog: Dog = Dog;&#xA;    let cat: Cat = Cat;&#xA;    let v: Vec&amp;lt;Animal&amp;gt; = Vec::new();&#xA;    v.push(cat);&#xA;    v.push(dog);&#xA;    for animal in v.iter() {&#xA;        println!(&amp;quot;{}&amp;quot;, animal.make_sound());&#xA;    }&#xA;}&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;The compiler tells me that &lt;code&gt;v&lt;/code&gt; is a vector of &lt;code&gt;Animal&lt;/code&gt; when I try to push &lt;code&gt;cat&lt;/code&gt; (type mismatch)&lt;/p&gt;&#xA;&lt;p&gt;So, how can I make a vector of objects belonging to a trait and calls the corresponding trait method on each element?&lt;/p&gt;&#xA;
+        </summary>
+    </entry>
+    <entry>
+        <id>https://stackoverflow.com/q/17123990</id>
+        <re:rank scheme="https://stackoverflow.com">2</re:rank>
+        <title type="text">Downloading Files from SFTP using jsch</title>
+            <category scheme="https://stackoverflow.com/tags" term="java" />
+            <category scheme="https://stackoverflow.com/tags" term="jsch" />
+        <author>
+            <name>Rakesh</name>
+            <uri>https://stackoverflow.com/users/2488875</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/17123990/downloading-files-from-sftp-using-jsch" />
+        <published>2013-06-15T13:08:12Z</published>
+        <updated>2026-07-23T03:09:35Z</updated>
+        <summary type="html">
+            &lt;p&gt;I am using JSCH to download files from SFTP server.&#xA;I am using single session, with multiple channels to download files from different folders located in SFTP.&#xA;For this downloading process I have a set of scheduled jobs. Each job will:&lt;/p&gt;&#xA;&#xA;&lt;ol&gt;&#xA;&lt;li&gt;open a new channel (&lt;code&gt;ChannelSftp&lt;/code&gt;) everytime. channel name : sftp&lt;/li&gt;&#xA;&lt;li&gt;uses method &lt;code&gt;ChannelSftp.ls()&lt;/code&gt; to get the size of total number of files to download&lt;/li&gt;&#xA;&lt;li&gt;If size(Vector) is greater than zero then uses &lt;code&gt;ChannelSftp.get(remotedir/&#x27;*.*&#x27;, localdir)&lt;/code&gt; to download all the files&lt;/li&gt;&#xA;&lt;li&gt;finally closes the opened channel.&lt;/li&gt;&#xA;&lt;/ol&gt;&#xA;&#xA;&lt;p&gt;During the above process most of the times I am getting File Not Found or No Such File Exceptions and not downloading some files.&lt;/p&gt;&#xA;&#xA;&lt;p&gt;Can anyone please suggest me why it will happen. What may be the cause. How to resolve this problem&lt;/p&gt;&#xA;&#xA;&lt;p&gt;below is the code I am using:&lt;/p&gt;&#xA;&#xA;&lt;pre class=&quot;lang-java prettyprint-override&quot;&gt;&lt;code&gt;ChannelSftp channelSftp = null;&#xA;&#xA;try {&#xA;    channelSftp = getChannelConnectionUtil().openChannel(); //SFTPConnection.getSession().openChannel(&quot;sftp&quot;);  &#xA;&#xA;    @SuppressWarnings(&quot;rawtypes&quot;)&#xA;    Vector numOfFiles = channelSftp.ls(ftpDir&#x2B;&quot;/*.*&quot;);&#xA;&#xA;    if(numOfFiles.size() &amp;gt; 0){&#xA;        channelSftp.get(ftpDir&#x2B;&quot;/*.*&quot;,localDir); // Here I am getting error&#xA;    }&#xA;}  catch (Exception e) {&#xA;    e.printStackTrace();&#xA;} finally {&#xA;    getChannelConnectionUtil().disconnectChannel(channelSftp);&#xA;}&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;
+        </summary>
+    </entry>
+    <entry>
+        <id>https://stackoverflow.com/q/15156623</id>
+        <re:rank scheme="https://stackoverflow.com">1</re:rank>
+        <title type="text">With CodeIgniter, should I load separate view files for headers and footers or only one view file which includes the headers and footers?</title>
+            <category scheme="https://stackoverflow.com/tags" term="best-practices" />
+            <category scheme="https://stackoverflow.com/tags" term="php" />
+            <category scheme="https://stackoverflow.com/tags" term="codeigniter" />
+            <category scheme="https://stackoverflow.com/tags" term="model-view-controller" />
+        <author>
+            <name>Hello</name>
+            <uri>https://stackoverflow.com/users/2072775</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/15156623/with-codeigniter-should-i-load-separate-view-files-for-headers-and-footers-or-o" />
+        <published>2013-03-01T11:27:22Z</published>
+        <updated>2026-07-23T03:12:12Z</updated>
+        <summary type="html">
+            &lt;p&gt;What is the difference between this 2 approaches:&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;$data[&#x27;content&#x27;] = $this-&amp;gt;load-&amp;gt;view(&#x27;content&#x27;, NULL, true); // the content of the page&#xA;$this-&amp;gt;load-&amp;gt;view(&#x27;layout&#x27;, $data); //putting the content inside the layout, this include header, footer etc...&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;versus:&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;$this-&amp;gt;load-&amp;gt;view(&#x27;top&#x27;);&#xA;$this-&amp;gt;load-&amp;gt;view(&#x27;content&#x27;, $data);&#xA;$this-&amp;gt;load-&amp;gt;view(&#x27;footer&#x27;);&#xA;// here more load views if needed, so each view loaded separated&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;I don&#x27;t know if these are the best approaches. Which is better to use? Are their other better ideas?&lt;/p&gt;&#xA;
+        </summary>
+    </entry>
+    <entry>
+        <id>https://stackoverflow.com/q/14218307</id>
+        <re:rank scheme="https://stackoverflow.com">263</re:rank>
+        <title type="text">Select arrow style change</title>
+            <category scheme="https://stackoverflow.com/tags" term="css" />
+            <category scheme="https://stackoverflow.com/tags" term="select" />
+        <author>
+            <name>user1802439</name>
+            <uri>https://stackoverflow.com/users/1802439</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/14218307/select-arrow-style-change" />
+        <published>2013-01-08T15:25:46Z</published>
+        <updated>2026-07-23T02:30:24Z</updated>
+        <summary type="html">
+            &lt;p&gt;I&#x27;m trying to replace the arrow of a select with a picture of my own. I&#x27;m including the select in a div with the same size, I set the background of the select as transparent and I&#x27;m including a picture(with the same size as the arrow) in the right top corner of the div as background. &lt;/p&gt;&#xA;&#xA;&lt;p&gt;It only works in Chrome. &lt;/p&gt;&#xA;&#xA;&lt;p&gt;&lt;img src=&quot;https://i.sstatic.net/o2JSU.png&quot; alt=&quot;enter image description here&quot;&gt; &lt;/p&gt;&#xA;&#xA;&lt;p&gt;How can I make it work in Firefox and IE9 where I&#x27;m getting this: &lt;/p&gt;&#xA;&#xA;&lt;p&gt;&lt;img src=&quot;https://i.sstatic.net/EpxWl.png&quot; alt=&quot;enter image description here&quot;&gt;&lt;/p&gt;&#xA;&#xA;&lt;p&gt;&lt;div class=&quot;snippet&quot; data-lang=&quot;js&quot; data-hide=&quot;false&quot; data-console=&quot;true&quot; data-babel=&quot;false&quot;&gt;&#xD;&#xA;&lt;div class=&quot;snippet-code&quot;&gt;&#xD;&#xA;&lt;pre class=&quot;snippet-code-css lang-css prettyprint-override&quot;&gt;&lt;code&gt;.styled-select {&#xD;&#xA;  width: 100px;&#xD;&#xA;  height: 17px;&#xD;&#xA;  overflow: hidden;&#xD;&#xA;  overflow: -moz-hidden-unscrollable;&#xD;&#xA;  background: url(images/downarrow_blue.png) no-repeat right white;&#xD;&#xA;  border: 2px double red;&#xD;&#xA;  display: inline-block;&#xD;&#xA;  position: relative;&#xD;&#xA;}&#xD;&#xA;&#xD;&#xA;.styled-select select {&#xD;&#xA;  background: transparent;&#xD;&#xA;  -webkit-appearance: none;&#xD;&#xA;  width: 100px;&#xD;&#xA;  font-size: 11px;&#xD;&#xA;  border: 0;&#xD;&#xA;  height: 17px;&#xD;&#xA;  position: absolute;&#xD;&#xA;  left: 0;&#xD;&#xA;  top: 0;&#xD;&#xA;}&#xD;&#xA;&#xD;&#xA;body {&#xD;&#xA;  background-color: #333333;&#xD;&#xA;  color: #FFFFFF;&#xD;&#xA;}&#xD;&#xA;&#xD;&#xA;.block label {&#xD;&#xA;  color: white;&#xD;&#xA;}&lt;/code&gt;&lt;/pre&gt;&#xD;&#xA;&lt;pre class=&quot;snippet-code-html lang-html prettyprint-override&quot;&gt;&lt;code&gt;&amp;lt;HTML&amp;gt;&#xD;&#xA;&#xD;&#xA;&amp;lt;HEAD&amp;gt;&#xD;&#xA;&amp;lt;/HEAD&amp;gt;&#xD;&#xA;&#xD;&#xA;&amp;lt;BODY&amp;gt;&#xD;&#xA;  &amp;lt;p/&amp;gt;&#xD;&#xA;  &amp;lt;form action=&quot;/prepareUpdateCategoryList.do?forwardto=search&quot;&amp;gt;&#xD;&#xA;&#xD;&#xA;    &amp;lt;fieldset class=&quot;block&quot; id=&quot;searchBlock&quot;&amp;gt;&#xD;&#xA;      &amp;lt;p&amp;gt;&#xD;&#xA;        &amp;lt;label style=&quot;width:80px&quot;&amp;gt;Class&amp;lt;/label&amp;gt;&#xD;&#xA;        &amp;lt;div class=&quot;styled-select&quot;&amp;gt;&#xD;&#xA;          &amp;lt;select property=&quot;voucherCategoryClass&quot;&amp;gt;&#xD;&#xA;    &#x9;&#x9;&amp;lt;option value=&quot;0&quot;&amp;gt;Select &amp;lt;/option&amp;gt;&#xD;&#xA;    &#x9;&#x9;&amp;lt;option value=&quot;7382&quot;&amp;gt;steam &amp;lt;/option&amp;gt;&#xD;&#xA;    &#x9;&amp;lt;/select&amp;gt;&#xD;&#xA;        &amp;lt;/div&amp;gt;&#xD;&#xA;&#xD;&#xA;      &amp;lt;/p&amp;gt;&#xD;&#xA;    &amp;lt;/fieldset&amp;gt;&#xD;&#xA;  &amp;lt;/form&amp;gt;&#xD;&#xA;&amp;lt;/BODY&amp;gt;&#xD;&#xA;&#xD;&#xA;&amp;lt;/HTML&amp;gt;&lt;/code&gt;&lt;/pre&gt;&#xD;&#xA;&lt;/div&gt;&#xD;&#xA;&lt;/div&gt;&#xD;&#xA;&lt;/p&gt;&#xA;
+        </summary>
+    </entry>
+    <entry>
+        <id>https://stackoverflow.com/q/10882645</id>
+        <re:rank scheme="https://stackoverflow.com">0</re:rank>
+        <title type="text">Is there a faster way to sum up an arithmetic sequence of numbers in Python?</title>
+            <category scheme="https://stackoverflow.com/tags" term="python" />
+        <author>
+            <name>MyNameIsKhan</name>
+            <uri>https://stackoverflow.com/users/1435323</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/10882645/is-there-a-faster-way-to-sum-up-an-arithmetic-sequence-of-numbers-in-python" />
+        <published>2012-06-04T14:02:57Z</published>
+        <updated>2026-07-23T03:10:11Z</updated>
+        <summary type="html">
+            &lt;pre&gt;&lt;code&gt;total = 0&#xA;for i in range(0, some upper bound):&#xA;    total &#x2B;= i&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&#xA;&lt;p&gt;Sorry if this is basic but I have a lot of these and they&#x27;re taking up more room than is comfortable.&lt;/p&gt;&#xA;
+        </summary>
+    </entry>
+    <entry>
+        <id>https://stackoverflow.com/q/5811169</id>
+        <re:rank scheme="https://stackoverflow.com">0</re:rank>
+        <title type="text">How to prepare and present grouped database data with CodeIgniter</title>
+            <category scheme="https://stackoverflow.com/tags" term="php" />
+            <category scheme="https://stackoverflow.com/tags" term="mysql" />
+            <category scheme="https://stackoverflow.com/tags" term="codeigniter" />
+            <category scheme="https://stackoverflow.com/tags" term="model-view-controller" />
+            <category scheme="https://stackoverflow.com/tags" term="grouping" />
+        <author>
+            <name>J_P</name>
+            <uri>https://stackoverflow.com/users/491870</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/5811169/how-to-prepare-and-present-grouped-database-data-with-codeigniter" />
+        <published>2011-04-27T22:03:32Z</published>
+        <updated>2026-07-23T03:17:02Z</updated>
+        <summary type="html">
+            &lt;p&gt;I&#x27;ve created a table which approximates to this:&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;Fruit  |  Date Purchased  |  Amount Purchased&#xA;----------------------------------------------&#xA;Apples  |  01-01-10  |  5&#xA;Oranges |  01-01-10  |  7&#xA;Apples  |  02-01-10  |  3&#xA;Oranges |  02-01-10  |  2&#xA;etc....&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;I need to end up with the data in the following format though:&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;Apples (&#xA;    (01-01-10, 5),&#xA;    (02-01-10, 3)&#xA;)&#xA;&#xA;Oranges (&#xA;    (01-01-10, 7),&#xA;    (02-01-10, 2)&#xA;)&#xA;etc...&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;The types of fruit are not fixed - more will be added over time, so this would be need to be taken into account.&lt;/p&gt;&#xA;&lt;p&gt;By the way, I&#x27;m using CodeIgniter.&lt;/p&gt;&#xA;
+        </summary>
+    </entry>
+    <entry>
+        <id>https://stackoverflow.com/q/5455795</id>
+        <re:rank scheme="https://stackoverflow.com">1</re:rank>
+        <title type="text">How to format a query result set as a JSON string [duplicate]</title>
+            <category scheme="https://stackoverflow.com/tags" term="php" />
+            <category scheme="https://stackoverflow.com/tags" term="mysql" />
+            <category scheme="https://stackoverflow.com/tags" term="json" />
+            <category scheme="https://stackoverflow.com/tags" term="resultset" />
+        <author>
+            <name>Mujahid</name>
+            <uri>https://stackoverflow.com/users/390638</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/5455795/how-to-format-a-query-result-set-as-a-json-string" />
+        <published>2011-03-28T07:22:13Z</published>
+        <updated>2026-07-23T03:58:25Z</updated>
+        <summary type="html">
+            &lt;p&gt;I need to get an array output as this &lt;code&gt;[[1, 26], [3, 16], [3, 17], [4, 27], [4, 26]]&lt;/code&gt; from the following php mysql code&lt;/p&gt;&#xA;&lt;pre&gt;&lt;code&gt;    include(&amp;quot;db.php&amp;quot;);&#xA;&#xA;$villa = $_GET[&#x27;villa&#x27;];&#xA;&#xA;$sql = mysql_query(&amp;quot;SELECT unavailable_date_from, unavailable_date_to FROM villa WHERE name = &#x27;&amp;quot;.$villa.&amp;quot;&#x27;&amp;quot;);&#xA;$json = &amp;quot;[&amp;quot;;&#xA;    while($results = mysql_fetch_object($sql)){&#xA;        &#xA;        foreach ($results as $field =&amp;gt; $value) {&#xA;            $a = explode(&amp;quot;-&amp;quot;, $value);&#xA;                &#xA;            $json = $json . &#x27;[&#x27; . $a[1] .&#x27;,&#x27;. $a[2] .&#x27;],&#x27;;&#xA;        }&#xA;    &#xA;        $json = substr($json, 0, strlen($json)-1);&#xA;        &#xA;    }&#xA;&#xA;$json = $json . &#x27;]&#x27;;&#xA;    &#xA;echo $json;&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&lt;p&gt;The current code give the following result: &lt;code&gt;[[03,08],[03,10][03,15],[03,20]]&lt;/code&gt;&lt;/p&gt;&#xA;&lt;p&gt;How can I add that one comma between the second and third array element?&lt;/p&gt;&#xA;
+        </summary>
+    </entry>
+    <entry>
+        <id>https://stackoverflow.com/q/3192734</id>
+        <re:rank scheme="https://stackoverflow.com">1</re:rank>
+        <title type="text">Prepend all preceding values to each element of an array</title>
+            <category scheme="https://stackoverflow.com/tags" term="php" />
+            <category scheme="https://stackoverflow.com/tags" term="arrays" />
+            <category scheme="https://stackoverflow.com/tags" term="loops" />
+            <category scheme="https://stackoverflow.com/tags" term="concatenation" />
+        <author>
+            <name>user367217</name>
+            <uri>https://stackoverflow.com/users/367217</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/3192734/prepend-all-preceding-values-to-each-element-of-an-array" />
+        <published>2010-07-07T07:34:21Z</published>
+        <updated>2026-07-23T04:24:11Z</updated>
+        <summary type="html">
+            &lt;p&gt;I have an array like this (one dimension only):&lt;/p&gt;&#xA;&#xA;&lt;pre&gt;&#xA;$arr = array(&#x27;one&#x27;, &#x27;two&#x27;, &#x27;three&#x27;, &#x27;foo&#x27;, &#x27;bar&#x27;, &#x27;etc&#x27;);&#xA;&lt;/pre&gt;&#xA;&#xA;&lt;p&gt;Now I need a &lt;code&gt;for()&lt;/code&gt; loop that creates a new array from &lt;code&gt;$arr&lt;/code&gt;, like that:&lt;/p&gt;&#xA;&#xA;&lt;pre&gt;&#xA;$newArr = array(&#x27;one&#x27;, &#x27;onetwo&#x27;, &#x27;onetwothree&#x27;, &#x27;onetwothreefoo&#x27;, &#x27;onetwothreefoobar&#x27;, &#x27;onetwothreefoobaretc&#x27;);&#xA;&lt;/pre&gt;&#xA;&#xA;&lt;p&gt;Seems to be simple but I can&#x27;t figure it out.&lt;/p&gt;&#xA;&#xA;&lt;p&gt;Thanks in advance!&lt;/p&gt;&#xA;
+        </summary>
+    </entry>
+    <entry>
+        <id>https://stackoverflow.com/q/2403783</id>
+        <re:rank scheme="https://stackoverflow.com">0</re:rank>
+        <title type="text">How to output an array to a web page with CodeIgniter</title>
+            <category scheme="https://stackoverflow.com/tags" term="php" />
+            <category scheme="https://stackoverflow.com/tags" term="codeigniter" />
+        <author>
+            <name>learningown</name>
+            <uri>https://stackoverflow.com/users/281610</uri>
+        </author>
+        <link rel="alternate" href="https://stackoverflow.com/questions/2403783/how-to-output-an-array-to-a-web-page-with-codeigniter" />
+        <published>2010-03-08T18:42:34Z</published>
+        <updated>2026-07-23T02:31:27Z</updated>
+        <summary type="html">
+            &lt;p&gt;I made a PHP function which returns an array. I assign its value to a variable &lt;code&gt;$a&lt;/code&gt;. How can I output it to a web page on CodeIgniter?&lt;/p&gt;&#xA;
+        </summary>
+    </entry>
+</feed>

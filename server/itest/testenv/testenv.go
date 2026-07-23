@@ -61,7 +61,7 @@ func SetUp(ctx context.Context, stubAddr string) error {
 
 	ln, err := net.Listen("tcp", stubAddr)
 	if err != nil {
-		return fmt.Errorf("failed to open a socket for stub HTTP server: %v", err)
+		return fmt.Errorf("failed to open a socket for stub HTTP server: %w", err)
 	}
 	go startStubServer(ln)
 
@@ -162,6 +162,8 @@ func handleHTTPRequest(w http.ResponseWriter, r *http.Request) {
 		mime = "text/html; charset=utf-8"
 	case ".json":
 		mime = "application/json"
+	case ".xml":
+		mime = "application/xml; charset=utf-8"
 	default:
 		panic(fmt.Sprintf("unsupported stub file extension: %q", ext))
 	}
@@ -173,5 +175,7 @@ func handleHTTPRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", mime)
-	w.Write(data)
+	if _, err := w.Write(data); err != nil {
+		log.Printf("failed to write stub response for %q: %v", key, err)
+	}
 }
