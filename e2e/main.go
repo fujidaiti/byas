@@ -16,7 +16,7 @@ import (
 
 	"github.com/fujidaiti/paperdoll/e2e/test"
 	"github.com/fujidaiti/paperdoll/server/api"
-	"github.com/fujidaiti/paperdoll/server/integration_test/testenv"
+	"github.com/fujidaiti/paperdoll/server/itest/testenv"
 	"golang.org/x/sync/errgroup"
 )
 

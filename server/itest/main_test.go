@@ -1,6 +1,6 @@
 //go:build integration
 
-package integration_test
+package itest
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fujidaiti/paperdoll/server/integration_test/testenv"
+	"github.com/fujidaiti/paperdoll/server/itest/testenv"
 )
 
 func TestMain(m *testing.M) {
