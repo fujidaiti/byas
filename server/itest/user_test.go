@@ -1,6 +1,6 @@
 //go:build integration
 
-package integration_test
+package itest
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/fujidaiti/paperdoll/server/feature/user"
-	"github.com/fujidaiti/paperdoll/server/integration_test/testenv"
+	"github.com/fujidaiti/paperdoll/server/itest/testenv"
 	"github.com/google/go-cmp/cmp"
 )
 

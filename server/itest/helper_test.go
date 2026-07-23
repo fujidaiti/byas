@@ -1,4 +1,4 @@
-package integration_test
+package itest
 
 import "testing"
 
