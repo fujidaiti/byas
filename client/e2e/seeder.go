@@ -12,7 +12,7 @@ var seeders = map[string]seeder{
 	"newspaper_today": seedNewspaperSuit_Today,
 }
 
-func Seed(ctx context.Context, db *sql.DB, seederID string) error {
+func seedDB(ctx context.Context, db *sql.DB, seederID string) error {
 	s, ok := seeders[seederID]
 	if !ok {
 		return fmt.Errorf("no seeder is registered for ID=%q", seederID)
