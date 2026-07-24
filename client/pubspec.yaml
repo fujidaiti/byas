@@ -34,6 +34,15 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  # Opt this project out of Swift Package Manager so darwin builds use
+  # CocoaPods. Under SPM the `patrol` plugin's Clang module `@import PatrolImpl`,
+  # an internal Swift target of patrol's package that isn't on the app (Runner)
+  # target's module search path — so a plain `flutter build/run macos` fails with
+  # "module 'PatrolImpl' not found" (independent of explicit-vs-implicit modules;
+  # confirmed on Xcode 26). The patrol.podspec ships patrol as a single module,
+  # so under CocoaPods `import patrol` resolves and the app builds.
+  config:
+    enable-swift-package-manager: false
 
 patrol:
   app_name: Test
