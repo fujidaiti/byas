@@ -213,7 +213,7 @@ func sessionManager(ctx context.Context, msgc <-chan message) {
 func session(ctx context.Context, done chan struct{}, msg message) {
 	defer close(done)
 	defer testenv.TearDown()
-	if err := Seed(ctx, testenv.DB(), msg.body.SeederID); err != nil {
+	if err := seedDB(ctx, testenv.DB(), msg.body.SeederID); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to seed DB for scenario %q: %v", msg.body.SeederID, err)
 		// TODO: return a better response message
 		msg.resultc <- "failed to seed DB"

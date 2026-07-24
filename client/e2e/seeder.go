@@ -14,7 +14,7 @@ var seeders = map[string]seeder{
 	"auth_existing_user": seedAuthSuit_ExistingUser,
 }
 
-func Seed(ctx context.Context, db *sql.DB, seederID string) error {
+func seedDB(ctx context.Context, db *sql.DB, seederID string) error {
 	s, ok := seeders[seederID]
 	if !ok {
 		return fmt.Errorf("no seeder is registered for ID=%q", seederID)
