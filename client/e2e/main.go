@@ -14,7 +14,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/fujidaiti/paperdoll/e2e/test"
 	"github.com/fujidaiti/paperdoll/server/api"
 	"github.com/fujidaiti/paperdoll/server/itest/testenv"
 	"golang.org/x/sync/errgroup"
@@ -99,9 +98,14 @@ func runTests(ctx context.Context) error {
 		"-d",
 		// TODO: make the target device configurable
 		"emulator-5554",
-		"--dart-define-from-file",
-		"test.env",
+		"-t",
+		"e2e/",
+		// TODO: make the API base URL configurable.
+		"--dart-define",
+		"API_BASE_URL=http://10.0.2.2:8080",
 	)
+	// The runner lives in client/e2e/, so the client package root is one level up.
+	cmd.Dir = ".."
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -196,7 +200,7 @@ func sessionManager(ctx context.Context, msgc <-chan message) {
 func session(ctx context.Context, done chan struct{}, msg message) {
 	defer close(done)
 	defer testenv.TearDown()
-	if err := test.Seed(ctx, testenv.DB(), msg.body.SeederID); err != nil {
+	if err := seedDB(ctx, testenv.DB(), msg.body.SeederID); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to seed DB for scenario %q: %v", msg.body.SeederID, err)
 		// TODO: return a better response message
 		msg.resultc <- "failed to seed DB"
