@@ -1,50 +1,69 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:paperdoll/app.dart';
-import 'package:paperdoll/core/config/app_config.dart';
-import 'package:paperdoll/core/config/app_config_provider.dart';
+import 'package:go_router/go_router.dart';
 import 'package:paperdoll/core/error/domain_error.dart';
+import 'package:paperdoll/core/router/routes.dart';
 import 'package:paperdoll/debug_keys.dart';
-import 'package:paperdoll/features/auth/data/token_storage.dart';
 import 'package:paperdoll/features/auth/presentation/providers/auth_providers.dart';
+import 'package:paperdoll/features/auth/presentation/sign_in_screen.dart';
+import 'package:paperdoll/features/auth/presentation/sign_up_screen.dart';
 import 'package:patrol_finders/patrol_finders.dart';
 
-/// Boots the app for a pure widget test. Overrides the provider layer so
-/// nothing touches the real network, secure storage, or platform channels:
+/// Pumps [SignInScreen] in isolation for a pure widget test.
 ///
-///  - [authSessionProvider] is replaced by [session] (defaults to a
-///    success-on-submit fake), which starts signed out so the router lands on
-///    the sign-in screen. This is the mock seam for the sign-in/sign-up UI.
-///  - [appConfigProvider] and [tokenStorageProvider] are stubbed so a
-///    happy-path redirect to Today builds its Dio setup cleanly (the off-screen
-///    request just resolves to an error; the Today Scaffold still renders).
-Future<void> pumpApp(PatrolTester $, {FakeAuthSession? session}) async {
-  await $.pumpWidget(
-    ProviderScope(
-      overrides: [
-        appConfigProvider.overrideWithValue(const AppConfig('http://mock')),
-        tokenStorageProvider.overrideWithValue(FakeTokenStorage()),
-        authSessionProvider.overrideWith(() => session ?? FakeAuthSession()),
-      ],
-      child: const PaperdollApp(),
-    ),
-  );
+/// See [_pumpAuthScreen] for how the screen is wired.
+Future<void> pumpSignInScreen(
+  PatrolTester $, {
+  required FakeAuthSession session,
+}) async {
+  await _pumpAuthScreen($, initialLocation: routeSignInPath, session: session);
 }
 
-/// In-memory [TokenStorage] fake, so tests don't touch the secure storage
-/// plugin. Mirrors the one in `integration_test/helpers.dart`.
-class FakeTokenStorage implements TokenStorage {
-  FakeTokenStorage([this._token]);
+/// Pumps [SignUpScreen] in isolation for a pure widget test.
+///
+/// See [_pumpAuthScreen] for how the screen is wired.
+Future<void> pumpSignUpScreen(
+  PatrolTester $, {
+  required FakeAuthSession session,
+}) async {
+  await _pumpAuthScreen($, initialLocation: routeSignUpPath, session: session);
+}
 
-  String? _token;
-
-  @override
-  Future<String?> read() async => _token;
-
-  @override
-  Future<void> write(String token) async => _token = token;
-
-  @override
-  Future<void> delete() async => _token = null;
+/// Pumps a single auth screen with just the collaborators it directly needs:
+///
+///  - a minimal [GoRouter] wiring only the sign-in and sign-up routes, so
+///    `context.goNamed(...)` resolves and the two screens can navigate to each
+///    other (but nothing else of the app router is involved);
+///  - a [ProviderScope] overriding only [authSessionProvider] with [session],
+///    the seam these screens depend on. The real notifier hits the network and
+///    a `device_info_plus` platform channel, neither of which works under
+///    `flutter_test`, so the fake stands in for it.
+Future<void> _pumpAuthScreen(
+  PatrolTester $, {
+  required String initialLocation,
+  required FakeAuthSession session,
+}) async {
+  final router = GoRouter(
+    initialLocation: initialLocation,
+    routes: [
+      GoRoute(
+        name: routeSignInName,
+        path: routeSignInPath,
+        builder: (context, state) => const SignInScreen(),
+      ),
+      GoRoute(
+        name: routeSignUpName,
+        path: routeSignUpPath,
+        builder: (context, state) => const SignUpScreen(),
+      ),
+    ],
+  );
+  await $.pumpWidget(
+    ProviderScope(
+      overrides: [authSessionProvider.overrideWith(() => session)],
+      child: MaterialApp.router(routerConfig: router),
+    ),
+  );
 }
 
 /// A fake [AuthSession] notifier that replaces the real one in widget tests.
@@ -52,22 +71,13 @@ class FakeTokenStorage implements TokenStorage {
 /// The real `_authenticate` calls `buildDeviceLabel()` (a `device_info_plus`
 /// platform channel) and hits the network, neither of which works in a pure
 /// `flutter_test`. This fake records the calls the screens make and lets each
-/// test choose the outcome:
-///
-///  - throw [signInError] / [signUpError] to exercise the error SnackBar path;
-///  - otherwise, when [recordOnly] is false, set the session token so the real
-///    router redirects to Today (happy path); when [recordOnly] is true, leave
-///    the state unchanged so the screen stays put (call-inspection tests).
+/// test choose the outcome: throw [signInError] / [signUpError] to exercise the
+/// error SnackBar path, or otherwise complete successfully.
 class FakeAuthSession extends AuthSession {
-  FakeAuthSession({
-    this.signInError,
-    this.signUpError,
-    this.recordOnly = false,
-  });
+  FakeAuthSession({this.signInError, this.signUpError});
 
   final DomainError? signInError;
   final DomainError? signUpError;
-  final bool recordOnly;
 
   final List<({String email, String password})> signInCalls = [];
   final List<({String email, String password})> signUpCalls = [];
@@ -81,9 +91,7 @@ class FakeAuthSession extends AuthSession {
     if (signInError != null) {
       throw signInError!;
     }
-    if (!recordOnly) {
-      state = const AsyncData('token');
-    }
+    state = const AsyncData('token');
   }
 
   @override
@@ -92,9 +100,7 @@ class FakeAuthSession extends AuthSession {
     if (signUpError != null) {
       throw signUpError!;
     }
-    if (!recordOnly) {
-      state = const AsyncData('token');
-    }
+    state = const AsyncData('token');
   }
 }
 
@@ -109,13 +115,12 @@ Future<void> signIn(
   await $(AppDebugKey.signInSubmitButton).tap();
 }
 
-/// Navigates to sign-up, fills the form, and taps submit, driving the real UI.
+/// Fills the sign-up form and taps submit, driving the real UI.
 Future<void> signUp(
   PatrolTester $, {
   required String email,
   required String password,
 }) async {
-  await $(AppDebugKey.signInGoToSignUpButton).tap();
   await $(AppDebugKey.signUpEmailField).enterText(email);
   await $(AppDebugKey.signUpPasswordField).enterText(password);
   await $(AppDebugKey.signUpSubmitButton).tap();
