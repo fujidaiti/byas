@@ -104,9 +104,7 @@ func runTests(ctx context.Context) error {
 		"--dart-define",
 		"API_BASE_URL=http://10.0.2.2:8080",
 	)
-	// patrol builds and drives the client app (which carries the full native
-	// plugin configuration), not a separate throwaway Flutter package. The
-	// runner lives in client/e2e/, so the client package root is one level up.
+	// The runner lives in client/e2e/, so the client package root is one level up.
 	cmd.Dir = ".."
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
