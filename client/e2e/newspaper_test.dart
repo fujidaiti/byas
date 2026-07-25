@@ -8,13 +8,9 @@ void main() {
     $,
   ) async {
     await setUpServer(seederId: 'newspaper_today');
-    await pumpApp($);
-    // The newspaper is gated behind auth; sign up a fresh user to reach Today.
-    await signUp(
-      $,
-      email: 'reader@example.com',
-      password: existingUserPassword,
-    );
+    // The newspaper is gated behind auth; boot already signed in so this test
+    // doesn't depend on the sign-in/up UI.
+    await pumpAppWithAuth($);
     await $(AppDebugKey.todayScreen).waitUntilVisible();
     await $(AppDebugKey.storyCard('Hello there')).tap();
     await $(AppDebugKey.feedEntryReaderScreen).waitUntilVisible();

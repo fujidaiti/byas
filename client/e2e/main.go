@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -136,6 +137,81 @@ type messageBody struct {
 	SeederID string `json:"seeder_id"`
 }
 
+const (
+	// apiBaseURL is where the runner reaches the session's API server. The
+	// server binds :8080; the emulator reaches it via 10.0.2.2:8080, but the
+	// runner itself runs on the host, so it uses localhost.
+	// TODO: make the API base URL configurable (see runTests' dart-define).
+	apiBaseURL = "http://127.0.0.1:8080"
+	// Pre-defined credentials the /signin endpoint provisions. The password is
+	// reused from the auth seeder's existingUserPassword; the email is distinct
+	// so it doesn't collide with the auth scenarios' seeded account.
+	testAccountEmail  = "e2e-runner@example.com"
+	testAccountDevice = "e2e-runner"
+)
+
+type authReqBody struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	Device   string `json:"device"`
+}
+
+type authResBody struct {
+	Token string `json:"token"`
+}
+
+// createTestAccountToken provisions the pre-defined test account on the running
+// API server and returns its bearer token. It signs the account up; if the
+// account already exists (a seeder may have inserted it), it signs in instead.
+func createTestAccountToken(ctx context.Context) (string, error) {
+	token, status, err := postAuth(ctx, "/signup")
+	if err != nil {
+		return "", err
+	}
+	if status == http.StatusConflict {
+		token, status, err = postAuth(ctx, "/signin")
+		if err != nil {
+			return "", err
+		}
+	}
+	if status != http.StatusOK && status != http.StatusCreated {
+		return "", fmt.Errorf("auth request to %q failed with status %d", apiBaseURL, status)
+	}
+	return token, nil
+}
+
+// postAuth POSTs the pre-defined credentials to path (/signup or /signin) on the
+// API server. It returns the issued token on a 2xx response, or an empty token
+// with the response status (e.g. 409) so the caller can fall back.
+func postAuth(ctx context.Context, path string) (token string, status int, err error) {
+	body, err := json.Marshal(authReqBody{
+		Email:    testAccountEmail,
+		Password: existingUserPassword,
+		Device:   testAccountDevice,
+	})
+	if err != nil {
+		return "", 0, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiBaseURL+path, bytes.NewReader(body))
+	if err != nil {
+		return "", 0, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", 0, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		return "", resp.StatusCode, nil
+	}
+	var res authResBody
+	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
+		return "", resp.StatusCode, err
+	}
+	return res.Token, resp.StatusCode, nil
+}
+
 func messageHandler(ctx context.Context, msgc chan<- message) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /setup", func(w http.ResponseWriter, r *http.Request) {
@@ -158,6 +234,22 @@ func messageHandler(ctx context.Context, msgc chan<- message) error {
 		case <-r.Context().Done():
 			_, _ = fmt.Fprint(w, "request canceled")
 		}
+	})
+
+	// /signin provisions the pre-defined test account on the already-running
+	// session API server and returns its bearer token, so gated feature tests
+	// (e.g. newspaper) can boot already authenticated without driving the
+	// sign-up UI. It talks to the API server directly rather than going through
+	// the sessionManager: the client only calls /signin after /setup has
+	// returned "ready", by which point the server is listening on :8080.
+	mux.HandleFunc("POST /signin", func(w http.ResponseWriter, r *http.Request) {
+		token, err := createTestAccountToken(r.Context())
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to provision test account: %v", err), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"token": token})
 	})
 
 	srv := http.Server{
