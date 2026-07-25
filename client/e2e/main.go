@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -16,6 +15,7 @@ import (
 	"time"
 
 	"github.com/fujidaiti/paperdoll/server/api"
+	"github.com/fujidaiti/paperdoll/server/feature/user"
 	"github.com/fujidaiti/paperdoll/server/itest/testenv"
 	"golang.org/x/sync/errgroup"
 )
@@ -138,11 +138,6 @@ type messageBody struct {
 }
 
 const (
-	// apiBaseURL is where the runner reaches the session's API server. The
-	// server binds :8080; the emulator reaches it via 10.0.2.2:8080, but the
-	// runner itself runs on the host, so it uses localhost.
-	// TODO: make the API base URL configurable (see runTests' dart-define).
-	apiBaseURL = "http://127.0.0.1:8080"
 	// Pre-defined credentials the /signin endpoint provisions. The password is
 	// reused from the auth seeder's existingUserPassword; the email is distinct
 	// so it doesn't collide with the auth scenarios' seeded account.
@@ -150,66 +145,29 @@ const (
 	testAccountDevice = "e2e-runner"
 )
 
-type authReqBody struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	Device   string `json:"device"`
-}
-
-type authResBody struct {
-	Token string `json:"token"`
-}
-
-// createTestAccountToken provisions the pre-defined test account on the running
-// API server and returns its bearer token. It signs the account up; if the
-// account already exists (a seeder may have inserted it), it signs in instead.
+// createTestAccountToken provisions the pre-defined test account against the
+// session's DB and returns its encoded auth token. It calls the real
+// [user.Service] methods directly (same code path the API handlers use) rather
+// than making HTTP requests: it signs the account up, and if the account
+// already exists (a seeder may have inserted it) it signs in instead.
 func createTestAccountToken(ctx context.Context) (string, error) {
-	token, status, err := postAuth(ctx, "/signup")
+	email, err := user.ParseEmail(testAccountEmail)
 	if err != nil {
 		return "", err
 	}
-	if status == http.StatusConflict {
-		token, status, err = postAuth(ctx, "/signin")
-		if err != nil {
-			return "", err
-		}
-	}
-	if status != http.StatusOK && status != http.StatusCreated {
-		return "", fmt.Errorf("auth request to %q failed with status %d", apiBaseURL, status)
-	}
-	return token, nil
-}
-
-// postAuth POSTs the pre-defined credentials to path (/signup or /signin) on the
-// API server. It returns the issued token on a 2xx response, or an empty token
-// with the response status (e.g. 409) so the caller can fall back.
-func postAuth(ctx context.Context, path string) (token string, status int, err error) {
-	body, err := json.Marshal(authReqBody{
-		Email:    testAccountEmail,
-		Password: existingUserPassword,
-		Device:   testAccountDevice,
-	})
+	pswd, err := user.ValidatePassword(existingUserPassword)
 	if err != nil {
-		return "", 0, err
+		return "", err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiBaseURL+path, bytes.NewReader(body))
+	svc := &user.Service{DB: testenv.DB(), Now: time.Now}
+	token, err := svc.SignUp(ctx, email, pswd, testAccountDevice)
+	if errors.Is(err, user.ErrEmailTaken) {
+		token, err = svc.SignIn(ctx, email, existingUserPassword, testAccountDevice)
+	}
 	if err != nil {
-		return "", 0, err
+		return "", err
 	}
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return "", 0, err
-	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		return "", resp.StatusCode, nil
-	}
-	var res authResBody
-	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
-		return "", resp.StatusCode, err
-	}
-	return res.Token, resp.StatusCode, nil
+	return token.Encode(), nil
 }
 
 func messageHandler(ctx context.Context, msgc chan<- message) error {

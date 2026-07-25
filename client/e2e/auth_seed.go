@@ -3,8 +3,9 @@ package main
 import (
 	"context"
 	"database/sql"
+	"time"
 
-	"golang.org/x/crypto/bcrypt"
+	"github.com/fujidaiti/paperdoll/server/feature/user"
 )
 
 // Credentials of the user seeded by [seedAuthSuit_ExistingUser]; keep these in
@@ -22,15 +23,19 @@ func seedAuthSuit_NoUsers(ctx context.Context, db *sql.DB) error {
 }
 
 // seedAuthSuit_ExistingUser inserts a single account so sign-in and
-// taken-email scenarios have something to authenticate against. The password
-// is bcrypt-hashed the same way the server does on sign-up.
+// taken-email scenarios have something to authenticate against. It goes through
+// the real [user.Service.SignUp] so the password is hashed exactly as the
+// server does, rather than duplicating the persistence logic here.
 func seedAuthSuit_ExistingUser(ctx context.Context, db *sql.DB) error {
-	hash, err := bcrypt.GenerateFromPassword([]byte(existingUserPassword), bcrypt.DefaultCost)
+	email, err := user.ParseEmail(existingUserEmail)
 	if err != nil {
 		return err
 	}
-	_, err = db.ExecContext(ctx, `
-		INSERT INTO users (email, password_hash) VALUES ($1, $2)
-	`, existingUserEmail, hash)
+	pswd, err := user.ValidatePassword(existingUserPassword)
+	if err != nil {
+		return err
+	}
+	svc := &user.Service{DB: db, Now: time.Now}
+	_, err = svc.SignUp(ctx, email, pswd, "seeder")
 	return err
 }
