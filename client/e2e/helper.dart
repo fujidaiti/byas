@@ -1,5 +1,5 @@
-import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:paperdoll/app.dart';
@@ -43,39 +43,28 @@ Future<void> pumpAppWithAuth(PatrolIntegrationTester $) async {
   );
 }
 
+/// Builds a URL to the runner's message server. It listens on the host, reached
+/// from the Android emulator via 10.0.2.2.
+// TODO: make the host and port number configurable (assumes an Android
+// emulator).
+Uri _runnerUri(String path) =>
+    Uri(scheme: 'http', host: '10.0.2.2', port: 9000, path: path);
+
+const _runnerTimeout = Duration(seconds: 60);
+
 /// Provisions the pre-defined test account via the runner's `/signin` endpoint
-/// and returns its bearer token. Retries transient connection/timeout errors the
-/// same way [setUpServer] does, since the connection can abort right after a
-/// test's app relaunch.
+/// and returns its bearer token.
 Future<String> signInViaRunner() async {
-  const maxAttempts = 5;
-  for (var attempt = 1; ; attempt++) {
-    try {
-      final response = await http
-          .post(
-            // TODO: make the host and port number configurable
-            // This assumes that the test is running on an android emulator.
-            Uri(scheme: 'http', host: '10.0.2.2', port: 9000, path: '/signin'),
-          )
-          .timeout(const Duration(seconds: 60));
-      if (response.statusCode != 200) {
-        throw Exception(
-          'signin request failed (${response.statusCode}): ${response.body}',
-        );
-      }
-      final body = jsonDecode(response.body) as Map<String, dynamic>;
-      return body['token'] as String;
-    } on http.ClientException {
-      if (attempt >= maxAttempts) {
-        rethrow;
-      }
-    } on TimeoutException {
-      if (attempt >= maxAttempts) {
-        rethrow;
-      }
-    }
-    await Future<void>.delayed(const Duration(seconds: 1));
+  final response = await http
+      .post(_runnerUri('/signin'))
+      .timeout(_runnerTimeout);
+  if (response.statusCode != 200) {
+    throw Exception(
+      'signin request failed (${response.statusCode}): ${response.body}',
+    );
   }
+  final body = jsonDecode(response.body) as Map<String, dynamic>;
+  return body['token'] as String;
 }
 
 /// Signs in from the sign-in screen by driving the real UI + backend.
@@ -103,37 +92,20 @@ Future<void> signUp(
 }
 
 Future<void> setUpServer({required String seederId}) async {
-  // The connection to the runner can abort transiently right after a test's
-  // app relaunch (e.g. "Software caused connection abort"), so retry on
-  // connection/timeout errors. A received-but-not-"ready" body is a real
-  // seeding error and is not retried.
-  const maxAttempts = 5;
-  for (var attempt = 1; ; attempt++) {
-    try {
-      final response = await http
-          .post(
-            // TODO: make the host and port number configurable
-            // This assumes that the test is running on an android emulator.
-            Uri(scheme: 'http', host: '10.0.2.2', port: 9000, path: '/setup'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'seeder_id': seederId}),
-          )
-          .timeout(const Duration(seconds: 60));
-      if (response.body != 'ready') {
-        throw Exception(
-          'setup request has finished with an error: ${response.body}',
-        );
-      }
-      return;
-    } on http.ClientException {
-      if (attempt >= maxAttempts) {
-        rethrow;
-      }
-    } on TimeoutException {
-      if (attempt >= maxAttempts) {
-        rethrow;
-      }
-    }
-    await Future<void>.delayed(const Duration(seconds: 1));
+  // Initialize the Flutter binding up front so the host-facing socket is ready
+  // before the first request; without it the connection can abort transiently
+  // right after a test's app relaunch ("Software caused connection abort").
+  WidgetsFlutterBinding.ensureInitialized();
+  final response = await http
+      .post(
+        _runnerUri('/setup'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'seeder_id': seederId}),
+      )
+      .timeout(_runnerTimeout);
+  if (response.body != 'ready') {
+    throw Exception(
+      'setup request has finished with an error: ${response.body}',
+    );
   }
 }
