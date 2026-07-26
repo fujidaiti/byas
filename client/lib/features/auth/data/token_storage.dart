@@ -9,10 +9,9 @@ abstract interface class TokenStorage {
 }
 
 class SecureTokenStorage implements TokenStorage {
-  const SecureTokenStorage(this._storage);
+  const SecureTokenStorage();
 
-  final FlutterSecureStorage _storage;
-
+  static const _storage = FlutterSecureStorage();
   static const _tokenKey = 'auth_token';
 
   @override

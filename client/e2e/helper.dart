@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:paperdoll/app.dart';
 import 'package:paperdoll/debug_keys.dart';
@@ -34,7 +33,7 @@ Future<void> pumpApp(PatrolIntegrationTester $) async {
 /// that aren't about the auth flow itself (e.g. the newspaper suite).
 Future<void> pumpAppWithAuth(PatrolIntegrationTester $) async {
   final token = await signInViaRunner();
-  const storage = SecureTokenStorage(FlutterSecureStorage());
+  const storage = SecureTokenStorage();
   await storage.write(token);
   await $.pumpWidget(
     ProviderScope(

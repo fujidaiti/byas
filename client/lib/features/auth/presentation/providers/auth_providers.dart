@@ -1,4 +1,3 @@
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:paperdoll/core/network/dio_provider.dart';
 import 'package:paperdoll/features/auth/data/auth_repository_impl.dart';
 import 'package:paperdoll/features/auth/data/device_label.dart';
@@ -9,8 +8,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'auth_providers.g.dart';
 
 @riverpod
-TokenStorage tokenStorage(Ref ref) =>
-    const SecureTokenStorage(FlutterSecureStorage());
+TokenStorage tokenStorage(Ref ref) => const SecureTokenStorage();
 
 @riverpod
 AuthRepository authRepository(Ref ref) =>
