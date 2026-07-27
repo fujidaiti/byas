@@ -41,6 +41,6 @@ flutter:
 
 patrol:
   app_name: Test
-  test_directory: integration_test
+  test_directory: e2e
   android:
     package_name: dev.norelease.paperdoll
