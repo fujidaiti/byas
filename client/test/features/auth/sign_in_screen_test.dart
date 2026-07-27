@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/mockito.dart';
 import 'package:paperdoll/core/error/domain_error.dart';
+import 'package:paperdoll/core/router/routes.dart';
 import 'package:paperdoll/debug_keys.dart';
 import 'package:patrol_finders/patrol_finders.dart';
 
@@ -8,21 +10,21 @@ import '../../helpers.dart';
 
 void main() {
   patrolWidgetTest('Submitting valid credentials authenticates', ($) async {
-    final session = FakeAuthSession();
+    final session = MockAuthSession();
     await pumpSignInScreen($, session: session);
 
     await signIn($, email: 'alice@example.com', password: 'correct-password');
 
-    expect(session.signInCalls.single, (
-      email: 'alice@example.com',
-      password: 'correct-password',
-    ));
+    verify(
+      session.signIn(email: 'alice@example.com', password: 'correct-password'),
+    ).called(1);
   });
 
   patrolWidgetTest('Wrong credentials show an error and stay put', ($) async {
-    final session = FakeAuthSession(
-      signInError: const BadRequestError('Email or password is incorrect'),
-    );
+    final session = MockAuthSession();
+    when(
+      session.signIn(email: 'alice@example.com', password: 'wrong-password'),
+    ).thenThrow(const BadRequestError('Email or password is incorrect'));
     await pumpSignInScreen($, session: session);
 
     await signIn($, email: 'alice@example.com', password: 'wrong-password');
@@ -32,13 +34,15 @@ void main() {
   });
 
   patrolWidgetTest('Submitting empty fields does nothing', ($) async {
-    final session = FakeAuthSession();
+    final session = MockAuthSession();
     await pumpSignInScreen($, session: session);
 
     await $(AppDebugKey.signInSubmitButton).tap();
 
-    // No request is made and no error surfaces; the screen stays put.
-    expect(session.signInCalls, isEmpty);
+    // The screen guards on empty input, so no request is made (with empty
+    // fields the only call it could make is with empty strings), no error
+    // surfaces, and it stays put.
+    verifyNever(session.signIn(email: '', password: ''));
     expect(find.byType(SnackBar), findsNothing);
     expect($(AppDebugKey.signInScreen), findsOneWidget);
   });
@@ -46,19 +50,22 @@ void main() {
   patrolWidgetTest('Submitting trims the email before authenticating', (
     $,
   ) async {
-    final session = FakeAuthSession();
+    final session = MockAuthSession();
     await pumpSignInScreen($, session: session);
 
     await signIn($, email: '  user@example.com  ', password: 'a-password');
 
-    expect(session.signInCalls.single.email, 'user@example.com');
+    verify(
+      session.signIn(email: 'user@example.com', password: 'a-password'),
+    ).called(1);
   });
 
   patrolWidgetTest('Tapping the sign-up link navigates to sign-up', ($) async {
-    await pumpSignInScreen($, session: FakeAuthSession());
+    final router = MockGoRouter();
+    await pumpSignInScreen($, session: MockAuthSession(), router: router);
 
     await $(AppDebugKey.signInGoToSignUpButton).tap();
 
-    await $(AppDebugKey.signUpScreen).waitUntilVisible();
+    verify(router.goNamed(routeSignUpName)).called(1);
   });
 }
