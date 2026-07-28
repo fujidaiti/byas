@@ -20,8 +20,11 @@ AuthRepository authRepository(Ref ref) =>
 /// the router can react (see `goRouter`'s `redirect`).
 @riverpod
 class AuthSession extends _$AuthSession {
+  late AuthRepository _repo;
+
   @override
   Future<String?> build() async {
+    _repo = ref.watch(authRepositoryProvider);
     try {
       return await ref.watch(tokenStorageProvider).read();
     } on Exception {
@@ -31,24 +34,24 @@ class AuthSession extends _$AuthSession {
     }
   }
 
-  Future<void> signIn({required String email, required String password}) =>
-      _authenticate(
-        (repo, device) =>
-            repo.signIn(email: email, password: password, device: device),
-      );
-
-  Future<void> signUp({required String email, required String password}) =>
-      _authenticate(
-        (repo, device) =>
-            repo.signUp(email: email, password: password, device: device),
-      );
-
-  Future<void> _authenticate(
-    Future<String> Function(AuthRepository repo, String device) call,
-  ) async {
-    final repo = ref.read(authRepositoryProvider);
+  Future<void> signIn({required String email, required String password}) async {
     final device = await buildDeviceLabel();
-    final token = await call(repo, device);
+    final token = await _repo.signIn(
+      email: email,
+      password: password,
+      device: device,
+    );
+    await ref.read(tokenStorageProvider).write(token);
+    state = AsyncData(token);
+  }
+
+  Future<void> signUp({required String email, required String password}) async {
+    final device = await buildDeviceLabel();
+    final token = await _repo.signIn(
+      email: email,
+      password: password,
+      device: device,
+    );
     await ref.read(tokenStorageProvider).write(token);
     state = AsyncData(token);
   }
