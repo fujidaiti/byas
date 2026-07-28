@@ -21,12 +21,14 @@ AuthRepository authRepository(Ref ref) =>
 @riverpod
 class AuthSession extends _$AuthSession {
   late AuthRepository _repo;
+  late TokenStorage _tokenStorage;
 
   @override
   Future<String?> build() async {
     _repo = ref.watch(authRepositoryProvider);
+    _tokenStorage = ref.watch(tokenStorageProvider);
     try {
-      return await ref.watch(tokenStorageProvider).read();
+      return await _tokenStorage.read();
     } on Exception {
       // Treat an unreadable token as signed-out rather than surfacing an
       // error screen at startup.
@@ -41,18 +43,18 @@ class AuthSession extends _$AuthSession {
       password: password,
       device: device,
     );
-    await ref.read(tokenStorageProvider).write(token);
+    await _tokenStorage.write(token);
     state = AsyncData(token);
   }
 
   Future<void> signUp({required String email, required String password}) async {
     final device = await buildDeviceLabel();
-    final token = await _repo.signIn(
+    final token = await _repo.signUp(
       email: email,
       password: password,
       device: device,
     );
-    await ref.read(tokenStorageProvider).write(token);
+    await _tokenStorage.write(token);
     state = AsyncData(token);
   }
 }

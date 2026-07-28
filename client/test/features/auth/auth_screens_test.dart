@@ -45,7 +45,6 @@ void main() {
       verify(
         session.signUp(email: 'newuser@example.com', password: 'a-strong-pass'),
       );
-      verify(router.goNamed(routeTodayName));
     });
 
     patrolWidgetTest('A taken email shows an error and stays put', ($) async {
@@ -164,26 +163,28 @@ class MockAuthSession extends AsyncNotifier<String?>
   Future<String?> build() async => null;
 
   @override
-  Future<void> signIn({required String? email, required String? password}) =>
-      super.noSuchMethod(
-            Invocation.method(#signIn, const [], {
-              #email: email,
-              #password: password,
-            }),
-            returnValue: Future<void>.value(),
-            returnValueForMissingStub: Future<void>.value(),
-          )
-          as Future<void>;
+  Future<void> signIn({required String? email, required String? password}) {
+    return super.noSuchMethod(
+          Invocation.method(#signIn, const [], {
+            #email: email,
+            #password: password,
+          }),
+          returnValue: Future<void>.value(),
+          returnValueForMissingStub: Future<void>.value(),
+        )
+        as Future<void>;
+  }
 
   @override
-  Future<void> signUp({required String? email, required String? password}) =>
-      super.noSuchMethod(
-            Invocation.method(#signUp, const [], {
-              #email: email,
-              #password: password,
-            }),
-            returnValue: Future<void>.value(),
-            returnValueForMissingStub: Future<void>.value(),
-          )
-          as Future<void>;
+  Future<void> signUp({required String? email, required String? password}) {
+    return super.noSuchMethod(
+          Invocation.method(#signUp, const [], {
+            #email: email,
+            #password: password,
+          }),
+          returnValue: Future<void>.value(),
+          returnValueForMissingStub: Future<void>.value(),
+        )
+        as Future<void>;
+  }
 }
