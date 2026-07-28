@@ -123,16 +123,6 @@ type messageBody struct {
 	SeederID string `json:"seeder_id"`
 }
 
-// createTestAccountToken provisions the pre-defined test account against the
-// session's DB and returns its encoded auth token.
-func createTestAccountToken(ctx context.Context) (string, error) {
-	email := must(user.ParseEmail("e2e-runner@example.com"))
-	pswd := must(user.ValidatePassword("Police-Repurpose-Atypical-Gravel"))
-	svc := &user.Service{DB: testenv.DB(), Now: time.Now}
-	token, err := svc.SignUp(ctx, email, pswd, "TestDevice/1.0")
-	return token.Encode(), err
-}
-
 func messageHandler(ctx context.Context, msgc chan<- message) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /setup", func(w http.ResponseWriter, r *http.Request) {
@@ -160,17 +150,18 @@ func messageHandler(ctx context.Context, msgc chan<- message) error {
 	// /signin provisions the pre-defined test account on the already-running
 	// session API server and returns its bearer token, so gated feature tests
 	// (e.g. newspaper) can boot already authenticated without driving the
-	// sign-up UI. It talks to the API server directly rather than going through
-	// the sessionManager: the client only calls /signin after /setup has
-	// returned "ready", by which point the server is listening on :8080.
+	// sign-up UI.
 	mux.HandleFunc("POST /signin", func(w http.ResponseWriter, r *http.Request) {
-		token, err := createTestAccountToken(r.Context())
+		email := must(user.ParseEmail("e2e-runner@example.com"))
+		pswd := must(user.ValidatePassword("Police-Repurpose-Atypical-Gravel"))
+		svc := &user.Service{DB: testenv.DB(), Now: time.Now}
+		token, err := svc.SignUp(ctx, email, pswd, "TestDevice/1.0")
 		if err != nil {
 			http.Error(w, fmt.Sprintf("failed to provision test account: %v", err), http.StatusInternalServerError)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]string{"token": token})
+		_ = json.NewEncoder(w).Encode(map[string]string{"token": token.Encode()})
 	})
 
 	srv := http.Server{

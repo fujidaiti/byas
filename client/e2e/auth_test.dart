@@ -13,7 +13,7 @@ void main() {
     await pumpApp($);
 
     await $(AppDebugKey.signInScreen).waitUntilVisible();
-    await signUp($, 'newuser@example.com', 'New-User-Account-Password');
+    await _signUp($, 'newuser@example.com', 'New-User-Account-Password');
     await $(AppDebugKey.todayScreen).waitUntilVisible();
   });
 
@@ -22,7 +22,7 @@ void main() {
     await pumpApp($);
 
     await $(AppDebugKey.signInScreen).waitUntilVisible();
-    await signUp($, email, password);
+    await _signUp($, email, password);
     await $('Email already exists').waitUntilVisible();
     await $(AppDebugKey.signUpScreen).waitUntilVisible();
   });
@@ -32,7 +32,7 @@ void main() {
     await pumpApp($);
 
     await $(AppDebugKey.signInScreen).waitUntilVisible();
-    await signIn($, email, password);
+    await _signIn($, email, password);
     await $(AppDebugKey.todayScreen).waitUntilVisible();
   });
 
@@ -41,7 +41,7 @@ void main() {
     await pumpApp($);
 
     await $(AppDebugKey.signInScreen).waitUntilVisible();
-    await signIn($, email, 'wrong-password-value');
+    await _signIn($, email, 'wrong-password-value');
     await $('Email or password is incorrect').waitUntilVisible();
     await $(AppDebugKey.signInScreen).waitUntilVisible();
   });
@@ -58,7 +58,7 @@ void main() {
   });
 }
 
-Future<void> signIn(
+Future<void> _signIn(
   PatrolIntegrationTester $,
   String email,
   String password,
@@ -68,7 +68,7 @@ Future<void> signIn(
   await $(AppDebugKey.signInSubmitButton).tap();
 }
 
-Future<void> signUp(
+Future<void> _signUp(
   PatrolIntegrationTester $,
   String email,
   String password,
