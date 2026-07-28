@@ -48,7 +48,7 @@ final class TokenStorageProvider
   }
 }
 
-String _$tokenStorageHash() => r'd6cb979b57d544340715558fb2b8f478118faf3e';
+String _$tokenStorageHash() => r'efb036adbaf12d40f12671bad2ced3b6cf60b41e';
 
 @ProviderFor(authRepository)
 final authRepositoryProvider = AuthRepositoryProvider._();
@@ -91,6 +91,52 @@ final class AuthRepositoryProvider
 
 String _$authRepositoryHash() => r'f93a43b58ba60fb52ca215e536fb8d70aa04d2f0';
 
+@ProviderFor(deviceInfoPlugin)
+final deviceInfoPluginProvider = DeviceInfoPluginProvider._();
+
+final class DeviceInfoPluginProvider
+    extends
+        $FunctionalProvider<
+          DeviceInfoPlugin,
+          DeviceInfoPlugin,
+          DeviceInfoPlugin
+        >
+    with $Provider<DeviceInfoPlugin> {
+  DeviceInfoPluginProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'deviceInfoPluginProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$deviceInfoPluginHash();
+
+  @$internal
+  @override
+  $ProviderElement<DeviceInfoPlugin> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  DeviceInfoPlugin create(Ref ref) {
+    return deviceInfoPlugin(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(DeviceInfoPlugin value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<DeviceInfoPlugin>(value),
+    );
+  }
+}
+
+String _$deviceInfoPluginHash() => r'617e3ebe8c3add0ce75b256114efd15b0dfe2e50';
+
 /// The signed-in session: `null` when signed out, the bearer token when
 /// signed in. [build] resolves the persisted token at startup; [signIn] and
 /// [signUp] authenticate, persist the returned token, and update the state so
@@ -128,7 +174,7 @@ final class AuthSessionProvider
   AuthSession create() => AuthSession();
 }
 
-String _$authSessionHash() => r'7ed6997de015a2d624ca4f4aadfa20fae83817e6';
+String _$authSessionHash() => r'8c58892c0e035016a662436eb442c96a9421c2b7';
 
 /// The signed-in session: `null` when signed out, the bearer token when
 /// signed in. [build] resolves the persisted token at startup; [signIn] and
