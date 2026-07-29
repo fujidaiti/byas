@@ -73,13 +73,13 @@ class AuthSession extends _$AuthSession {
     switch (defaultTargetPlatform) {
       case .android:
         final info = await _deviceInfoPlugin.androidInfo;
-        return '${info.model}/${info.version.release}';
+        return '${info.model}/android-${info.version.release}';
       case .iOS:
         final info = await _deviceInfoPlugin.iosInfo;
-        return '${info.utsname.machine}/${info.systemVersion}';
+        return '${info.utsname.machine}/iOS-${info.systemVersion}';
       case .macOS:
         final info = await _deviceInfoPlugin.macOsInfo;
-        return '${info.model}/${info.osRelease}';
+        return '${info.model}/macOS-${info.osRelease}';
       case _:
         return '${Platform.operatingSystem}/${Platform.operatingSystemVersion}';
     }

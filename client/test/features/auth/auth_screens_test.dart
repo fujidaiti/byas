@@ -89,12 +89,12 @@ void main() {
 
     patrolWidgetTest('Submitting a new account authenticates', ($) async {
       await $.pumpWidget(testWidget);
-      await signUp($, 'newuser@example.com', 'a-strong-pass');
+      await signUp($, 'newuser@example.com', 'a-strong-password');
       verify(
         authRepository.signUp(
           email: 'newuser@example.com',
-          password: 'a-strong-pass',
-          device: anyNamed('device'),
+          password: 'a-strong-password',
+          device: 'Pixel 8 Pro/android-14',
         ),
       );
     });
@@ -109,7 +109,7 @@ void main() {
       ).thenThrow(const BadRequestError('Email already exists'));
       await $.pumpWidget(testWidget);
 
-      await signUp($, 'alice@example.com', 'a-strong-pass');
+      await signUp($, 'alice@example.com', 'a-strong-password');
 
       await $('Email already exists').waitUntilVisible();
       expect($(AppDebugKey.signUpScreen), findsOneWidget);
