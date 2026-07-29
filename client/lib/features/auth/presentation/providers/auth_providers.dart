@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:paperdoll/core/network/dio_provider.dart';
 import 'package:paperdoll/features/auth/data/auth_repository_impl.dart';
 import 'package:paperdoll/features/auth/data/token_storage.dart';
@@ -69,18 +70,18 @@ class AuthSession extends _$AuthSession {
   /// `<device model>/<os version>` (e.g. `iPhone15,3/17.4`, `Pixel 8 Pro/14`).
   /// Stored server-side alongside the issued token for session debugging.
   Future<String> _buildDeviceLabel() async {
-    if (Platform.isAndroid) {
-      final info = await _deviceInfoPlugin.androidInfo;
-      return '${info.model}/${info.version.release}';
+    switch (defaultTargetPlatform) {
+      case .android:
+        final info = await _deviceInfoPlugin.androidInfo;
+        return '${info.model}/${info.version.release}';
+      case .iOS:
+        final info = await _deviceInfoPlugin.iosInfo;
+        return '${info.utsname.machine}/${info.systemVersion}';
+      case .macOS:
+        final info = await _deviceInfoPlugin.macOsInfo;
+        return '${info.model}/${info.osRelease}';
+      case _:
+        return '${Platform.operatingSystem}/${Platform.operatingSystemVersion}';
     }
-    if (Platform.isIOS) {
-      final info = await _deviceInfoPlugin.iosInfo;
-      return '${info.utsname.machine}/${info.systemVersion}';
-    }
-    if (Platform.isMacOS) {
-      final info = await _deviceInfoPlugin.macOsInfo;
-      return '${info.model}/${info.osRelease}';
-    }
-    return Platform.operatingSystem;
   }
 }

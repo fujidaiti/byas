@@ -1,4 +1,5 @@
 import 'package:go_router/go_router.dart';
-import 'package:mockito/mockito.dart';
+import 'package:mockito/annotations.dart';
 
-class MockGoRouter extends Mock implements GoRouter {}
+@GenerateMocks([GoRouter])
+export 'helpers.mocks.dart';
