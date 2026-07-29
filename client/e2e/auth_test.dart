@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:paperdoll/debug_keys.dart';
 import 'package:patrol/patrol.dart';
@@ -5,6 +6,11 @@ import 'package:patrol/patrol.dart';
 import 'helper.dart';
 
 void main() {
+  // Initialize the Flutter binding up front so the host-facing socket is ready
+  // before the first request; without it the connection can abort transiently
+  // right after a test's app relaunch ("Software caused connection abort").
+  WidgetsFlutterBinding.ensureInitialized();
+
   const email = 'alice@example.com';
   const password = 'Police-Repurpose-Atypical-Gravel';
 

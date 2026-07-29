@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/widgets.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:paperdoll/app.dart';
@@ -53,10 +53,6 @@ Future<String> signInViaRunner() async {
 }
 
 Future<void> setUpServer({required String seederId}) async {
-  // Initialize the Flutter binding up front so the host-facing socket is ready
-  // before the first request; without it the connection can abort transiently
-  // right after a test's app relaunch ("Software caused connection abort").
-  WidgetsFlutterBinding.ensureInitialized();
   final response = await http
       .post(
         _runnerUri('/setup'),
