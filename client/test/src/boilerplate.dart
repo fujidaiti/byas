@@ -1,12 +1,13 @@
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:paperdoll/app.dart';
 import 'package:paperdoll/core/config/app_config.dart';
 import 'package:paperdoll/core/config/app_config_provider.dart';
 import 'package:paperdoll/core/network/dio_provider.dart';
+import 'package:paperdoll/core/platform/secure_storage.dart';
+import 'package:paperdoll/features/auth/presentation/providers/auth_providers.dart';
 import 'package:patrol_finders/patrol_finders.dart';
 
 import 'stub_server.dart';
@@ -24,9 +25,6 @@ import 'stub_server.dart';
 /// omit the body entirely to match any request for the route. Any request no
 /// stub matches fails the test at teardown, naming the endpoint.
 Future<StubServer> pumpApp(PatrolTester $, {String? token}) async {
-  // Backs the real SecureTokenStorage with an in-memory map, so the token
-  // takes the same path it does in production.
-  FlutterSecureStorage.setMockInitialValues({'auth_token': ?token});
   // Answers device_info_plus' platform channel with a fixed Android device.
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(
@@ -39,6 +37,7 @@ Future<StubServer> pumpApp(PatrolTester $, {String? token}) async {
   final container = ProviderContainer.test(
     overrides: [
       appConfigProvider.overrideWithValue(const AppConfig('http://mock')),
+      secureStorageProvider.overrideWithValue(InMemorySecureStorage()),
     ],
   );
   final server = StubServer.withDefaultResponses();
@@ -51,6 +50,12 @@ Future<StubServer> pumpApp(PatrolTester $, {String? token}) async {
     ),
   );
 
+  // Seed the token through the real persistence path, so signed-in tests start
+  // exactly where a returning user would.
+  if (token != null) {
+    await container.read(authRepositoryProvider).writeAuthToken(token);
+  }
+
   await $.pumpWidget(
     UncontrolledProviderScope(
       container: container,
@@ -61,6 +66,24 @@ Future<StubServer> pumpApp(PatrolTester $, {String? token}) async {
   // redirect that follows land a frame later.
   await $.pumpAndTrySettle();
   return server;
+}
+
+/// An in-memory [SecureStorage] so tokens take the same path they do in
+/// production, without touching the real secure-storage plugin.
+class InMemorySecureStorage implements SecureStorage {
+  final _store = <String, String>{};
+
+  @override
+  Future<String?> read(String key) async => _store[key];
+
+  @override
+  Future<void> write(String key, String? value) async {
+    if (value == null) {
+      _store.remove(key);
+    } else {
+      _store[key] = value;
+    }
+  }
 }
 
 final AndroidDeviceInfo _androidDeviceInfo =

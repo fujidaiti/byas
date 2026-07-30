@@ -1,9 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:paperdoll/app.dart';
-import 'package:paperdoll/features/auth/data/token_storage.dart';
 import 'package:paperdoll/features/auth/presentation/providers/auth_providers.dart';
 import 'package:patrol/patrol.dart';
 
@@ -18,11 +18,14 @@ Future<void> pumpApp(PatrolIntegrationTester $) async {
 /// that aren't about the auth flow itself (e.g. the newspaper suite).
 Future<void> pumpAppWithAuth(PatrolIntegrationTester $) async {
   final token = await signInViaRunner();
-  const storage = SecureTokenStorage();
-  await storage.write(token);
+  // Persist the token through the real repository path, then run the app on the
+  // same container so its AuthSession reads the token back at startup.
+  final container = ProviderContainer();
+  addTearDown(container.dispose);
+  await container.read(authRepositoryProvider).writeAuthToken(token);
   await $.pumpWidget(
-    ProviderScope(
-      overrides: [tokenStorageProvider.overrideWithValue(storage)],
+    UncontrolledProviderScope(
+      container: container,
       child: const PaperdollApp(),
     ),
   );

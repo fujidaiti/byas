@@ -9,47 +9,6 @@ part of 'auth_providers.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
-@ProviderFor(tokenStorage)
-final tokenStorageProvider = TokenStorageProvider._();
-
-final class TokenStorageProvider
-    extends $FunctionalProvider<TokenStorage, TokenStorage, TokenStorage>
-    with $Provider<TokenStorage> {
-  TokenStorageProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'tokenStorageProvider',
-        isAutoDispose: true,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
-
-  @override
-  String debugGetCreateSourceHash() => _$tokenStorageHash();
-
-  @$internal
-  @override
-  $ProviderElement<TokenStorage> $createElement($ProviderPointer pointer) =>
-      $ProviderElement(pointer);
-
-  @override
-  TokenStorage create(Ref ref) {
-    return tokenStorage(ref);
-  }
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(TokenStorage value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<TokenStorage>(value),
-    );
-  }
-}
-
-String _$tokenStorageHash() => r'efb036adbaf12d40f12671bad2ced3b6cf60b41e';
-
 @ProviderFor(authRepository)
 final authRepositoryProvider = AuthRepositoryProvider._();
 
@@ -89,7 +48,7 @@ final class AuthRepositoryProvider
   }
 }
 
-String _$authRepositoryHash() => r'f93a43b58ba60fb52ca215e536fb8d70aa04d2f0';
+String _$authRepositoryHash() => r'5dfc4a721997a279f4ee58ceed1d946abe36dd9c';
 
 @ProviderFor(deviceInfoPlugin)
 final deviceInfoPluginProvider = DeviceInfoPluginProvider._();
@@ -174,7 +133,7 @@ final class AuthSessionProvider
   AuthSession create() => AuthSession();
 }
 
-String _$authSessionHash() => r'8c58892c0e035016a662436eb442c96a9421c2b7';
+String _$authSessionHash() => r'1d6d5fd536b64990ac83d5d67326a15ab64af826';
 
 /// The signed-in session: `null` when signed out, the bearer token when
 /// signed in. [build] resolves the persisted token at startup; [signIn] and

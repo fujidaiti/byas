@@ -3,19 +3,18 @@ import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:paperdoll/core/network/dio_provider.dart';
+import 'package:paperdoll/core/platform/secure_storage.dart';
 import 'package:paperdoll/features/auth/data/auth_repository_impl.dart';
-import 'package:paperdoll/features/auth/data/token_storage.dart';
 import 'package:paperdoll/features/auth/domain/auth_repository.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'auth_providers.g.dart';
 
 @riverpod
-TokenStorage tokenStorage(Ref ref) => const SecureTokenStorage();
-
-@riverpod
-AuthRepository authRepository(Ref ref) =>
-    AuthRepositoryImpl(ref.watch(dioProvider));
+AuthRepository authRepository(Ref ref) => AuthRepositoryImpl(
+  ref.watch(dioProvider),
+  ref.watch(secureStorageProvider),
+);
 
 @riverpod
 DeviceInfoPlugin deviceInfoPlugin(Ref ref) => DeviceInfoPlugin();
@@ -27,16 +26,14 @@ DeviceInfoPlugin deviceInfoPlugin(Ref ref) => DeviceInfoPlugin();
 @riverpod
 class AuthSession extends _$AuthSession {
   late AuthRepository _repo;
-  late TokenStorage _tokenStorage;
   late DeviceInfoPlugin _deviceInfoPlugin;
 
   @override
   Future<String?> build() async {
     _repo = ref.watch(authRepositoryProvider);
-    _tokenStorage = ref.watch(tokenStorageProvider);
     _deviceInfoPlugin = ref.watch(deviceInfoPluginProvider);
     try {
-      return await _tokenStorage.read();
+      return await _repo.readAuthToken();
     } on Exception {
       // Treat an unreadable token as signed-out rather than surfacing an
       // error screen at startup.
@@ -51,7 +48,7 @@ class AuthSession extends _$AuthSession {
       password: password,
       device: device,
     );
-    await _tokenStorage.write(token);
+    await _repo.writeAuthToken(token);
     state = AsyncData(token);
   }
 
@@ -62,7 +59,7 @@ class AuthSession extends _$AuthSession {
       password: password,
       device: device,
     );
-    await _tokenStorage.write(token);
+    await _repo.writeAuthToken(token);
     state = AsyncData(token);
   }
 

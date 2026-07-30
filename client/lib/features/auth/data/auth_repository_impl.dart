@@ -1,12 +1,22 @@
 import 'package:dio/dio.dart';
 import 'package:openapi/api.dart' as api;
 import 'package:paperdoll/core/network/request_runner.dart';
+import 'package:paperdoll/core/platform/secure_storage.dart';
 import 'package:paperdoll/features/auth/domain/auth_repository.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
-  const AuthRepositoryImpl(this._dio);
+  const AuthRepositoryImpl(this._dio, this._storage);
 
   final Dio _dio;
+  final SecureStorage _storage;
+
+  static const _tokenKey = 'auth_token';
+
+  @override
+  Future<String?> readAuthToken() => _storage.read(_tokenKey);
+
+  @override
+  Future<void> writeAuthToken(String token) => _storage.write(_tokenKey, token);
 
   @override
   Future<String> signUp({

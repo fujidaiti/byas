@@ -14,4 +14,11 @@ abstract interface class AuthRepository {
     required String password,
     required String device,
   });
+
+  /// Reads the persisted bearer token, or `null` when signed out.
+  Future<String?> readAuthToken();
+
+  /// Persists the bearer token issued by [signUp] / [signIn] so it survives
+  /// app launches.
+  Future<void> writeAuthToken(String token);
 }
