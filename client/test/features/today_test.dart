@@ -1,20 +1,17 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openapi/api.dart' as api;
 import 'package:paperdoll/debug_keys.dart';
-import 'package:patrol/patrol.dart';
+import 'package:patrol_finders/patrol_finders.dart';
 
-import 'helpers.dart';
+import '../src/boilerplate.dart';
+import '../src/stub_server.dart';
 
 void main() {
-  patrolTest("Check today's issue and read a story", ($) async {
-    await pumpApp($);
-    final adapter = httpMockAdapter($);
-
-    adapter.onGet(
-      '/newspapers/today',
-      (s) => s.reply(
-        200,
-        api.GetTodaysNewspaper200Response(
+  patrolWidgetTest("Check today's issue and read a story", (t) async {
+    final server = StubServer.withDefaultResponses()
+      ..onGet(
+        '/newspapers/today',
+        body: api.GetTodaysNewspaper200Response(
           id: 1,
           publishedAt: DateTime.utc(2026, 7, 1),
           stories: [
@@ -27,26 +24,23 @@ void main() {
             ),
           ],
         ).toJson(),
-      ),
-    );
-    adapter.onGet(
-      '/feed-entries/1',
-      (s) => s.reply(
-        200,
-        api.FeedEntry(
+      )
+      ..onGet(
+        '/feed-entries/1',
+        body: api.FeedEntry(
           id: 1,
           feedId: 1,
           url: 'https://cursor.ai/blog/1',
           title: 'Demystifying evals for AI agents',
           snapshotAt: DateTime.utc(2026),
         ).toJson(),
-      ),
-    );
+      );
+    await pumpAppWithAuth(t, server);
 
-    expect($(AppDebugKey.todayScreen), findsOneWidget);
-    await $(AppDebugKey.storyCard('Demystifying evals for AI agents')).tap();
-    await $(AppDebugKey.feedEntryReaderScreen).waitUntilVisible();
-    await $(
+    expect(t(AppDebugKey.todayScreen), findsOneWidget);
+    await t(AppDebugKey.storyCard('Demystifying evals for AI agents')).tap();
+    await t(AppDebugKey.feedEntryReaderScreen).waitUntilVisible();
+    await t(
       AppDebugKey.readerTitle('Demystifying evals for AI agents'),
     ).waitUntilVisible();
   });

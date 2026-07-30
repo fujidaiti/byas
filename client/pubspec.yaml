@@ -34,6 +34,10 @@ dev_dependencies:
   http: ^1.6.0
   collection: ^1.19.0
   patrol_finders: ^3.6.0
+  # Faking the WebView platform in reader widget tests (see
+  # test/src/fake_webview.dart).
+  webview_flutter_platform_interface: ^2.15.1
+  plugin_platform_interface: ^2.1.8
 
 flutter:
   uses-material-design: true

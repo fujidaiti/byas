@@ -5,16 +5,18 @@ import 'package:paperdoll/debug_keys.dart';
 import 'package:patrol_finders/patrol_finders.dart';
 
 import '../src/boilerplate.dart';
+import '../src/stub_server.dart';
 
 void main() {
   patrolWidgetTest('Sign up for a new account', (t) async {
-    final server = await pumpApp(t);
-    server.onPost(
-      '/signup',
-      status: 201,
-      body: api.SignUp201Response(token: 'issued-token').toJson(),
-      data: {'email': 'newuser@example.com', 'password': 'a-strong-password'},
-    );
+    final server = StubServer.withDefaultResponses()
+      ..onPost(
+        '/signup',
+        status: 201,
+        body: api.SignUp201Response(token: 'issued-token').toJson(),
+        data: {'email': 'newuser@example.com', 'password': 'a-strong-password'},
+      );
+    await pumpApp(t, server);
 
     await t(AppDebugKey.signInGoToSignUpButton).tap();
     await signUp(t, 'newuser@example.com', 'a-strong-password');
@@ -22,12 +24,13 @@ void main() {
   });
 
   patrolWidgetTest('Sign in to an existing account', (t) async {
-    final server = await pumpApp(t);
-    server.onPost(
-      '/signin',
-      body: api.SignUp201Response(token: 'issued-token').toJson(),
-      data: {'email': 'alice@example.com', 'password': 'correct-password'},
-    );
+    final server = StubServer.withDefaultResponses()
+      ..onPost(
+        '/signin',
+        body: api.SignUp201Response(token: 'issued-token').toJson(),
+        data: {'email': 'alice@example.com', 'password': 'correct-password'},
+      );
+    await pumpApp(t, server);
 
     expect(t(AppDebugKey.signInScreen), findsOneWidget);
     await signIn(t, 'alice@example.com', 'correct-password');
@@ -35,14 +38,15 @@ void main() {
   });
 
   patrolWidgetTest('Sign in with a padded email address', (t) async {
-    final server = await pumpApp(t);
-    server.onPost(
-      '/signin',
-      body: api.SignUp201Response(token: 'issued-token').toJson(),
-      // The registration only matches once the screen has trimmed the email;
-      // an unmatched request fails the test.
-      data: {'email': 'user@example.com', 'password': 'a-password'},
-    );
+    final server = StubServer.withDefaultResponses()
+      ..onPost(
+        '/signin',
+        body: api.SignUp201Response(token: 'issued-token').toJson(),
+        // The registration only matches once the screen has trimmed the email;
+        // an unmatched request fails the test.
+        data: {'email': 'user@example.com', 'password': 'a-password'},
+      );
+    await pumpApp(t, server);
 
     await signIn(t, '  user@example.com  ', 'a-password');
     expect(t(AppDebugKey.todayScreen), findsOneWidget);
@@ -51,13 +55,14 @@ void main() {
   patrolWidgetTest('Signing up with a taken email keeps the form open', (
     t,
   ) async {
-    final server = await pumpApp(t);
-    server.onPost(
-      '/signup',
-      status: 400,
-      body: api.Error(message: 'Email already exists').toJson(),
-      data: {'email': 'alice@example.com', 'password': 'a-strong-password'},
-    );
+    final server = StubServer.withDefaultResponses()
+      ..onPost(
+        '/signup',
+        status: 400,
+        body: api.Error(message: 'Email already exists').toJson(),
+        data: {'email': 'alice@example.com', 'password': 'a-strong-password'},
+      );
+    await pumpApp(t, server);
 
     await t(AppDebugKey.signInGoToSignUpButton).tap();
     await signUp(t, 'alice@example.com', 'a-strong-password');
@@ -68,13 +73,14 @@ void main() {
   patrolWidgetTest('Signing in with wrong credentials keeps the form open', (
     t,
   ) async {
-    final server = await pumpApp(t);
-    server.onPost(
-      '/signin',
-      status: 400,
-      body: api.Error(message: 'Email or password is incorrect').toJson(),
-      data: {'email': 'alice@example.com', 'password': 'wrong-password'},
-    );
+    final server = StubServer.withDefaultResponses()
+      ..onPost(
+        '/signin',
+        status: 400,
+        body: api.Error(message: 'Email or password is incorrect').toJson(),
+        data: {'email': 'alice@example.com', 'password': 'wrong-password'},
+      );
+    await pumpApp(t, server);
 
     await signIn(t, 'alice@example.com', 'wrong-password');
     expect(t('Email or password is incorrect'), findsOneWidget);
@@ -82,7 +88,7 @@ void main() {
   });
 
   patrolWidgetTest('Submitting empty credentials does nothing', (t) async {
-    await pumpApp(t);
+    await pumpApp(t, StubServer.withDefaultResponses());
     await t(AppDebugKey.signInSubmitButton).tap();
     // The screen guards on empty input, so it stays put without asking the
     // server — `/signin` is left unstubbed, and a request would surface an
@@ -92,7 +98,7 @@ void main() {
   });
 
   patrolWidgetTest('Switch between sign-in and sign-up', (t) async {
-    await pumpApp(t);
+    await pumpApp(t, StubServer.withDefaultResponses());
     await t(AppDebugKey.signInGoToSignUpButton).tap();
     expect(t(AppDebugKey.signUpScreen), findsOneWidget);
     await t(AppDebugKey.signUpGoToSignInButton).tap();
@@ -100,7 +106,7 @@ void main() {
   });
 
   patrolWidgetTest('Open the app with a stored token', (t) async {
-    await pumpApp(t, token: 'stored-token');
+    await pumpApp(t, StubServer.withDefaultResponses(), token: 'stored-token');
     expect(t(AppDebugKey.todayScreen), findsOneWidget);
     expect(t(AppDebugKey.signInScreen), findsNothing);
     expect(t(AppDebugKey.signUpScreen), findsNothing);

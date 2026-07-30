@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
 import 'package:openapi/api.dart' as api;
@@ -38,6 +40,14 @@ class StubServer extends Interceptor {
   void onPost(String path, {int status = 200, Object? body, Object? data}) =>
       _routes.add(_Route('POST', path, data, status, body));
 
+  /// Registers a PUT route. See [onPost] for how [data] matches the body.
+  void onPut(String path, {int status = 200, Object? body, Object? data}) =>
+      _routes.add(_Route('PUT', path, data, status, body));
+
+  /// Registers a PATCH route. See [onPost] for how [data] matches the body.
+  void onPatch(String path, {int status = 200, Object? body, Object? data}) =>
+      _routes.add(_Route('PATCH', path, data, status, body));
+
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     final route = _routes.reversed.firstWhereOrNull(
@@ -60,7 +70,7 @@ class StubServer extends Interceptor {
     final response = Response<dynamic>(
       requestOptions: options,
       statusCode: route.status,
-      data: route.body,
+      data: _asTransportJson(route.body),
     );
     if (options.validateStatus(route.status)) {
       handler.resolve(response);
@@ -77,6 +87,14 @@ class StubServer extends Interceptor {
     }
   }
 }
+
+/// Mimics real transport: over the wire the response body is JSON-encoded and
+/// re-decoded, so nested generated models (e.g. a `Feed` inside a
+/// `GetFeeds200Response`) arrive as plain `Map`s. Generated `toJson()` is
+/// shallow — it leaves list/object members as live objects — so a round-trip
+/// here is what turns them into the `Map`/`List` tree `fromJson` expects.
+Object? _asTransportJson(Object? body) =>
+    body == null ? null : jsonDecode(jsonEncode(body));
 
 class _Route {
   _Route(this.method, this.path, this.data, this.status, this.body);
