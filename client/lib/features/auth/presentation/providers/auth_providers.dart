@@ -1,8 +1,5 @@
-import 'dart:io';
-
-import 'package:device_info_plus/device_info_plus.dart';
-import 'package:flutter/foundation.dart';
 import 'package:paperdoll/core/network/dio_provider.dart';
+import 'package:paperdoll/core/platform/device.dart';
 import 'package:paperdoll/core/platform/secure_storage.dart';
 import 'package:paperdoll/features/auth/data/auth_repository_impl.dart';
 import 'package:paperdoll/features/auth/domain/auth_repository.dart';
@@ -16,9 +13,6 @@ AuthRepository authRepository(Ref ref) => AuthRepositoryImpl(
   ref.watch(secureStorageProvider),
 );
 
-@riverpod
-DeviceInfoPlugin deviceInfoPlugin(Ref ref) => DeviceInfoPlugin();
-
 /// The signed-in session: `null` when signed out, the bearer token when
 /// signed in. [build] resolves the persisted token at startup; [signIn] and
 /// [signUp] authenticate, persist the returned token, and update the state so
@@ -26,12 +20,12 @@ DeviceInfoPlugin deviceInfoPlugin(Ref ref) => DeviceInfoPlugin();
 @riverpod
 class AuthSession extends _$AuthSession {
   late AuthRepository _repo;
-  late DeviceInfoPlugin _deviceInfoPlugin;
+  late Device _device;
 
   @override
   Future<String?> build() async {
     _repo = ref.watch(authRepositoryProvider);
-    _deviceInfoPlugin = ref.watch(deviceInfoPluginProvider);
+    _device = ref.watch(deviceProvider);
     try {
       return await _repo.readAuthToken();
     } on Exception {
@@ -42,7 +36,7 @@ class AuthSession extends _$AuthSession {
   }
 
   Future<void> signIn({required String email, required String password}) async {
-    final device = await _buildDeviceLabel();
+    final device = await _device.label();
     final token = await _repo.signIn(
       email: email,
       password: password,
@@ -53,7 +47,7 @@ class AuthSession extends _$AuthSession {
   }
 
   Future<void> signUp({required String email, required String password}) async {
-    final device = await _buildDeviceLabel();
+    final device = await _device.label();
     final token = await _repo.signUp(
       email: email,
       password: password,
@@ -61,24 +55,5 @@ class AuthSession extends _$AuthSession {
     );
     await _repo.writeAuthToken(token);
     state = AsyncData(token);
-  }
-
-  /// Builds the `device` label sent to `/signup` and `/signin`, in the form
-  /// `<device model>/<os version>` (e.g. `iPhone15,3/17.4`, `Pixel 8 Pro/14`).
-  /// Stored server-side alongside the issued token for session debugging.
-  Future<String> _buildDeviceLabel() async {
-    switch (defaultTargetPlatform) {
-      case .android:
-        final info = await _deviceInfoPlugin.androidInfo;
-        return '${info.model}/android-${info.version.release}';
-      case .iOS:
-        final info = await _deviceInfoPlugin.iosInfo;
-        return '${info.utsname.machine}/iOS-${info.systemVersion}';
-      case .macOS:
-        final info = await _deviceInfoPlugin.macOsInfo;
-        return '${info.model}/macOS-${info.osRelease}';
-      case _:
-        return '${Platform.operatingSystem}/${Platform.operatingSystemVersion}';
-    }
   }
 }

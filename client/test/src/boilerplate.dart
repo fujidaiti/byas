@@ -1,11 +1,10 @@
-import 'package:device_info_plus/device_info_plus.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:paperdoll/app.dart';
 import 'package:paperdoll/core/config/app_config.dart';
 import 'package:paperdoll/core/config/app_config_provider.dart';
 import 'package:paperdoll/core/network/dio_provider.dart';
+import 'package:paperdoll/core/platform/device.dart';
 import 'package:paperdoll/core/platform/secure_storage.dart';
 import 'package:paperdoll/features/auth/presentation/providers/auth_providers.dart';
 import 'package:patrol_finders/patrol_finders.dart';
@@ -25,21 +24,14 @@ import 'stub_server.dart';
 /// omit the body entirely to match any request for the route. Any request no
 /// stub matches fails the test at teardown, naming the endpoint.
 Future<StubServer> pumpApp(PatrolTester $, {String? token}) async {
-  // Answers device_info_plus' platform channel with a fixed Android device.
-  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-      .setMockMethodCallHandler(
-        const MethodChannel('dev.fluttercommunity.plus/device_info'),
-        (call) async => _androidDeviceInfo.data,
-      );
-
-  // The server has to exist before the first frame: signed in, the app lands
-  // on Today and fetches right away.
   final container = ProviderContainer.test(
     overrides: [
       appConfigProvider.overrideWithValue(const AppConfig('http://mock')),
-      secureStorageProvider.overrideWithValue(InMemorySecureStorage()),
+      deviceProvider.overrideWithValue(_StubDevice()),
+      secureStorageProvider.overrideWithValue(_InMemorySecureStorage()),
     ],
   );
+
   final server = StubServer.withDefaultResponses();
   container.read(dioProvider).interceptors.add(server);
   addTearDown(
@@ -50,8 +42,6 @@ Future<StubServer> pumpApp(PatrolTester $, {String? token}) async {
     ),
   );
 
-  // Seed the token through the real persistence path, so signed-in tests start
-  // exactly where a returning user would.
   if (token != null) {
     await container.read(authRepositoryProvider).writeAuthToken(token);
   }
@@ -65,12 +55,11 @@ Future<StubServer> pumpApp(PatrolTester $, {String? token}) async {
   // The splash screen outlives the first settle: reading the token and the
   // redirect that follows land a frame later.
   await $.pumpAndTrySettle();
+
   return server;
 }
 
-/// An in-memory [SecureStorage] so tokens take the same path they do in
-/// production, without touching the real secure-storage plugin.
-class InMemorySecureStorage implements SecureStorage {
+class _InMemorySecureStorage implements SecureStorage {
   final _store = <String, String>{};
 
   @override
@@ -86,38 +75,9 @@ class InMemorySecureStorage implements SecureStorage {
   }
 }
 
-final AndroidDeviceInfo _androidDeviceInfo =
-    AndroidDeviceInfo.setMockInitialValues(
-      version: AndroidBuildVersion.setMockInitialValues(
-        codename: 'REL',
-        incremental: '1',
-        previewSdkInt: 0,
-        release: '14',
-        sdkInt: 34,
-      ),
-      board: 'test-board',
-      bootloader: 'test-bootloader',
-      brand: 'google',
-      device: 'test-device',
-      display: 'test-display',
-      fingerprint: 'test-fingerprint',
-      hardware: 'test-hardware',
-      host: 'test-host',
-      id: 'test-id',
-      manufacturer: 'Google',
-      model: 'Pixel 8 Pro',
-      product: 'test-product',
-      name: 'test-name',
-      supported32BitAbis: const [],
-      supported64BitAbis: const ['arm64-v8a'],
-      supportedAbis: const ['arm64-v8a'],
-      tags: 'release-keys',
-      type: 'user',
-      isPhysicalDevice: true,
-      freeDiskSize: 0,
-      totalDiskSize: 0,
-      systemFeatures: const [],
-      isLowRamDevice: false,
-      physicalRamSize: 0,
-      availableRamSize: 0,
-    );
+class _StubDevice implements Device {
+  @override
+  Future<String> label() {
+    return Future.value('TestDevice');
+  }
+}

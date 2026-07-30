@@ -50,52 +50,6 @@ final class AuthRepositoryProvider
 
 String _$authRepositoryHash() => r'5dfc4a721997a279f4ee58ceed1d946abe36dd9c';
 
-@ProviderFor(deviceInfoPlugin)
-final deviceInfoPluginProvider = DeviceInfoPluginProvider._();
-
-final class DeviceInfoPluginProvider
-    extends
-        $FunctionalProvider<
-          DeviceInfoPlugin,
-          DeviceInfoPlugin,
-          DeviceInfoPlugin
-        >
-    with $Provider<DeviceInfoPlugin> {
-  DeviceInfoPluginProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'deviceInfoPluginProvider',
-        isAutoDispose: true,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
-
-  @override
-  String debugGetCreateSourceHash() => _$deviceInfoPluginHash();
-
-  @$internal
-  @override
-  $ProviderElement<DeviceInfoPlugin> $createElement($ProviderPointer pointer) =>
-      $ProviderElement(pointer);
-
-  @override
-  DeviceInfoPlugin create(Ref ref) {
-    return deviceInfoPlugin(ref);
-  }
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(DeviceInfoPlugin value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<DeviceInfoPlugin>(value),
-    );
-  }
-}
-
-String _$deviceInfoPluginHash() => r'617e3ebe8c3add0ce75b256114efd15b0dfe2e50';
-
 /// The signed-in session: `null` when signed out, the bearer token when
 /// signed in. [build] resolves the persisted token at startup; [signIn] and
 /// [signUp] authenticate, persist the returned token, and update the state so
@@ -133,7 +87,7 @@ final class AuthSessionProvider
   AuthSession create() => AuthSession();
 }
 
-String _$authSessionHash() => r'1d6d5fd536b64990ac83d5d67326a15ab64af826';
+String _$authSessionHash() => r'8d1dc2c313aa3ebd5b59db24398940c9d446e2f9';
 
 /// The signed-in session: `null` when signed out, the bearer token when
 /// signed in. [build] resolves the persisted token at startup; [signIn] and
