@@ -459,7 +459,7 @@ func TestAuth_SignOut(t *testing.T) {
 	for _, tt := range test {
 		s.Now = func() time.Time { return tt.signedOutAt }
 		t.Run(tt.name, func(t *testing.T) {
-			if got := s.SignOut(t.Context(), tt.token); got != nil {
+			if got := s.SignOut(t.Context(), tt.token.Encode()); got != nil {
 				t.Errorf("got %v, want a nil error", got)
 			}
 
@@ -545,7 +545,7 @@ func TestAuth_VerifyAuthToken(t *testing.T) {
 		{
 			name:    "bob's expired sign-in token",
 			token:   token4,
-			checkAt: mustTimeUTC("2029-11-04 12:00:00"),
+			checkAt: mustTimeUTC("2026-11-04 12:00:00"),
 			want:    0,
 			wantErr: user.ErrTokenInvalid,
 		},
@@ -559,9 +559,9 @@ func TestAuth_VerifyAuthToken(t *testing.T) {
 	}
 
 	for _, tt := range test {
+		s.Now = func() time.Time { return tt.checkAt }
 		t.Run(tt.name, func(t *testing.T) {
-			s.Now = func() time.Time { return tt.checkAt }
-			gotID, gotErr := s.VerifyAuthToken(t.Context(), tt.token)
+			gotID, gotErr := s.VerifyAuthToken(t.Context(), tt.token.Encode())
 			if gotID != tt.want {
 				t.Errorf("got ID=%d, want %d", gotID, tt.want)
 			}

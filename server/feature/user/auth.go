@@ -62,12 +62,12 @@ func generateAuthToken() (AuthToken, error) {
 	return t, err
 }
 
-func (t AuthToken) Hash() []byte {
-	if t == (AuthToken{}) {
-		return nil
+func decodeAuthToken(t string) (AuthToken, error) {
+	b, err := base64.RawURLEncoding.DecodeString(t)
+	if err != nil || len(b) != 32 {
+		return AuthToken{}, ErrTokenInvalid
 	}
-	h := sha256.Sum256(t.value[:])
-	return h[:]
+	return AuthToken{[32]byte(b)}, nil
 }
 
 func (t AuthToken) Encode() string {
@@ -75,6 +75,14 @@ func (t AuthToken) Encode() string {
 		return ""
 	}
 	return base64.RawURLEncoding.EncodeToString(t.value[:])
+}
+
+func (t AuthToken) Hash() []byte {
+	if t == (AuthToken{}) {
+		return nil
+	}
+	h := sha256.Sum256(t.value[:])
+	return h[:]
 }
 
 // TODO: Tweak the bcrypt cost
@@ -149,17 +157,35 @@ func (s *Service) issueAuthToken(
 	return token, nil
 }
 
-// VerifyAuthToken checks if the token t is valid and finds the user who owns that token.
-// Reports [ErrTokenInvalid] otherwise.
-func (s *Service) VerifyAuthToken(ctx context.Context, t AuthToken) (UserID, error) {
-	return 0, nil
+// VerifyAuthToken checks if the encoded token t is valid and finds the user who
+// owns that token. Reports an [ErrTokenInvalid] if the token is malformed or expired.
+func (s *Service) VerifyAuthToken(ctx context.Context, t string) (UserID, error) {
+	token, err := decodeAuthToken(t)
+	if err != nil {
+		return 0, err
+	}
+	var id UserID
+	err = s.DB.QueryRowContext(ctx, `
+		SELECT user_id FROM auth_tokens WHERE expires_at > $1 AND token_hash = $2
+	`, s.Now(), token.Hash()).Scan(&id)
+	if err != nil {
+		return 0, ErrTokenInvalid
+	}
+	return id, nil
 }
 
-// SignOut revokes the token t. The user who owns that token remains authorized
-// as long as their other tokens are valid.
+// SignOut revokes the encoded token t. The user who owns that token remains
+// authorized as long as their other tokens are valid.
 //
 // This operation does not fail even if the token is invalid, but it may report
-// an unexpected error due to infrastructure issues.
-func (s *Service) SignOut(ctx context.Context, t AuthToken) error {
-	return nil
+// an unknown error due to infrastructure issues.
+func (s *Service) SignOut(ctx context.Context, t string) error {
+	token, err := decodeAuthToken(t)
+	if err != nil {
+		return nil
+	}
+	_, err = s.DB.ExecContext(ctx, `
+		DELETE FROM auth_tokens WHERE token_hash = $1
+	`, token.Hash())
+	return err
 }
