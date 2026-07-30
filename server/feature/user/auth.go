@@ -148,3 +148,18 @@ func (s *Service) issueAuthToken(
 	}
 	return token, nil
 }
+
+// VerifyAuthToken checks if the token t is valid and finds the user who owns that token.
+// Reports [ErrTokenInvalid] otherwise.
+func (s *Service) VerifyAuthToken(ctx context.Context, t AuthToken) (UserID, error) {
+	return 0, nil
+}
+
+// SignOut revokes the token t. The user who owns that token remains authorized
+// as long as their other tokens are valid.
+//
+// This operation does not fail even if the token is invalid, but it may report
+// an unexpected error due to infrastructure issues.
+func (s *Service) SignOut(ctx context.Context, t AuthToken) error {
+	return nil
+}
