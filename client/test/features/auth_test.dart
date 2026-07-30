@@ -4,7 +4,7 @@ import 'package:openapi/api.dart' as api;
 import 'package:paperdoll/debug_keys.dart';
 import 'package:patrol_finders/patrol_finders.dart';
 
-import '../src/helpers.dart';
+import '../src/boilerplate.dart';
 
 void main() {
   patrolWidgetTest('Sign up for a new account', (t) async {

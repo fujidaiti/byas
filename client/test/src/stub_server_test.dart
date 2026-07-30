@@ -1,17 +1,17 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'mock_server.dart';
+import 'stub_server.dart';
 
 void main() {
-  // A bare Dio wired to a fresh [MockServer], with no other interceptors — so
+  // A bare Dio wired to a fresh [StubServer], with no other interceptors — so
   // a rejection surfaces the raw [DioException] to the caller instead of being
   // mapped to a domain error.
-  late MockServer server;
+  late StubServer server;
   late Dio dio;
 
   setUp(() {
-    server = MockServer();
+    server = StubServer();
     dio = Dio(BaseOptions(baseUrl: 'http://mock'))..interceptors.add(server);
   });
 

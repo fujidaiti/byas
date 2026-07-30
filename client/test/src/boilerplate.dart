@@ -9,13 +9,13 @@ import 'package:paperdoll/core/config/app_config_provider.dart';
 import 'package:paperdoll/core/network/dio_provider.dart';
 import 'package:patrol_finders/patrol_finders.dart';
 
-import 'mock_server.dart';
+import 'stub_server.dart';
 
 /// Boots the whole app on the Flutter test framework, with in-memory
 /// stand-ins for everything the app would otherwise get from a device: no
 /// network, no secure storage plugin, no device info plugin.
 ///
-/// Starts signed out unless [token] is given. Returns the [MockServer] every
+/// Starts signed out unless [token] is given. Returns the [StubServer] every
 /// HTTP call goes through, pre-stubbed with an empty account so the app
 /// always has somewhere to land. Registering a route again overrides the
 /// default — the last matching registration wins.
@@ -23,7 +23,7 @@ import 'mock_server.dart';
 /// A stub may declare a subset of the request body (extra keys are ignored) or
 /// omit the body entirely to match any request for the route. Any request no
 /// stub matches fails the test at teardown, naming the endpoint.
-Future<MockServer> pumpApp(PatrolTester $, {String? token}) async {
+Future<StubServer> pumpApp(PatrolTester $, {String? token}) async {
   // Backs the real SecureTokenStorage with an in-memory map, so the token
   // takes the same path it does in production.
   FlutterSecureStorage.setMockInitialValues({'auth_token': ?token});
@@ -41,7 +41,7 @@ Future<MockServer> pumpApp(PatrolTester $, {String? token}) async {
       appConfigProvider.overrideWithValue(const AppConfig('http://mock')),
     ],
   );
-  final server = MockServer.withDefaultResponses();
+  final server = StubServer.withDefaultResponses();
   container.read(dioProvider).interceptors.add(server);
   addTearDown(
     () => expect(

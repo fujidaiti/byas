@@ -5,13 +5,13 @@ import 'package:openapi/api.dart' as api;
 /// A Dio interceptor that answers registered routes with canned responses and
 /// records any request no route matched. When several routes match the same
 /// request, the last registered one wins.
-class MockServer extends Interceptor {
-  MockServer();
+class StubServer extends Interceptor {
+  StubServer();
 
   /// A server pre-stubbed with the three shell tabs, all empty: enough for any
   /// test to boot and navigate without stubbing anything itself.
-  factory MockServer.withDefaultResponses() {
-    return MockServer()
+  factory StubServer.withDefaultResponses() {
+    return StubServer()
       ..onGet(
         '/newspapers/today',
         body: api.GetTodaysNewspaper200Response(
@@ -44,7 +44,7 @@ class MockServer extends Interceptor {
       (r) =>
           r.method == options.method &&
           r.path == options.uri.path &&
-          _bodyMatches(r.data, options.data),
+          r.matchesBody(options.data),
     );
 
     if (route == null) {
@@ -76,10 +76,21 @@ class MockServer extends Interceptor {
       );
     }
   }
+}
 
-  /// `null` expected matches any body; a `Map` matches as a top-level subset
+class _Route {
+  _Route(this.method, this.path, this.data, this.status, this.body);
+  final String method;
+  final String path;
+  final Object? data;
+  final int status;
+  final Object? body;
+
+  /// Whether a request carrying [actual] as its body matches this route. A
+  /// `null` [data] matches any body; a `Map` matches as a top-level subset
   /// (extra keys ignored); anything else is compared with deep equality.
-  bool _bodyMatches(Object? expected, Object? actual) {
+  bool matchesBody(Object? actual) {
+    final expected = data;
     if (expected == null) {
       return true;
     }
@@ -92,13 +103,4 @@ class MockServer extends Interceptor {
     }
     return const DeepCollectionEquality().equals(expected, actual);
   }
-}
-
-class _Route {
-  _Route(this.method, this.path, this.data, this.status, this.body);
-  final String method;
-  final String path;
-  final Object? data;
-  final int status;
-  final Object? body;
 }
