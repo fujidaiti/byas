@@ -6,23 +6,14 @@ import 'package:patrol_finders/patrol_finders.dart';
 
 import '../src/helpers.dart';
 
-/// The device label the app derives from the stubbed device info.
-const _expectedDevice = 'Pixel 8 Pro/android-14';
-
 void main() {
   patrolWidgetTest('Sign up for a new account', (t) async {
-    final adapter = await pumpApp(t);
-    adapter.onPost(
+    final server = await pumpApp(t);
+    server.onPost(
       '/signup',
-      (server) => server.reply(
-        201,
-        api.SignUp201Response(token: 'issued-token').toJson(),
-      ),
-      data: api.SignUpRequest(
-        email: 'newuser@example.com',
-        password: 'a-strong-password',
-        device: _expectedDevice,
-      ).toJson(),
+      status: 201,
+      body: api.SignUp201Response(token: 'issued-token').toJson(),
+      data: {'email': 'newuser@example.com', 'password': 'a-strong-password'},
     );
 
     await t(AppDebugKey.signInGoToSignUpButton).tap();
@@ -31,18 +22,11 @@ void main() {
   });
 
   patrolWidgetTest('Sign in to an existing account', (t) async {
-    final adapter = await pumpApp(t);
-    adapter.onPost(
+    final server = await pumpApp(t);
+    server.onPost(
       '/signin',
-      (server) => server.reply(
-        200,
-        api.SignUp201Response(token: 'issued-token').toJson(),
-      ),
-      data: api.SignInRequest(
-        email: 'alice@example.com',
-        password: 'correct-password',
-        device: _expectedDevice,
-      ).toJson(),
+      body: api.SignUp201Response(token: 'issued-token').toJson(),
+      data: {'email': 'alice@example.com', 'password': 'correct-password'},
     );
 
     expect(t(AppDebugKey.signInScreen), findsOneWidget);
@@ -51,20 +35,13 @@ void main() {
   });
 
   patrolWidgetTest('Sign in with a padded email address', (t) async {
-    final adapter = await pumpApp(t);
-    adapter.onPost(
+    final server = await pumpApp(t);
+    server.onPost(
       '/signin',
-      (server) => server.reply(
-        200,
-        api.SignUp201Response(token: 'issued-token').toJson(),
-      ),
+      body: api.SignUp201Response(token: 'issued-token').toJson(),
       // The registration only matches once the screen has trimmed the email;
       // an unmatched request fails the test.
-      data: api.SignInRequest(
-        email: 'user@example.com',
-        password: 'a-password',
-        device: _expectedDevice,
-      ).toJson(),
+      data: {'email': 'user@example.com', 'password': 'a-password'},
     );
 
     await signIn(t, '  user@example.com  ', 'a-password');
@@ -74,18 +51,12 @@ void main() {
   patrolWidgetTest('Signing up with a taken email keeps the form open', (
     t,
   ) async {
-    final adapter = await pumpApp(t);
-    adapter.onPost(
+    final server = await pumpApp(t);
+    server.onPost(
       '/signup',
-      (server) => server.reply(
-        400,
-        api.Error(message: 'Email already exists').toJson(),
-      ),
-      data: api.SignUpRequest(
-        email: 'alice@example.com',
-        password: 'a-strong-password',
-        device: _expectedDevice,
-      ).toJson(),
+      status: 400,
+      body: api.Error(message: 'Email already exists').toJson(),
+      data: {'email': 'alice@example.com', 'password': 'a-strong-password'},
     );
 
     await t(AppDebugKey.signInGoToSignUpButton).tap();
@@ -97,18 +68,12 @@ void main() {
   patrolWidgetTest('Signing in with wrong credentials keeps the form open', (
     t,
   ) async {
-    final adapter = await pumpApp(t);
-    adapter.onPost(
+    final server = await pumpApp(t);
+    server.onPost(
       '/signin',
-      (server) => server.reply(
-        400,
-        api.Error(message: 'Email or password is incorrect').toJson(),
-      ),
-      data: api.SignInRequest(
-        email: 'alice@example.com',
-        password: 'wrong-password',
-        device: _expectedDevice,
-      ).toJson(),
+      status: 400,
+      body: api.Error(message: 'Email or password is incorrect').toJson(),
+      data: {'email': 'alice@example.com', 'password': 'wrong-password'},
     );
 
     await signIn(t, 'alice@example.com', 'wrong-password');
