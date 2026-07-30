@@ -57,8 +57,22 @@ jobs:
       - name: Validate API spec
         run: npx @redocly/cli@${{ steps.redocly.outputs.version }} lint api/api.yaml
 
-  testing:
-    name: Testing
+  client_test:
+    name: Client Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Flutter SDK
+        uses: ./.github/actions/setup-flutter
+
+      - name: Test client
+        working-directory: client
+        run: flutter test
+
+  server_test:
+    name: Server Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

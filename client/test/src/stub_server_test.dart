@@ -4,9 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'stub_server.dart';
 
 void main() {
-  // A bare Dio wired to a fresh [StubServer], with no other interceptors — so
-  // a rejection surfaces the raw [DioException] to the caller instead of being
-  // mapped to a domain error.
   late StubServer server;
   late Dio dio;
 
