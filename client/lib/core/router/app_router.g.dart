@@ -11,7 +11,8 @@ part of 'app_router.dart';
 /// The app's navigation graph: a bottom-nav shell over Today and Feeds, with
 /// detail/discovery screens nested under each branch. The feed entry and web
 /// article readers push onto the root navigator so they cover the bottom nav
-/// bar.
+/// bar. Sign-in/up and a splash screen sit outside the shell, gated by
+/// [authSessionProvider] via [_authRedirect].
 
 @ProviderFor(goRouter)
 final goRouterProvider = GoRouterProvider._();
@@ -19,7 +20,8 @@ final goRouterProvider = GoRouterProvider._();
 /// The app's navigation graph: a bottom-nav shell over Today and Feeds, with
 /// detail/discovery screens nested under each branch. The feed entry and web
 /// article readers push onto the root navigator so they cover the bottom nav
-/// bar.
+/// bar. Sign-in/up and a splash screen sit outside the shell, gated by
+/// [authSessionProvider] via [_authRedirect].
 
 final class GoRouterProvider
     extends $FunctionalProvider<GoRouter, GoRouter, GoRouter>
@@ -27,7 +29,8 @@ final class GoRouterProvider
   /// The app's navigation graph: a bottom-nav shell over Today and Feeds, with
   /// detail/discovery screens nested under each branch. The feed entry and web
   /// article readers push onto the root navigator so they cover the bottom nav
-  /// bar.
+  /// bar. Sign-in/up and a splash screen sit outside the shell, gated by
+  /// [authSessionProvider] via [_authRedirect].
   GoRouterProvider._()
     : super(
         from: null,
@@ -61,4 +64,4 @@ final class GoRouterProvider
   }
 }
 
-String _$goRouterHash() => r'79ddf362d613f3746fa6009a92b6549478cb3256';
+String _$goRouterHash() => r'9d20c0bf079263b4aada3a1cf11adeec9b27c6f2';

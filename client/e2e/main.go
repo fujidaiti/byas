@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/fujidaiti/paperdoll/server/api"
+	"github.com/fujidaiti/paperdoll/server/feature/user"
 	"github.com/fujidaiti/paperdoll/server/itest/testenv"
 	"golang.org/x/sync/errgroup"
 )
@@ -91,10 +92,9 @@ func runTests(ctx context.Context) error {
 	cmd := exec.CommandContext(ctx,
 		"patrol",
 		"test",
-		"-v",
 		"--flutter-command",
 		// TODO: make flutter command path configurable
-		"/Users/fujidaiti/.fvm/versions/stable/bin/flutter",
+		"../.fvm/versions/stable/bin/flutter",
 		"-d",
 		// TODO: make the target device configurable
 		"emulator-5554",
@@ -145,6 +145,23 @@ func messageHandler(ctx context.Context, msgc chan<- message) error {
 		case <-r.Context().Done():
 			_, _ = fmt.Fprint(w, "request canceled")
 		}
+	})
+
+	// /signin provisions the pre-defined test account on the already-running
+	// session API server and returns its bearer token, so gated feature tests
+	// (e.g. newspaper) can boot already authenticated without driving the
+	// sign-up UI.
+	mux.HandleFunc("POST /signin", func(w http.ResponseWriter, r *http.Request) {
+		email := must(user.ParseEmail("e2e-runner@example.com"))
+		pswd := must(user.ValidatePassword("Police-Repurpose-Atypical-Gravel"))
+		svc := &user.Service{DB: testenv.DB(), Now: time.Now}
+		token, err := svc.SignUp(ctx, email, pswd, "TestDevice/1.0")
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to provision test account: %v", err), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"token": token.Encode()})
 	})
 
 	srv := http.Server{

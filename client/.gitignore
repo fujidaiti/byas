@@ -48,3 +48,4 @@ app.*.map.json
 # Patrol generates this file when running tests:
 # https://patrol.leancode.co/documentation
 integration_test/test_bundle.dart
+e2e/test_bundle.dart
