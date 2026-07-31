@@ -54,9 +54,6 @@ void main() {
       title: 'The Dart Blog',
     );
 
-    // StubServer is last-registration-wins (not a queue), so /feeds is stubbed
-    // once with the subscribed feed: the initial load and the post-subscribe
-    // re-fetch both return it, which is all the final assertion depends on.
     final server = StubServer.withDefaultResponses()
       ..onGet(
         '/feeds',
