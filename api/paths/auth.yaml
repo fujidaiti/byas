@@ -106,3 +106,30 @@ signin:
         $ref: "../components/responses.yaml#/Unauthorized"
       "500":
         $ref: "../components/responses.yaml#/InternalServerError"
+
+signout:
+  post:
+    summary: Sign out of the current session
+    description:
+      Revokes the bearer token in the `Authorization` header. The user's other
+      tokens (e.g. from other devices) remain valid. This operation always
+      returns 200 regardless of whether the token is present, already invalid,
+      or malformed.
+    operationId: signOut
+    parameters:
+      - name: Authorization
+        in: header
+        required: true
+        description: "Bearer token to revoke, e.g. `Bearer <token>`."
+        schema:
+          type: string
+    responses:
+      "200":
+        description: OK
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+      "500":
+        $ref: "../components/responses.yaml#/InternalServerError"
