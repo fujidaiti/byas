@@ -8,6 +8,7 @@ setup:
 	fvm use
 	fvm flutter pub get
 	go mod tidy
+	npm ci
 
 .PHONY: db-migrate
 db-migrate:

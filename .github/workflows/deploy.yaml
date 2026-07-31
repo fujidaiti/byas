@@ -20,12 +20,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Redocly CLI
-        id: redocly
-        uses: ./.github/actions/setup-redocly
+      - name: Set up Node.js tooling
+        uses: ./.github/actions/setup-node-tools
 
       - name: Build
-        run: npx @redocly/cli@${{ steps.redocly.outputs.version }} build-docs api/api.yaml -o dist/index.html
+        run: npx redocly build-docs api/api.yaml -o dist/index.html
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
