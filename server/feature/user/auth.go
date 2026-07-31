@@ -159,6 +159,7 @@ func (s *Service) issueAuthToken(
 
 // VerifyAuthToken checks if the encoded token t is valid and finds the user who
 // owns that token. Reports an [ErrTokenInvalid] if the token is malformed or expired.
+// TODO: Garbage-collect expired tokens
 func (s *Service) VerifyAuthToken(ctx context.Context, t string) (UserID, error) {
 	token, err := decodeAuthToken(t)
 	if err != nil {

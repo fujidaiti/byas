@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/fujidaiti/paperdoll/server/feature/feed"
@@ -98,6 +99,7 @@ func NewServer(db *sql.DB, httpProxy *url.URL) *http.Server {
 	mux.HandleFunc("PATCH /reading-list/{id}", h.setReadingListItemArchivedStatus)
 	mux.HandleFunc("POST /signup", h.SignUp)
 	mux.HandleFunc("POST /signin", h.signIn)
+	mux.HandleFunc("POST /signout", h.signOut)
 
 	return &http.Server{
 		Addr:    ":8080",
@@ -1127,6 +1129,27 @@ func (h *Handler) signIn(w http.ResponseWriter, r *http.Request) {
 		serverError(w, http.StatusInternalServerError, "Failed to construct a JSON response")
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(jres)
+}
+
+func (h *Handler) signOut(w http.ResponseWriter, r *http.Request) {
+	token, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
+	if !ok {
+		// TODO: DRY JSON response creation
+		jres, _ := json.Marshal(map[string]string{})
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(jres)
+		return
+	}
+	if err := h.UserService.SignOut(r.Context(), token); err != nil {
+		serverError(w, http.StatusInternalServerError, "Failed to sign out")
+		return
+	}
+	// TODO: DRY JSON response creation
+	jres, _ := json.Marshal(map[string]string{})
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(jres)
