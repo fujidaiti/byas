@@ -48,17 +48,9 @@ void main() {
   });
 
   patrolWidgetTest('Subscribe to a known web feed', (t) async {
-    final dartBlog = api.Feed(
-      id: 99,
-      url: 'https://dart.dev/blog/feed.xml',
-      title: 'The Dart Blog',
-    );
-
     final server = StubServer.withDefaultResponses()
-      ..onGet(
-        '/feeds',
-        body: api.GetFeeds200Response(feeds: [dartBlog]).toJson(),
-      )
+      // There's no feed at first.
+      ..onGet('/feeds', body: api.GetFeeds200Response(feeds: []).toJson())
       ..onGet(
         '/feeds/search',
         body: api.SearchFeeds200Response(
@@ -74,11 +66,6 @@ void main() {
             ),
           ],
         ).toJson(),
-      )
-      ..onPut(
-        '/feeds',
-        body: dartBlog.toJson(),
-        data: {'url': 'https://dart.dev/blog/feed.xml'},
       );
     await pumpAppWithAuth(t, server);
 
@@ -86,9 +73,24 @@ void main() {
     await t(AppDebugKey.feedsScreen).waitUntilVisible();
     await t(AppDebugKey.addFeedButton).tap();
     await t(AppDebugKey.feedSearchScreen).waitUntilVisible();
-    await t(
-      AppDebugKey.feedSearchTextField,
-    ).enterText('https://dart.dev/blog/feed.xml');
+
+    final dartBlog = api.Feed(
+      id: 99,
+      url: 'https://dart.dev/blog/feed.xml',
+      title: 'The Dart Blog',
+    );
+    server
+      ..onPut(
+        '/feeds',
+        body: dartBlog.toJson(),
+        data: {'url': 'https://dart.dev/blog/feed.xml'},
+      )
+      ..onGet(
+        '/feeds',
+        body: api.GetFeeds200Response(feeds: [dartBlog]).toJson(),
+      );
+
+    await t(AppDebugKey.feedSearchTextField).enterText(dartBlog.url);
     await t(AppDebugKey.feedSearchButton).tap();
     await t(AppDebugKey.feedCandidateTile('The Dart Blog')).tap();
     await t(AppDebugKey.subscribeSuccessSnackBar).waitUntilVisible();
