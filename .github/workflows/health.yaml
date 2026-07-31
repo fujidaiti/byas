@@ -47,15 +47,14 @@ jobs:
       - name: Lint server
         run: golangci-lint run ./...
 
-      - name: Set up Redocly CLI
-        id: redocly
-        uses: ./.github/actions/setup-redocly
+      - name: Set up Node.js tooling
+        uses: ./.github/actions/setup-node-tools
 
       - name: Prettier
         run: npx prettier --check "**/*.{json,yaml,yml,md}"
 
       - name: Validate API spec
-        run: npx @redocly/cli@${{ steps.redocly.outputs.version }} lint api/api.yaml
+        run: npx redocly lint api/api.yaml
 
   client_test:
     name: Client Test

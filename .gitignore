@@ -15,6 +15,9 @@ build/
 # Pub workspace
 .dart_tool/
 
+# Node
+node_modules/
+
 # Claude Code
 .claude/*
 !.claude/settings.json
