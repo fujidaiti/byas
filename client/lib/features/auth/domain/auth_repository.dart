@@ -21,4 +21,10 @@ abstract interface class AuthRepository {
   /// Persists the bearer token issued by [signUp] / [signIn] so it survives
   /// app launches.
   Future<void> writeAuthToken(String token);
+
+  /// `POST /signout` → revokes [token] on the server.
+  Future<void> signOut(String token);
+
+  /// Removes the persisted bearer token.
+  Future<void> clearAuthToken();
 }

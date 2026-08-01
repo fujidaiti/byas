@@ -42,6 +42,9 @@ abstract final class AppDebugKey {
   static const saveToReadingListSuccessSnackBar = Key(
     'saveToReadingListSuccessSnackBar',
   );
+  static const settingsButton = Key('settingsButton');
+  static const settingsScreen = Key('settingsScreen');
+  static const signOutButton = Key('signOutButton');
   static const signInScreen = Key('signInScreen');
   static const signInEmailField = Key('signInEmailField');
   static const signInPasswordField = Key('signInPasswordField');

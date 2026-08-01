@@ -31,6 +31,12 @@ class FeedsScreen extends ConsumerWidget {
             icon: const Icon(Icons.add),
             onPressed: () => context.pushNamed(routeFeedSearchName),
           ),
+          IconButton(
+            key: AppDebugKey.settingsButton,
+            tooltip: 'Settings',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => context.pushNamed(routeSettingsName),
+          ),
         ],
       ),
       body: RefreshIndicator(

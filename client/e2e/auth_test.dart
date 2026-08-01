@@ -35,4 +35,15 @@ void main() {
     await t(AppDebugKey.signInSubmitButton).tap();
     await t(AppDebugKey.todayScreen).waitUntilVisible();
   });
+
+  patrolTest('Sign out ends the session', (t) async {
+    await setUpServer(seederId: 'auth_no_users');
+    await pumpAppWithAuth(t);
+
+    await t(AppDebugKey.todayScreen).waitUntilVisible();
+    await t(AppDebugKey.settingsButton).tap();
+    await t(AppDebugKey.settingsScreen).waitUntilVisible();
+    await t(AppDebugKey.signOutButton).tap();
+    await t(AppDebugKey.signInScreen).waitUntilVisible();
+  });
 }
