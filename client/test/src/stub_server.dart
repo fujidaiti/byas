@@ -20,7 +20,7 @@ class StubServer extends Interceptor {
   /// any tab it needs in a specific state (the last registration wins).
   factory StubServer.withDefaultResponses() {
     return StubServer()
-      ..onGet(
+      ..stubGet(
         '/newspapers/today',
         body: api.GetTodaysNewspaper200Response(
           id: 1,
@@ -28,7 +28,7 @@ class StubServer extends Interceptor {
           stories: [fixture.stories.nuclearDeal],
         ).toJson(),
       )
-      ..onGet(
+      ..stubGet(
         '/reading-list',
         body: api.GetReadingList200Response(
           items: [
@@ -37,7 +37,7 @@ class StubServer extends Interceptor {
           ],
         ).toJson(),
       )
-      ..onGet(
+      ..stubGet(
         '/feeds',
         body: api.GetFeeds200Response(
           feeds: [
@@ -55,23 +55,29 @@ class StubServer extends Interceptor {
   /// `'METHOD /path'` for every request no registered route matched.
   final unmatched = <String>[];
 
-  /// Registers a GET route. [body] is the JSON response (a `Map`/`List`).
-  void onGet(String path, {int status = 200, Object? body}) =>
+  void stubGet(String path, {int status = 200, Object? body}) =>
       _routes.add(_Route('GET', path, null, status, body));
 
-  /// Registers a POST route. [data] is an optional expected body: omit it to
-  /// match any body, or pass a `Map` to match requests whose body contains all
-  /// those keys (extra keys ignored).
-  void onPost(String path, {int status = 200, Object? body, Object? data}) =>
-      _routes.add(_Route('POST', path, data, status, body));
+  void stubPost(
+    String path, {
+    int status = 200,
+    Object? body,
+    Object? bodyMatcher,
+  }) => _routes.add(_Route('POST', path, bodyMatcher, status, body));
 
-  /// Registers a PUT route. See [onPost] for how [data] matches the body.
-  void onPut(String path, {int status = 200, Object? body, Object? data}) =>
-      _routes.add(_Route('PUT', path, data, status, body));
+  void stubPut(
+    String path, {
+    int status = 200,
+    Object? body,
+    Object? bodyMatcher,
+  }) => _routes.add(_Route('PUT', path, bodyMatcher, status, body));
 
-  /// Registers a PATCH route. See [onPost] for how [data] matches the body.
-  void onPatch(String path, {int status = 200, Object? body, Object? data}) =>
-      _routes.add(_Route('PATCH', path, data, status, body));
+  void stubPatch(
+    String path, {
+    int status = 200,
+    Object? body,
+    Object? bodyMatcher,
+  }) => _routes.add(_Route('PATCH', path, bodyMatcher, status, body));
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
@@ -122,18 +128,18 @@ Object? _asTransportJson(Object? body) =>
     body == null ? null : jsonDecode(jsonEncode(body));
 
 class _Route {
-  _Route(this.method, this.path, this.data, this.status, this.body);
+  _Route(this.method, this.path, this.bodyMatcher, this.status, this.body);
   final String method;
   final String path;
-  final Object? data;
+  final Object? bodyMatcher;
   final int status;
   final Object? body;
 
-  /// Whether a request carrying [actual] as its body matches this route. A
-  /// `null` [data] matches any body; a `Map` matches as a top-level subset
-  /// (extra keys ignored); anything else is compared with deep equality.
+  /// Whether a request carrying [actual] as its body matches this route.
+  /// A `null` [bodyMatcher] matches any body; a `Map` matches as a top-level
+  /// subset (extra keys ignored); anything else is compared with deep equality.
   bool matchesBody(Object? actual) {
-    final expected = data;
+    final expected = bodyMatcher;
     if (expected == null) {
       return true;
     }

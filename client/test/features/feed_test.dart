@@ -17,7 +17,7 @@ void main() {
     ];
 
     final server = StubServer.withDefaultResponses()
-      ..onGet(
+      ..stubGet(
         '/feeds',
         body: api.GetFeeds200Response(
           feeds: [
@@ -27,12 +27,12 @@ void main() {
           ],
         ).toJson(),
       )
-      ..onGet('/feeds/${bbcNews.id}', body: bbcNews.toJson())
-      ..onGet(
+      ..stubGet('/feeds/${bbcNews.id}', body: bbcNews.toJson())
+      ..stubGet(
         '/feeds/${bbcNews.id}/timeline',
         body: api.GetFeedTimeline200Response(entries: timeline).toJson(),
       )
-      ..onGet('/feed-entries/${entry.id}', body: entry.toJson());
+      ..stubGet('/feed-entries/${entry.id}', body: entry.toJson());
 
     await pumpAppWithAuth(t, server);
 
@@ -51,8 +51,8 @@ void main() {
 
     final server = StubServer.withDefaultResponses()
       // There's no feed at first.
-      ..onGet('/feeds', body: api.GetFeeds200Response(feeds: []).toJson())
-      ..onGet(
+      ..stubGet('/feeds', body: api.GetFeeds200Response(feeds: []).toJson())
+      ..stubGet(
         '/feeds/search',
         body: api.SearchFeeds200Response(feeds: [candidate]).toJson(),
       );
@@ -64,8 +64,11 @@ void main() {
     await t(AppDebugKey.feedSearchScreen).waitUntilVisible();
 
     server
-      ..onPut('/feeds', body: nasa.toJson(), data: {'url': nasa.url})
-      ..onGet('/feeds', body: api.GetFeeds200Response(feeds: [nasa]).toJson());
+      ..stubPut('/feeds', body: nasa.toJson(), bodyMatcher: {'url': nasa.url})
+      ..stubGet(
+        '/feeds',
+        body: api.GetFeeds200Response(feeds: [nasa]).toJson(),
+      );
 
     await t(AppDebugKey.feedSearchTextField).enterText(nasa.url);
     await t(AppDebugKey.feedSearchButton).tap();

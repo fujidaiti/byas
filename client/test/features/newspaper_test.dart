@@ -13,7 +13,7 @@ void main() {
     final entry = fixture.entries.nuclearDeal;
 
     final server = StubServer.withDefaultResponses()
-      ..onGet(
+      ..stubGet(
         '/newspapers/today',
         body: api.GetTodaysNewspaper200Response(
           id: 1,
@@ -21,7 +21,7 @@ void main() {
           stories: [story],
         ).toJson(),
       )
-      ..onGet('/feed-entries/${entry.id}', body: entry.toJson());
+      ..stubGet('/feed-entries/${entry.id}', body: entry.toJson());
     await pumpAppWithAuth(t, server);
 
     expect(t(AppDebugKey.todayScreen), findsOneWidget);

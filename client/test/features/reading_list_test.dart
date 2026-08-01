@@ -13,11 +13,11 @@ void main() {
     final item = fixture.readingList.savedWebClip;
     final webClip = fixture.webClips.buildingEffectiveAgents;
     final server = StubServer.withDefaultResponses()
-      ..onGet(
+      ..stubGet(
         '/reading-list',
         body: api.GetReadingList200Response(items: [item]).toJson(),
       )
-      ..onGet('/web-clips/${webClip.id}', body: webClip.toJson());
+      ..stubGet('/web-clips/${webClip.id}', body: webClip.toJson());
     await pumpAppWithAuth(t, server);
 
     await t(AppDebugKey.readingListNavDestination).tap();
@@ -31,11 +31,11 @@ void main() {
     final item = fixture.readingList.savedFeedEntry;
     final entry = fixture.entries.nuclearDeal;
     final server = StubServer.withDefaultResponses()
-      ..onGet(
+      ..stubGet(
         '/reading-list',
         body: api.GetReadingList200Response(items: [item]).toJson(),
       )
-      ..onGet('/feed-entries/${entry.id}', body: entry.toJson());
+      ..stubGet('/feed-entries/${entry.id}', body: entry.toJson());
     await pumpAppWithAuth(t, server);
 
     await t(AppDebugKey.readingListNavDestination).tap();
@@ -48,15 +48,17 @@ void main() {
   patrolWidgetTest('Archive a reading list item by swiping', (t) async {
     final item = fixture.readingList.savedWebClip;
     final server = StubServer.withDefaultResponses()
-      ..onGet(
+      ..stubGet(
         '/reading-list',
         body: api.GetReadingList200Response(items: [item]).toJson(),
       )
-      ..onPatch(
+      ..stubPatch(
         '/reading-list/${item.id}',
         status: 204,
         body: <String, dynamic>{},
-        data: {'archived': true},
+        bodyMatcher: api.SetReadingListItemArchivedStatusRequest(
+          archived: true,
+        ).toJson(),
       );
     await pumpAppWithAuth(t, server);
 
@@ -75,15 +77,15 @@ void main() {
     final item = fixture.readingList.savedWebClip;
     final webClip = fixture.webClips.buildingEffectiveAgents;
     final server = StubServer.withDefaultResponses()
-      ..onGet(
+      ..stubGet(
         '/reading-list',
         body: api.GetReadingList200Response(items: []).toJson(),
       )
-      ..onGet(
+      ..stubGet(
         '/reading-list/archived',
         body: api.GetReadingList200Response(items: [item]).toJson(),
       )
-      ..onGet('/web-clips/${webClip.id}', body: webClip.toJson());
+      ..stubGet('/web-clips/${webClip.id}', body: webClip.toJson());
     await pumpAppWithAuth(t, server);
 
     await t(AppDebugKey.readingListNavDestination).tap();
@@ -101,15 +103,15 @@ void main() {
     final item = fixture.readingList.savedFeedEntry;
     final entry = fixture.entries.nuclearDeal;
     final server = StubServer.withDefaultResponses()
-      ..onGet(
+      ..stubGet(
         '/reading-list',
         body: api.GetReadingList200Response(items: []).toJson(),
       )
-      ..onGet(
+      ..stubGet(
         '/reading-list/archived',
         body: api.GetReadingList200Response(items: [item]).toJson(),
       )
-      ..onGet('/feed-entries/${entry.id}', body: entry.toJson());
+      ..stubGet('/feed-entries/${entry.id}', body: entry.toJson());
     await pumpAppWithAuth(t, server);
 
     await t(AppDebugKey.readingListNavDestination).tap();
@@ -128,14 +130,14 @@ void main() {
     final entry = fixture.entries.nuclearDeal;
 
     final server = StubServer.withDefaultResponses()
-      ..onGet('/feeds', body: api.GetFeeds200Response(feeds: [feed]).toJson())
-      ..onGet('/feeds/${feed.id}', body: feed.toJson())
-      ..onGet(
+      ..stubGet('/feeds', body: api.GetFeeds200Response(feeds: [feed]).toJson())
+      ..stubGet('/feeds/${feed.id}', body: feed.toJson())
+      ..stubGet(
         '/feeds/${feed.id}/timeline',
         body: api.GetFeedTimeline200Response(entries: [entry]).toJson(),
       )
-      ..onGet('/feed-entries/${entry.id}', body: entry.toJson())
-      ..onPost(
+      ..stubGet('/feed-entries/${entry.id}', body: entry.toJson())
+      ..stubPost(
         '/reading-list',
         status: 201,
         body: api.ReadingListItem(
@@ -145,7 +147,9 @@ void main() {
           title: entry.title,
           savedAt: DateTime.utc(2026, 7, 1),
         ).toJson(),
-        data: {'feed_entry_id': entry.id},
+        bodyMatcher: api.SaveToReadingListRequestOneOf1(
+          feedEntryId: entry.id,
+        ).toJson(),
       );
     await pumpAppWithAuth(t, server);
 

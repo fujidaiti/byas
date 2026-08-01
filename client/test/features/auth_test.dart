@@ -10,11 +10,15 @@ import '../src/stub_server.dart';
 void main() {
   patrolWidgetTest('Sign up for a new account', (t) async {
     final server = StubServer.withDefaultResponses()
-      ..onPost(
+      ..stubPost(
         '/signup',
         status: 201,
         body: api.SignUp201Response(token: 'issued-token').toJson(),
-        data: {'email': 'newuser@example.com', 'password': 'a-strong-password'},
+        bodyMatcher: api.SignUpRequest(
+          email: 'newuser@example.com',
+          password: 'a-strong-password',
+          device: 'TestDevice',
+        ).toJson(),
       );
     await pumpApp(t, server);
 
@@ -25,10 +29,14 @@ void main() {
 
   patrolWidgetTest('Sign in to an existing account', (t) async {
     final server = StubServer.withDefaultResponses()
-      ..onPost(
+      ..stubPost(
         '/signin',
         body: api.SignUp201Response(token: 'issued-token').toJson(),
-        data: {'email': 'alice@example.com', 'password': 'correct-password'},
+        bodyMatcher: api.SignInRequest(
+          email: 'alice@example.com',
+          password: 'correct-password',
+          device: 'TestDevice',
+        ).toJson(),
       );
     await pumpApp(t, server);
 
@@ -39,12 +47,14 @@ void main() {
 
   patrolWidgetTest('Sign in with a padded email address', (t) async {
     final server = StubServer.withDefaultResponses()
-      ..onPost(
+      ..stubPost(
         '/signin',
         body: api.SignUp201Response(token: 'issued-token').toJson(),
-        // The registration only matches once the screen has trimmed the email;
-        // an unmatched request fails the test.
-        data: {'email': 'user@example.com', 'password': 'a-password'},
+        bodyMatcher: api.SignInRequest(
+          email: 'user@example.com',
+          password: 'a-password',
+          device: 'TestDevice',
+        ).toJson(),
       );
     await pumpApp(t, server);
 
@@ -56,11 +66,15 @@ void main() {
     t,
   ) async {
     final server = StubServer.withDefaultResponses()
-      ..onPost(
+      ..stubPost(
         '/signup',
         status: 400,
         body: api.Error(message: 'Email already exists').toJson(),
-        data: {'email': 'alice@example.com', 'password': 'a-strong-password'},
+        bodyMatcher: api.SignUpRequest(
+          email: 'alice@example.com',
+          password: 'a-strong-password',
+          device: 'TestDevice',
+        ).toJson(),
       );
     await pumpApp(t, server);
 
@@ -74,11 +88,15 @@ void main() {
     t,
   ) async {
     final server = StubServer.withDefaultResponses()
-      ..onPost(
+      ..stubPost(
         '/signin',
         status: 400,
         body: api.Error(message: 'Email or password is incorrect').toJson(),
-        data: {'email': 'alice@example.com', 'password': 'wrong-password'},
+        bodyMatcher: api.SignInRequest(
+          email: 'alice@example.com',
+          password: 'wrong-password',
+          device: 'TestDevice',
+        ).toJson(),
       );
     await pumpApp(t, server);
 
