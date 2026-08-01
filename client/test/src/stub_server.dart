@@ -4,14 +4,20 @@ import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
 import 'package:openapi/api.dart' as api;
 
+import 'fixture.dart';
+
 /// A Dio interceptor that answers registered routes with canned responses and
 /// records any request no route matched. When several routes match the same
 /// request, the last registered one wins.
 class StubServer extends Interceptor {
   StubServer();
 
-  /// A server pre-stubbed with the three shell tabs, all empty: enough for any
-  /// test to boot and navigate without stubbing anything itself.
+  /// A server pre-stubbed with the three shell tabs populated from [fixture]:
+  /// enough for any test to boot and navigate without stubbing anything itself.
+  /// Only the list endpoints the shell loads on boot are answered here; nested
+  /// resources (a feed's timeline, a story's entry) are fetched on navigation,
+  /// so a test that drills into a tab still stubs those itself — and overrides
+  /// any tab it needs in a specific state (the last registration wins).
   factory StubServer.withDefaultResponses() {
     return StubServer()
       ..onGet(
@@ -19,10 +25,29 @@ class StubServer extends Interceptor {
         body: api.GetTodaysNewspaper200Response(
           id: 1,
           publishedAt: DateTime.utc(2026, 7, 1),
+          stories: [fixture.stories.nuclearDeal],
         ).toJson(),
       )
-      ..onGet('/reading-list', body: api.GetReadingList200Response().toJson())
-      ..onGet('/feeds', body: api.GetFeeds200Response().toJson());
+      ..onGet(
+        '/reading-list',
+        body: api.GetReadingList200Response(
+          items: [
+            fixture.readingList.savedWebClip,
+            fixture.readingList.savedFeedEntry,
+          ],
+        ).toJson(),
+      )
+      ..onGet(
+        '/feeds',
+        body: api.GetFeeds200Response(
+          feeds: [
+            fixture.feeds.bbcNews,
+            fixture.feeds.nasa,
+            fixture.feeds.stackOverflow,
+            fixture.feeds.wikipedia,
+          ],
+        ).toJson(),
+      );
   }
 
   final _routes = <_Route>[];

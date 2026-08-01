@@ -18,7 +18,8 @@ import 'stub_server.dart';
 ///
 /// Every HTTP call goes through [server]; build and stub it in the test
 /// *before* calling this (start from [StubServer.withDefaultResponses] so the
-/// empty tabs let the app boot). The shell builds all three tabs on startup, so
+/// pre-stubbed tabs let the app boot). The shell builds all three tabs on
+/// startup, so
 /// the data a screen shows on first load (Today's stories, the feeds list, the
 /// reading list) must already be stubbed when the app boots — that's why the
 /// caller owns the server. Any request no stub matches fails the test at

@@ -4,44 +4,29 @@ import 'package:paperdoll/debug_keys.dart';
 import 'package:patrol_finders/patrol_finders.dart';
 
 import '../src/boilerplate.dart';
+import '../src/fixture.dart';
 import '../src/stub_server.dart';
 
 void main() {
   patrolWidgetTest("Check today's issue and read a story", (t) async {
+    final story = fixture.stories.nuclearDeal;
+    final entry = fixture.entries.nuclearDeal;
+
     final server = StubServer.withDefaultResponses()
       ..onGet(
         '/newspapers/today',
         body: api.GetTodaysNewspaper200Response(
           id: 1,
           publishedAt: DateTime.utc(2026, 7, 1),
-          stories: [
-            api.Story(
-              id: 1,
-              resourceId: 1,
-              kind: api.StoryKindEnum.feedEntry,
-              title: 'Demystifying evals for AI agents',
-              source_: 'Cursor AI Blog',
-            ),
-          ],
+          stories: [story],
         ).toJson(),
       )
-      ..onGet(
-        '/feed-entries/1',
-        body: api.FeedEntry(
-          id: 1,
-          feedId: 1,
-          url: 'https://cursor.ai/blog/1',
-          title: 'Demystifying evals for AI agents',
-          snapshotAt: DateTime.utc(2026),
-        ).toJson(),
-      );
+      ..onGet('/feed-entries/${entry.id}', body: entry.toJson());
     await pumpAppWithAuth(t, server);
 
     expect(t(AppDebugKey.todayScreen), findsOneWidget);
-    await t(AppDebugKey.storyCard('Demystifying evals for AI agents')).tap();
+    await t(AppDebugKey.storyCard(story.title)).tap();
     await t(AppDebugKey.feedEntryReaderScreen).waitUntilVisible();
-    await t(
-      AppDebugKey.readerTitle('Demystifying evals for AI agents'),
-    ).waitUntilVisible();
+    await t(AppDebugKey.readerTitle(entry.title)).waitUntilVisible();
   });
 }

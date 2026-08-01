@@ -56,9 +56,11 @@ patrolWidgetTest('...', (t) async {
   `pumpAppWithAuth(t, server)` starts signed in, landing straight on Today —
   feature tests that aren't about the auth flow use it. (`pumpApp` also takes a
   `token:` when a test needs a specific one.)
-- `StubServer.withDefaultResponses()` pre-stubs the three shell tabs empty
-  (`/newspapers/today`, `/reading-list`, `/feeds`), so any test can boot and
-  navigate without stubbing them itself.
+- `StubServer.withDefaultResponses()` pre-stubs the three shell tabs
+  (`/newspapers/today`, `/reading-list`, `/feeds`) with realistic data from
+  `src/test_data.dart`, so any test can boot and navigate without stubbing them
+  itself. Override a tab (register it again) when a test needs it in a specific
+  state — empty, or holding particular items.
 - Any request no stub matches fails the test at teardown, naming the endpoint.
 - The stubbed body is JSON round-tripped before it reaches the app, exactly like
   real transport — so passing generated `api.*` models (whose `toJson()` is
