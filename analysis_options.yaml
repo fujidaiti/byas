@@ -19,6 +19,7 @@ analyzer:
 linter:
   rules:
     specify_nonobvious_local_variable_types: false
+    specify_nonobvious_property_types: false
     always_specify_types: false
     one_member_abstracts: false
     avoid_redundant_argument_values: false
