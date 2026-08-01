@@ -48,27 +48,31 @@ void main() {
   patrolWidgetTest('Subscribe to a known web feed', (t) async {
     final candidate = fixture.candidates.nasa;
     final nasa = fixture.feeds.nasa;
-
+    final subscriptions = <api.Feed>[];
     final server = StubServer.withDefaultResponses()
-      // There's no feed at first.
-      ..stubGet('/feeds', body: api.GetFeeds200Response(feeds: []).toJson())
+      ..onGet(
+        '/feeds',
+        respond: (_) =>
+            (200, api.GetFeeds200Response(feeds: subscriptions).toJson()),
+      )
+      ..onPut(
+        '/feeds',
+        bodyMatcher: api.SubscribeToFeedRequest(url: nasa.url).toJson(),
+        respond: (_) {
+          subscriptions.add(nasa);
+          return (200, nasa.toJson());
+        },
+      )
       ..stubGet(
         '/feeds/search',
         body: api.SearchFeeds200Response(feeds: [candidate]).toJson(),
       );
-    await pumpAppWithAuth(t, server);
 
+    await pumpAppWithAuth(t, server);
     await t(AppDebugKey.feedsNavDestination).tap();
     await t(AppDebugKey.feedsScreen).waitUntilVisible();
     await t(AppDebugKey.addFeedButton).tap();
     await t(AppDebugKey.feedSearchScreen).waitUntilVisible();
-
-    server
-      ..stubPut('/feeds', body: nasa.toJson(), bodyMatcher: {'url': nasa.url})
-      ..stubGet(
-        '/feeds',
-        body: api.GetFeeds200Response(feeds: [nasa]).toJson(),
-      );
 
     await t(AppDebugKey.feedSearchTextField).enterText(nasa.url);
     await t(AppDebugKey.feedSearchButton).tap();

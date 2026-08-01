@@ -6,6 +6,12 @@ import 'package:openapi/api.dart' as api;
 
 import 'fixture.dart';
 
+/// Computes a `(status, responseBody)` for a matched request from its
+/// already-decoded request body. Evaluated at request time, so it may read or
+/// mutate state a test captured to answer differently across calls.
+typedef StubResponder =
+    (int status, Object? body) Function(Object? requestBody);
+
 /// A Dio interceptor that answers registered routes with canned responses and
 /// records any request no route matched. When several routes match the same
 /// request, the last registered one wins.
@@ -56,28 +62,43 @@ class StubServer extends Interceptor {
   final unmatched = <String>[];
 
   void stubGet(String path, {int status = 200, Object? body}) =>
-      _routes.add(_Route('GET', path, null, status, body));
+      _routes.add(_Route('GET', path, null, (_) => (status, body)));
 
   void stubPost(
     String path, {
     int status = 200,
     Object? body,
     Object? bodyMatcher,
-  }) => _routes.add(_Route('POST', path, bodyMatcher, status, body));
+  }) => _routes.add(_Route('POST', path, bodyMatcher, (_) => (status, body)));
 
   void stubPut(
     String path, {
     int status = 200,
     Object? body,
     Object? bodyMatcher,
-  }) => _routes.add(_Route('PUT', path, bodyMatcher, status, body));
+  }) => _routes.add(_Route('PUT', path, bodyMatcher, (_) => (status, body)));
 
   void stubPatch(
     String path, {
     int status = 200,
     Object? body,
     Object? bodyMatcher,
-  }) => _routes.add(_Route('PATCH', path, bodyMatcher, status, body));
+  }) => _routes.add(_Route('PATCH', path, bodyMatcher, (_) => (status, body)));
+
+  /// Like [stubGet], but computes the response per request via [respond] so it
+  /// can vary with state a test captured (e.g. answer differently before and
+  /// after a [onPut] mutates that state).
+  void onGet(String path, {required StubResponder respond}) =>
+      _routes.add(_Route('GET', path, null, respond));
+
+  /// Like [stubPut], but computes the response per request via [respond]. The
+  /// responder receives the request body and may mutate captured state (see
+  /// [onGet]).
+  void onPut(
+    String path, {
+    required StubResponder respond,
+    Object? bodyMatcher,
+  }) => _routes.add(_Route('PUT', path, bodyMatcher, respond));
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
@@ -98,12 +119,13 @@ class StubServer extends Interceptor {
       );
     }
 
+    final (status, body) = route.responder(options.data);
     final response = Response<dynamic>(
       requestOptions: options,
-      statusCode: route.status,
-      data: _asTransportJson(route.body),
+      statusCode: status,
+      data: _asTransportJson(body),
     );
-    if (options.validateStatus(route.status)) {
+    if (options.validateStatus(status)) {
       handler.resolve(response);
     } else {
       handler.reject(
@@ -128,12 +150,11 @@ Object? _asTransportJson(Object? body) =>
     body == null ? null : jsonDecode(jsonEncode(body));
 
 class _Route {
-  _Route(this.method, this.path, this.bodyMatcher, this.status, this.body);
+  _Route(this.method, this.path, this.bodyMatcher, this.responder);
   final String method;
   final String path;
   final Object? bodyMatcher;
-  final int status;
-  final Object? body;
+  final StubResponder responder;
 
   /// Whether a request carrying [actual] as its body matches this route.
   /// A `null` [bodyMatcher] matches any body; a `Map` matches as a top-level

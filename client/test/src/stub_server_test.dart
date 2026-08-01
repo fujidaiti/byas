@@ -117,6 +117,77 @@ void main() {
     expect(server.unmatched, ['GET /nope']);
   });
 
+  test('onGet answers differently as captured state changes', () async {
+    var count = 0;
+    server.onGet('/counter', respond: (_) => (200, {'count': ++count}));
+
+    final first = await dio.get<dynamic>('/counter');
+    final second = await dio.get<dynamic>('/counter');
+
+    expect(first.data, {'count': 1});
+    expect(second.data, {'count': 2});
+    expect(server.unmatched, isEmpty);
+  });
+
+  test('an onPut side effect is reflected by a later onGet', () async {
+    var subscribed = false;
+    server
+      ..onGet(
+        '/feeds',
+        respond: (_) => (
+          200,
+          {
+            'feeds': subscribed ? ['nasa'] : <String>[],
+          },
+        ),
+      )
+      ..onPut(
+        '/feeds',
+        respond: (_) {
+          subscribed = true;
+          return (200, {'ok': true});
+        },
+      );
+
+    final before = await dio.get<dynamic>('/feeds');
+    final put = await dio.put<dynamic>('/feeds', data: {'url': 'x'});
+    final after = await dio.get<dynamic>('/feeds');
+
+    expect(before.data, {'feeds': <String>[]});
+    expect(put.data, {'ok': true});
+    expect(after.data, {
+      'feeds': ['nasa'],
+    });
+    expect(server.unmatched, isEmpty);
+  });
+
+  test('the onPut responder receives the request body', () async {
+    Object? seen;
+    server.onPut(
+      '/feeds',
+      respond: (body) {
+        seen = body;
+        return (200, {'ok': true});
+      },
+    );
+
+    await dio.put<dynamic>('/feeds', data: {'url': 'x'});
+
+    expect(seen, {'url': 'x'});
+    expect(server.unmatched, isEmpty);
+  });
+
+  test('a dynamic non-2xx status rejects with the response attached', () async {
+    server.onPut('/feeds', respond: (_) => (409, {'message': 'conflict'}));
+
+    final err = await _catchDio(() => dio.put<dynamic>('/feeds'));
+
+    expect(err.type, DioExceptionType.badResponse);
+    expect(err.response?.statusCode, 409);
+    expect(err.response?.data, {'message': 'conflict'});
+    expect(server.unmatched, isEmpty);
+  });
+
   test('the last matching registration wins', () async {
     server.stubGet('/newspapers/today', body: {'id': 1});
     server.stubGet('/newspapers/today', body: {'id': 2});

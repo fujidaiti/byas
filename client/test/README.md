@@ -20,11 +20,12 @@ Feature tests live under `test/features/`, one file per app feature:
 test/
   features/
     auth_test.dart          # sign-in / sign-up
-    today_test.dart         # today / newspaper
-    feeds_test.dart         # feeds
+    newspaper_test.dart     # today / newspaper
+    feed_test.dart          # feeds
     reading_list_test.dart  # reading list
   src/
     boilerplate.dart        # pumpApp + in-memory platform fakes
+    fixture.dart            # shared test data (feeds, entries, stories, …)
     stub_server.dart        # StubServer HTTP interceptor
 ```
 
@@ -39,8 +40,8 @@ app with it:
 ```dart
 patrolWidgetTest('...', (t) async {
   final server = StubServer.withDefaultResponses()
-    ..onGet('/feeds', body: feedsBody)
-    ..onPost('/reading-list', status: 201, body: itemBody);
+    ..stubGet('/feeds', body: feedsBody)
+    ..stubPost('/reading-list', status: 201, body: itemBody);
   await pumpAppWithAuth(t, server);
 
   // Test actions follow.
@@ -58,7 +59,7 @@ patrolWidgetTest('...', (t) async {
   `token:` when a test needs a specific one.)
 - `StubServer.withDefaultResponses()` pre-stubs the three shell tabs
   (`/newspapers/today`, `/reading-list`, `/feeds`) with realistic data from
-  `src/test_data.dart`, so any test can boot and navigate without stubbing them
+  `src/fixture.dart`, so any test can boot and navigate without stubbing them
   itself. Override a tab (register it again) when a test needs it in a specific
   state — empty, or holding particular items.
 - Any request no stub matches fails the test at teardown, naming the endpoint.
@@ -72,7 +73,7 @@ Use the generated `api.*` models (from `package:openapi`) for type safety:
 
 ```dart
 final feed = api.Feed(id: 1, url: '...', title: 'Anthropic Engineering Blog');
-server.onGet('/feeds', body: api.GetFeeds200Response(feeds: [feed]).toJson());
+server.stubGet('/feeds', body: api.GetFeeds200Response(feeds: [feed]).toJson());
 ```
 
 ### Overriding routes — last registration wins
@@ -84,26 +85,51 @@ override an empty default:
 
 ```dart
 // Overrides the empty default; answers every /feeds load with this feed.
-server.onGet('/feeds', body: api.GetFeeds200Response(feeds: [feed]).toJson());
+server.stubGet('/feeds', body: api.GetFeeds200Response(feeds: [feed]).toJson());
 ```
 
 ### Matching PUT / POST / PATCH with a body
 
-Pass the exact expected body as `data` when the shape is known — this turns the
-stub into an implicit assertion that the app sends the right payload. `data`
-matches as a **subset** of the request body (extra keys ignored); omit it to
-match any body.
+Pass the exact expected body as `bodyMatcher` when the shape is known — this
+turns the stub into an implicit assertion that the app sends the right payload.
+`bodyMatcher` matches as a **subset** of the request body (extra keys ignored);
+omit it to match any body.
 
 ```dart
-server.onPut(
+server.stubPut(
   '/feeds',
   body: feed.toJson(),
-  data: {'url': 'https://dart.dev/blog/feed.xml'},
+  bodyMatcher: {'url': 'https://dart.dev/blog/feed.xml'},
 );
 ```
 
-Prefer an explicit `data` for `onPost`/`onPatch` — those mutations are exactly
-where body correctness matters.
+Prefer an explicit `bodyMatcher` for `stubPost`/`stubPatch` — those mutations
+are exactly where body correctness matters.
+
+### Stateful stubs — responses that change across a request
+
+`stub*` answers with a body fixed at registration time. When a route must answer
+differently _after_ some request (e.g. `GET /feeds` is empty until a
+`PUT /feeds` subscribes), use `onGet` / `onPut` instead: they take a `respond`
+closure evaluated per request, so it can read a variable the test captured. Have
+the `PUT` handler mutate that variable and the `GET` handler read it — no
+re-registering routes mid-test.
+
+```dart
+var subscribed = false;
+server
+  ..onGet('/feeds', respond: (_) => (
+        200,
+        api.GetFeeds200Response(feeds: subscribed ? [nasa] : []).toJson(),
+      ))
+  ..onPut('/feeds', bodyMatcher: {'url': nasa.url}, respond: (_) {
+    subscribed = true;
+    return (200, nasa.toJson());
+  });
+```
+
+`respond` returns a `(status, body)` record and receives the decoded request
+body as its argument (ignored with `_` above, since a `GET` carries none).
 
 ## Naming tests
 
