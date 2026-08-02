@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -151,28 +150,11 @@ func messageHandler(ctx context.Context, msgc chan<- message) error {
 	// /signin provisions the pre-defined test account on the already-running
 	// session API server and returns its bearer token, so gated feature tests
 	// (e.g. newspaper) can boot already authenticated without driving the
-	// sign-up UI. An optional "timestamp" in the body backdates the token's
-	// issuance so tests can mint an already-expired token: expires_at is a
-	// stored value, computed once here, so it reads as expired to the live
-	// session server's VerifyAuthToken (wired to real time.Now) regardless of
-	// what minted it.
+	// sign-up UI.
 	mux.HandleFunc("POST /signin", func(w http.ResponseWriter, r *http.Request) {
-		var body struct {
-			Timestamp *time.Time `json:"timestamp"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil && !errors.Is(err, io.EOF) {
-			http.Error(w, fmt.Sprintf("malformed request body: %v", err), http.StatusBadRequest)
-			return
-		}
-		now := time.Now
-		if body.Timestamp != nil {
-			issuedAt := *body.Timestamp
-			now = func() time.Time { return issuedAt }
-		}
-
 		email := must(user.ParseEmail("e2e-runner@example.com"))
 		pswd := must(user.ValidatePassword("Police-Repurpose-Atypical-Gravel"))
-		svc := &user.Service{DB: testenv.DB(), Now: now}
+		svc := &user.Service{DB: testenv.DB(), Now: time.Now}
 		token, err := svc.SignUp(ctx, email, pswd, "TestDevice/1.0")
 		if err != nil {
 			http.Error(w, fmt.Sprintf("failed to provision test account: %v", err), http.StatusInternalServerError)

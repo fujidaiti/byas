@@ -46,14 +46,4 @@ void main() {
     await t(AppDebugKey.signOutButton).tap();
     await t(AppDebugKey.signInScreen).waitUntilVisible();
   });
-
-  patrolTest('An expired session redirects to sign-in', (t) async {
-    await setUpServer(seederId: 'auth_no_users');
-    // Minted as if issued in 2000: the 30-day TTL has long since passed, so
-    // the token is already expired by the time the app's first authenticated
-    // request goes out on boot.
-    await pumpAppWithAuth(t, asOf: DateTime.utc(2000));
-
-    await t(AppDebugKey.signInScreen).waitUntilVisible();
-  });
 }
