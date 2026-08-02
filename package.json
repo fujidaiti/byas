@@ -1,0 +1,13 @@
+{
+  "name": "paperdoll",
+  "private": true,
+  "version": "0.0.0",
+  "engines": {
+    "node": "26.x"
+  },
+  "devDependencies": {
+    "@openapitools/openapi-generator-cli": "2.40.1",
+    "@redocly/cli": "2.43.1",
+    "prettier": "3.9.6"
+  }
+}
