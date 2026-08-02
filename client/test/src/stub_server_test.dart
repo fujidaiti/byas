@@ -13,7 +13,7 @@ void main() {
   });
 
   test('resolves a matching GET with the stubbed body and 200', () async {
-    server.onGet('/feeds', body: {'feeds': <dynamic>[]});
+    server.stubGet('/feeds', body: {'feeds': <dynamic>[]});
 
     final res = await dio.get<dynamic>('/feeds');
 
@@ -23,7 +23,7 @@ void main() {
   });
 
   test('resolves a custom success status instead of throwing', () async {
-    server.onGet('/thing', status: 204, body: null);
+    server.stubGet('/thing', status: 204, body: null);
 
     final res = await dio.get<dynamic>('/thing');
 
@@ -32,7 +32,7 @@ void main() {
   });
 
   test('rejects a non-2xx status with the response attached', () async {
-    server.onPost('/signin', status: 400, body: {'message': 'bad'});
+    server.stubPost('/signin', status: 400, body: {'message': 'bad'});
 
     final err = await _catchDio(() => dio.post<dynamic>('/signin'));
 
@@ -43,7 +43,11 @@ void main() {
   });
 
   test('matches a POST whose body equals the declared data', () async {
-    server.onPost('/signin', body: {'ok': true}, data: {'email': 'a', 'p': 1});
+    server.stubPost(
+      '/signin',
+      body: {'ok': true},
+      bodyMatcher: {'email': 'a', 'p': 1},
+    );
 
     final res = await dio.post<dynamic>(
       '/signin',
@@ -57,7 +61,11 @@ void main() {
   test(
     'matches when the request body is a superset of the declared data',
     () async {
-      server.onPost('/signin', body: {'ok': true}, data: {'email': 'a'});
+      server.stubPost(
+        '/signin',
+        body: {'ok': true},
+        bodyMatcher: {'email': 'a'},
+      );
 
       final res = await dio.post<dynamic>(
         '/signin',
@@ -70,7 +78,7 @@ void main() {
   );
 
   test('omitted data matches any body, including none', () async {
-    server.onPost('/signin', body: {'ok': true});
+    server.stubPost('/signin', body: {'ok': true});
 
     final withBody = await dio.post<dynamic>('/signin', data: {'anything': 1});
     final withoutBody = await dio.post<dynamic>('/signin');
@@ -81,7 +89,7 @@ void main() {
   });
 
   test('does not match when a declared value differs', () async {
-    server.onPost('/signin', body: {'ok': true}, data: {'email': 'a'});
+    server.stubPost('/signin', body: {'ok': true}, bodyMatcher: {'email': 'a'});
 
     final err = await _catchDio(
       () => dio.post<dynamic>('/signin', data: {'email': 'b'}),
@@ -92,7 +100,7 @@ void main() {
   });
 
   test('does not match when the request lacks a declared key', () async {
-    server.onPost('/signin', body: {'ok': true}, data: {'email': 'a'});
+    server.stubPost('/signin', body: {'ok': true}, bodyMatcher: {'email': 'a'});
 
     final err = await _catchDio(
       () => dio.post<dynamic>('/signin', data: {'password': 'p'}),
@@ -109,9 +117,80 @@ void main() {
     expect(server.unmatched, ['GET /nope']);
   });
 
+  test('onGet answers differently as captured state changes', () async {
+    var count = 0;
+    server.onGet('/counter', respond: (_) => (200, {'count': ++count}));
+
+    final first = await dio.get<dynamic>('/counter');
+    final second = await dio.get<dynamic>('/counter');
+
+    expect(first.data, {'count': 1});
+    expect(second.data, {'count': 2});
+    expect(server.unmatched, isEmpty);
+  });
+
+  test('an onPut side effect is reflected by a later onGet', () async {
+    var subscribed = false;
+    server
+      ..onGet(
+        '/feeds',
+        respond: (_) => (
+          200,
+          {
+            'feeds': subscribed ? ['nasa'] : <String>[],
+          },
+        ),
+      )
+      ..onPut(
+        '/feeds',
+        respond: (_) {
+          subscribed = true;
+          return (200, {'ok': true});
+        },
+      );
+
+    final before = await dio.get<dynamic>('/feeds');
+    final put = await dio.put<dynamic>('/feeds', data: {'url': 'x'});
+    final after = await dio.get<dynamic>('/feeds');
+
+    expect(before.data, {'feeds': <String>[]});
+    expect(put.data, {'ok': true});
+    expect(after.data, {
+      'feeds': ['nasa'],
+    });
+    expect(server.unmatched, isEmpty);
+  });
+
+  test('the onPut responder receives the request body', () async {
+    Object? seen;
+    server.onPut(
+      '/feeds',
+      respond: (body) {
+        seen = body;
+        return (200, {'ok': true});
+      },
+    );
+
+    await dio.put<dynamic>('/feeds', data: {'url': 'x'});
+
+    expect(seen, {'url': 'x'});
+    expect(server.unmatched, isEmpty);
+  });
+
+  test('a dynamic non-2xx status rejects with the response attached', () async {
+    server.onPut('/feeds', respond: (_) => (409, {'message': 'conflict'}));
+
+    final err = await _catchDio(() => dio.put<dynamic>('/feeds'));
+
+    expect(err.type, DioExceptionType.badResponse);
+    expect(err.response?.statusCode, 409);
+    expect(err.response?.data, {'message': 'conflict'});
+    expect(server.unmatched, isEmpty);
+  });
+
   test('the last matching registration wins', () async {
-    server.onGet('/newspapers/today', body: {'id': 1});
-    server.onGet('/newspapers/today', body: {'id': 2});
+    server.stubGet('/newspapers/today', body: {'id': 1});
+    server.stubGet('/newspapers/today', body: {'id': 2});
 
     final res = await dio.get<dynamic>('/newspapers/today');
 
