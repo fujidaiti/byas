@@ -10,7 +10,7 @@ import '../src/stub_server.dart';
 
 void main() {
   patrolWidgetTest('Read a saved web clip in reading list', (t) async {
-    final item = fixture.readingList.savedWebClip;
+    final item = fixture.readingList.buildingEffectiveAgents;
     final webClip = fixture.webClips.buildingEffectiveAgents;
     final server = StubServer.withDefaultResponses()
       ..stubGet(
@@ -28,7 +28,7 @@ void main() {
   });
 
   patrolWidgetTest('Read a saved feed entry in reading list', (t) async {
-    final item = fixture.readingList.savedFeedEntry;
+    final item = fixture.readingList.nuclearDeal;
     final entry = fixture.entries.nuclearDeal;
     final server = StubServer.withDefaultResponses()
       ..stubGet(
@@ -46,7 +46,7 @@ void main() {
   });
 
   patrolWidgetTest('Archive a reading list item by swiping', (t) async {
-    final item = fixture.readingList.savedWebClip;
+    final item = fixture.readingList.buildingEffectiveAgents;
     final server = StubServer.withDefaultResponses()
       ..stubGet(
         '/reading-list',
@@ -74,7 +74,7 @@ void main() {
   });
 
   patrolWidgetTest('Read an archived item from the archived screen', (t) async {
-    final item = fixture.readingList.savedWebClip;
+    final item = fixture.readingList.buildingEffectiveAgents;
     final webClip = fixture.webClips.buildingEffectiveAgents;
     final server = StubServer.withDefaultResponses()
       ..stubGet(
@@ -100,7 +100,7 @@ void main() {
   patrolWidgetTest('Read an archived feed entry from the archived screen', (
     t,
   ) async {
-    final item = fixture.readingList.savedFeedEntry;
+    final item = fixture.readingList.nuclearDeal;
     final entry = fixture.entries.nuclearDeal;
     final server = StubServer.withDefaultResponses()
       ..stubGet(

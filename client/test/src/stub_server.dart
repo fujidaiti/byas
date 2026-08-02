@@ -38,8 +38,8 @@ class StubServer extends Interceptor {
         '/reading-list',
         body: api.GetReadingList200Response(
           items: [
-            fixture.readingList.savedWebClip,
-            fixture.readingList.savedFeedEntry,
+            fixture.readingList.buildingEffectiveAgents,
+            fixture.readingList.nuclearDeal,
           ],
         ).toJson(),
       )

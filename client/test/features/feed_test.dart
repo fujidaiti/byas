@@ -46,7 +46,7 @@ void main() {
   });
 
   patrolWidgetTest('Subscribe to a known web feed', (t) async {
-    final candidate = fixture.candidates.nasa;
+    final candidate = fixture.feedCandidates.nasa;
     final nasa = fixture.feeds.nasa;
     final subscriptions = <api.Feed>[];
     final server = StubServer.withDefaultResponses()

@@ -7,7 +7,7 @@ class _Fixture {
   final feeds = _feeds;
   final entries = _entries;
   final webClips = _webClips;
-  final candidates = _candidates;
+  final feedCandidates = _feedCandidates;
   final stories = _stories;
   final readingList = _readingList;
 }
@@ -98,9 +98,9 @@ class _WebClips {
   );
 }
 
-final _candidates = _Candidates();
+final _feedCandidates = _FeedCandidates();
 
-class _Candidates {
+class _FeedCandidates {
   // What /feeds/search returns before NASA is subscribed to.
   final nasa = api.FeedCandidate(
     url: _feeds.nasa.url,
@@ -126,7 +126,7 @@ class _Stories {
 final _readingList = _ReadingList();
 
 class _ReadingList {
-  final savedWebClip = api.ReadingListItem(
+  final buildingEffectiveAgents = api.ReadingListItem(
     id: 1,
     resourceId: _webClips.buildingEffectiveAgents.id,
     kind: api.ReadingListItemKindEnum.webClip,
@@ -134,7 +134,7 @@ class _ReadingList {
     savedAt: DateTime.utc(2026, 7, 1),
   );
 
-  final savedFeedEntry = api.ReadingListItem(
+  final nuclearDeal = api.ReadingListItem(
     id: 5,
     resourceId: _entries.nuclearDeal.id,
     kind: api.ReadingListItemKindEnum.feedEntry,
