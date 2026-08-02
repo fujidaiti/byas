@@ -62,6 +62,14 @@ class _NewspaperView extends StatelessWidget {
           SliverAppBar(
             pinned: true,
             expandedHeight: 120,
+            actions: [
+              IconButton(
+                key: AppDebugKey.settingsButton,
+                tooltip: 'Settings',
+                icon: const Icon(Icons.settings_outlined),
+                onPressed: () => context.pushNamed(routeSettingsName),
+              ),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               centerTitle: false,
               titlePadding: const EdgeInsetsDirectional.only(

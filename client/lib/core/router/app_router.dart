@@ -13,6 +13,7 @@ import 'package:paperdoll/features/feed_entry/presentation/feed_entry_reader_scr
 import 'package:paperdoll/features/newspaper/presentation/today_screen.dart';
 import 'package:paperdoll/features/reading_list/presentation/archived_reading_list_screen.dart';
 import 'package:paperdoll/features/reading_list/presentation/reading_list_screen.dart';
+import 'package:paperdoll/features/settings/presentation/settings_screen.dart';
 import 'package:paperdoll/features/web_clip/presentation/web_clip_reader_screen.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -53,6 +54,11 @@ GoRouter goRouter(Ref ref) {
         path: routeSignUpPath,
         name: routeSignUpName,
         builder: (context, state) => const SignUpScreen(),
+      ),
+      GoRoute(
+        path: routeSettingsPath,
+        name: routeSettingsName,
+        builder: (context, state) => const SettingsScreen(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>

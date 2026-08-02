@@ -399,3 +399,77 @@ func TestAuth_SignIn_Failure(t *testing.T) {
 		})
 	}
 }
+
+func TestAuth_SignOut(t *testing.T) {
+	t.Cleanup(testenv.TearDown)
+
+	s := user.Service{DB: testenv.DB()}
+	email := must(user.ParseEmail("alice@example.com"))
+	pswd := "alice#password$123"
+	// Sign up
+	s.Now = func() time.Time { return mustTimeUTC("2026-07-01 13:30:00") }
+	token1, err := s.SignUp(t.Context(), email, must(user.ValidatePassword(pswd)), "Pixel9a")
+	if err != nil {
+		t.Fatalf("failed to sign up: %v", err)
+	}
+	// Sign in from other devices
+	s.Now = func() time.Time { return mustTimeUTC("2026-07-02 23:18:45") }
+	token2, err := s.SignIn(t.Context(), email, pswd, "iPhone17")
+	if err != nil {
+		t.Fatalf("failed to sign in: %v", err)
+	}
+	s.Now = func() time.Time { return mustTimeUTC("2026-07-04 19:30:00") }
+	token3, err := s.SignIn(t.Context(), email, pswd, "macbookAir2020")
+	if err != nil {
+		t.Fatalf("failed to sign in: %v", err)
+	}
+
+	test := []struct {
+		name        string
+		token       user.AuthToken
+		signedOutAt time.Time
+	}{
+		{
+			name:        "from signed-up device",
+			token:       token1,
+			signedOutAt: mustTimeUTC("2026-07-08 12:33:33"),
+		},
+		{
+			name:        "from signed-in device",
+			token:       token2,
+			signedOutAt: mustTimeUTC("2026-07-12 02:10:00"),
+		},
+		{
+			name:        "already signed out",
+			token:       token2,
+			signedOutAt: mustTimeUTC("2026-07-12 02:11:00"),
+		},
+		{
+			name:        "unregistered user",
+			token:       user.AuthToken{},
+			signedOutAt: mustTimeUTC("2026-08-01 09:00:00"),
+		},
+		{
+			name:        "outdated",
+			token:       token3,
+			signedOutAt: mustTimeUTC("2029-11-04 12:00:00"),
+		},
+	}
+
+	for _, tt := range test {
+		s.Now = func() time.Time { return tt.signedOutAt }
+		t.Run(tt.name, func(t *testing.T) {
+			if got := s.SignOut(t.Context(), tt.token.Encode()); got != nil {
+				t.Errorf("got %v, want a nil error", got)
+			}
+
+			var n int
+			scanRowOrFatal(t, `
+				SELECT COUNT(*) FROM auth_tokens WHERE token_hash = $1
+			`, []any{tt.token.Hash()}, &n)
+			if n != 0 {
+				t.Errorf("got %d rows: token still exists", n)
+			}
+		})
+	}
+}

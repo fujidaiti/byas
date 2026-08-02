@@ -62,12 +62,12 @@ func generateAuthToken() (AuthToken, error) {
 	return t, err
 }
 
-func (t AuthToken) Hash() []byte {
-	if t == (AuthToken{}) {
-		return nil
+func decodeAuthToken(t string) (AuthToken, error) {
+	b, err := base64.RawURLEncoding.DecodeString(t)
+	if err != nil || len(b) != 32 {
+		return AuthToken{}, ErrTokenInvalid
 	}
-	h := sha256.Sum256(t.value[:])
-	return h[:]
+	return AuthToken{[32]byte(b)}, nil
 }
 
 func (t AuthToken) Encode() string {
@@ -75,6 +75,14 @@ func (t AuthToken) Encode() string {
 		return ""
 	}
 	return base64.RawURLEncoding.EncodeToString(t.value[:])
+}
+
+func (t AuthToken) Hash() []byte {
+	if t == (AuthToken{}) {
+		return nil
+	}
+	h := sha256.Sum256(t.value[:])
+	return h[:]
 }
 
 // TODO: Tweak the bcrypt cost
@@ -147,4 +155,20 @@ func (s *Service) issueAuthToken(
 		return AuthToken{}, err
 	}
 	return token, nil
+}
+
+// SignOut revokes the encoded token t. The user who owns that token remains
+// authorized as long as their other tokens are valid.
+//
+// This operation does not fail even if the token is invalid, but it may report
+// an unknown error due to infrastructure issues.
+func (s *Service) SignOut(ctx context.Context, t string) error {
+	token, err := decodeAuthToken(t)
+	if err != nil {
+		return nil
+	}
+	_, err = s.DB.ExecContext(ctx, `
+		DELETE FROM auth_tokens WHERE token_hash = $1
+	`, token.Hash())
+	return err
 }

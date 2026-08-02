@@ -36,6 +36,12 @@ class ReadingListScreen extends ConsumerWidget {
             icon: const Icon(Icons.archive_outlined),
             onPressed: () => context.pushNamed(routeArchivedReadingListName),
           ),
+          IconButton(
+            key: AppDebugKey.settingsButton,
+            tooltip: 'Settings',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => context.pushNamed(routeSettingsName),
+          ),
         ],
       ),
       body: RefreshIndicator(

@@ -1,3 +1,4 @@
+import 'package:paperdoll/core/error/domain_error.dart';
 import 'package:paperdoll/core/network/dio_provider.dart';
 import 'package:paperdoll/core/platform/device.dart';
 import 'package:paperdoll/core/platform/secure_storage.dart';
@@ -55,5 +56,21 @@ class AuthSession extends _$AuthSession {
     );
     await _repo.writeAuthToken(token);
     state = AsyncData(token);
+  }
+
+  /// Revokes the session token and signs out locally regardless of whether
+  /// the revoke call succeeds — `/signout` is best-effort from the client's
+  /// perspective, the server already treats it as always-successful.
+  Future<void> signOut() async {
+    final token = state.value;
+    if (token != null) {
+      try {
+        await _repo.signOut(token);
+      } on DomainError {
+        // Best-effort: still sign out locally below.
+      }
+    }
+    await _repo.clearAuthToken();
+    state = const AsyncData(null);
   }
 }

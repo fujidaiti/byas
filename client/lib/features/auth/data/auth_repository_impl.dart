@@ -19,6 +19,9 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> writeAuthToken(String token) => _storage.write(_tokenKey, token);
 
   @override
+  Future<void> clearAuthToken() => _storage.write(_tokenKey, null);
+
+  @override
   Future<String> signUp({
     required String email,
     required String password,
@@ -55,6 +58,16 @@ class AuthRepositoryImpl implements AuthRepository {
       // The signin 200 response has the same {token} shape as signup's 201;
       // the generator didn't emit a distinct type for it.
       return api.SignUp201Response.fromJson(res.data)!.token;
+    });
+  }
+
+  @override
+  Future<void> signOut(String token) {
+    return runRequest(() async {
+      await _dio.post<void>(
+        '/signout',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
     });
   }
 }
