@@ -1,6 +1,16 @@
+import 'dart:convert';
+
 import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
 import 'package:openapi/api.dart' as api;
+
+import 'fixture.dart';
+
+/// Computes a `(status, responseBody)` for a matched request from its
+/// already-decoded request body. Evaluated at request time, so it may read or
+/// mutate state a test captured to answer differently across calls.
+typedef StubResponder =
+    (int status, Object? body) Function(Object? requestBody);
 
 /// A Dio interceptor that answers registered routes with canned responses and
 /// records any request no route matched. When several routes match the same
@@ -8,19 +18,42 @@ import 'package:openapi/api.dart' as api;
 class StubServer extends Interceptor {
   StubServer();
 
-  /// A server pre-stubbed with the three shell tabs, all empty: enough for any
-  /// test to boot and navigate without stubbing anything itself.
+  /// A server pre-stubbed with the three shell tabs populated from [fixture]:
+  /// enough for any test to boot and navigate without stubbing anything itself.
+  /// Only the list endpoints the shell loads on boot are answered here; nested
+  /// resources (a feed's timeline, a story's entry) are fetched on navigation,
+  /// so a test that drills into a tab still stubs those itself — and overrides
+  /// any tab it needs in a specific state (the last registration wins).
   factory StubServer.withDefaultResponses() {
     return StubServer()
-      ..onGet(
+      ..stubGet(
         '/newspapers/today',
         body: api.GetTodaysNewspaper200Response(
           id: 1,
           publishedAt: DateTime.utc(2026, 7, 1),
+          stories: [fixture.stories.nuclearDeal],
         ).toJson(),
       )
-      ..onGet('/reading-list', body: api.GetReadingList200Response().toJson())
-      ..onGet('/feeds', body: api.GetFeeds200Response().toJson());
+      ..stubGet(
+        '/reading-list',
+        body: api.GetReadingList200Response(
+          items: [
+            fixture.readingList.buildingEffectiveAgents,
+            fixture.readingList.nuclearDeal,
+          ],
+        ).toJson(),
+      )
+      ..stubGet(
+        '/feeds',
+        body: api.GetFeeds200Response(
+          feeds: [
+            fixture.feeds.bbcNews,
+            fixture.feeds.nasa,
+            fixture.feeds.stackOverflow,
+            fixture.feeds.wikipedia,
+          ],
+        ).toJson(),
+      );
   }
 
   final _routes = <_Route>[];
@@ -28,15 +61,44 @@ class StubServer extends Interceptor {
   /// `'METHOD /path'` for every request no registered route matched.
   final unmatched = <String>[];
 
-  /// Registers a GET route. [body] is the JSON response (a `Map`/`List`).
-  void onGet(String path, {int status = 200, Object? body}) =>
-      _routes.add(_Route('GET', path, null, status, body));
+  void stubGet(String path, {int status = 200, Object? body}) =>
+      _routes.add(_Route('GET', path, null, (_) => (status, body)));
 
-  /// Registers a POST route. [data] is an optional expected body: omit it to
-  /// match any body, or pass a `Map` to match requests whose body contains all
-  /// those keys (extra keys ignored).
-  void onPost(String path, {int status = 200, Object? body, Object? data}) =>
-      _routes.add(_Route('POST', path, data, status, body));
+  void stubPost(
+    String path, {
+    int status = 200,
+    Object? body,
+    Object? bodyMatcher,
+  }) => _routes.add(_Route('POST', path, bodyMatcher, (_) => (status, body)));
+
+  void stubPut(
+    String path, {
+    int status = 200,
+    Object? body,
+    Object? bodyMatcher,
+  }) => _routes.add(_Route('PUT', path, bodyMatcher, (_) => (status, body)));
+
+  void stubPatch(
+    String path, {
+    int status = 200,
+    Object? body,
+    Object? bodyMatcher,
+  }) => _routes.add(_Route('PATCH', path, bodyMatcher, (_) => (status, body)));
+
+  /// Like [stubGet], but computes the response per request via [respond] so it
+  /// can vary with state a test captured (e.g. answer differently before and
+  /// after a [onPut] mutates that state).
+  void onGet(String path, {required StubResponder respond}) =>
+      _routes.add(_Route('GET', path, null, respond));
+
+  /// Like [stubPut], but computes the response per request via [respond]. The
+  /// responder receives the request body and may mutate captured state (see
+  /// [onGet]).
+  void onPut(
+    String path, {
+    required StubResponder respond,
+    Object? bodyMatcher,
+  }) => _routes.add(_Route('PUT', path, bodyMatcher, respond));
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
@@ -57,12 +119,13 @@ class StubServer extends Interceptor {
       );
     }
 
+    final (status, body) = route.responder(options.data);
     final response = Response<dynamic>(
       requestOptions: options,
-      statusCode: route.status,
-      data: route.body,
+      statusCode: status,
+      data: _asTransportJson(body),
     );
-    if (options.validateStatus(route.status)) {
+    if (options.validateStatus(status)) {
       handler.resolve(response);
     } else {
       handler.reject(
@@ -78,19 +141,26 @@ class StubServer extends Interceptor {
   }
 }
 
+/// Mimics real transport: over the wire the response body is JSON-encoded and
+/// re-decoded, so nested generated models (e.g. a `Feed` inside a
+/// `GetFeeds200Response`) arrive as plain `Map`s. Generated `toJson()` is
+/// shallow — it leaves list/object members as live objects — so a round-trip
+/// here is what turns them into the `Map`/`List` tree `fromJson` expects.
+Object? _asTransportJson(Object? body) =>
+    body == null ? null : jsonDecode(jsonEncode(body));
+
 class _Route {
-  _Route(this.method, this.path, this.data, this.status, this.body);
+  _Route(this.method, this.path, this.bodyMatcher, this.responder);
   final String method;
   final String path;
-  final Object? data;
-  final int status;
-  final Object? body;
+  final Object? bodyMatcher;
+  final StubResponder responder;
 
-  /// Whether a request carrying [actual] as its body matches this route. A
-  /// `null` [data] matches any body; a `Map` matches as a top-level subset
-  /// (extra keys ignored); anything else is compared with deep equality.
+  /// Whether a request carrying [actual] as its body matches this route.
+  /// A `null` [bodyMatcher] matches any body; a `Map` matches as a top-level
+  /// subset (extra keys ignored); anything else is compared with deep equality.
   bool matchesBody(Object? actual) {
-    final expected = data;
+    final expected = bodyMatcher;
     if (expected == null) {
       return true;
     }

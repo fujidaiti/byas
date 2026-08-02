@@ -9,21 +9,27 @@ import 'package:paperdoll/core/platform/secure_storage.dart';
 import 'package:paperdoll/features/auth/presentation/providers/auth_providers.dart';
 import 'package:patrol_finders/patrol_finders.dart';
 
+import 'fake_webview.dart';
 import 'stub_server.dart';
 
 /// Boots the whole app on the Flutter test framework, with in-memory
 /// stand-ins for everything the app would otherwise get from a device: no
 /// network, no secure storage plugin, no device info plugin.
 ///
-/// Starts signed out unless [token] is given. Returns the [StubServer] every
-/// HTTP call goes through, pre-stubbed with an empty account so the app
-/// always has somewhere to land. Registering a route again overrides the
-/// default — the last matching registration wins.
+/// Every HTTP call goes through [server]; build and stub it in the test
+/// *before* calling this (start from [StubServer.withDefaultResponses] so the
+/// pre-stubbed tabs let the app boot). The shell builds all three tabs on
+/// startup, so
+/// the data a screen shows on first load (Today's stories, the feeds list, the
+/// reading list) must already be stubbed when the app boots — that's why the
+/// caller owns the server. Any request no stub matches fails the test at
+/// teardown, naming the endpoint.
 ///
-/// A stub may declare a subset of the request body (extra keys are ignored) or
-/// omit the body entirely to match any request for the route. Any request no
-/// stub matches fails the test at teardown, naming the endpoint.
-Future<StubServer> pumpApp(PatrolTester $, {String? token}) async {
+/// Starts signed out unless [token] is given; [pumpAppWithAuth] is the
+/// signed-in shortcut for feature tests that aren't about the auth flow.
+Future<void> pumpApp(PatrolTester $, StubServer server, {String? token}) async {
+  installFakeWebViewPlatform();
+
   final container = ProviderContainer.test(
     overrides: [
       appConfigProvider.overrideWithValue(const AppConfig('http://mock')),
@@ -32,7 +38,6 @@ Future<StubServer> pumpApp(PatrolTester $, {String? token}) async {
     ],
   );
 
-  final server = StubServer.withDefaultResponses();
   container.read(dioProvider).interceptors.add(server);
   addTearDown(
     () => expect(
@@ -55,9 +60,12 @@ Future<StubServer> pumpApp(PatrolTester $, {String? token}) async {
   // The splash screen outlives the first settle: reading the token and the
   // redirect that follows land a frame later.
   await $.pumpAndTrySettle();
-
-  return server;
 }
+
+/// [pumpApp] pre-seeded with a signed-in session, so feature tests land
+/// straight on Today instead of the sign-in screen.
+Future<void> pumpAppWithAuth(PatrolTester $, StubServer server) =>
+    pumpApp($, server, token: 'test-token');
 
 class _InMemorySecureStorage implements SecureStorage {
   final _store = <String, String>{};

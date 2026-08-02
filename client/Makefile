@@ -6,13 +6,8 @@ export PATROL_FLUTTER_COMMAND = ../.fvm/versions/stable/bin/flutter
 test:
 	fvm flutter test
 
-# Run the mocked integration tests. Specify a target device as D=<device-id>.
-# The real-backend E2E suite lives in client/e2e/ (run via the Go runner in
-# ../e2e), separate from integration_test/, so nothing to exclude here.
-.PHONY: integration-test
-integration-test:
-	patrol test -v -t integration_test/ -d $(D)
-
+# Run the real-backend E2E suite (Patrol on a device, driven by the Go runner
+# in client/e2e/).
 .PHONY: e2e
 e2e:
 	cd e2e && go run ./...
