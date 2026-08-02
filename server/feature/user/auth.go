@@ -157,24 +157,6 @@ func (s *Service) issueAuthToken(
 	return token, nil
 }
 
-// VerifyAuthToken checks if the encoded token t is valid and finds the user who
-// owns that token. Reports an [ErrTokenInvalid] if the token is malformed or expired.
-// TODO: Garbage-collect expired tokens
-func (s *Service) VerifyAuthToken(ctx context.Context, t string) (UserID, error) {
-	token, err := decodeAuthToken(t)
-	if err != nil {
-		return 0, err
-	}
-	var id UserID
-	err = s.DB.QueryRowContext(ctx, `
-		SELECT user_id FROM auth_tokens WHERE expires_at > $1 AND token_hash = $2
-	`, s.Now(), token.Hash()).Scan(&id)
-	if err != nil {
-		return 0, ErrTokenInvalid
-	}
-	return id, nil
-}
-
 // SignOut revokes the encoded token t. The user who owns that token remains
 // authorized as long as their other tokens are valid.
 //
