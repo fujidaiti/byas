@@ -16,8 +16,15 @@ Future<void> pumpApp(PatrolIntegrationTester $) async {
 /// storage, and pumps the app so the real `AuthSession.build()` reads it and
 /// the router lands straight on Today. Use this for tests behind the auth gate
 /// that aren't about the auth flow itself (e.g. the newspaper suite).
-Future<void> pumpAppWithAuth(PatrolIntegrationTester $) async {
-  final token = await signInViaRunner();
+///
+/// [asOf], when given, backdates the token's issuance so it's already
+/// expired by the time the app makes its first authenticated request — see
+/// [signInViaRunner].
+Future<void> pumpAppWithAuth(
+  PatrolIntegrationTester $, {
+  DateTime? asOf,
+}) async {
+  final token = await signInViaRunner(asOf: asOf);
   // Persist the token through the real repository path, then run the app on the
   // same container so its AuthSession reads the token back at startup.
   final container = ProviderContainer();
@@ -42,9 +49,20 @@ const _runnerTimeout = Duration(seconds: 60);
 
 /// Provisions the pre-defined test account via the runner's `/signin` endpoint
 /// and returns its bearer token.
-Future<String> signInViaRunner() async {
+///
+/// [asOf], when given, is sent as the token's fake issuance timestamp — the
+/// runner mints the token as if it were issued then, so a far-past [asOf]
+/// (well over the 30-day TTL) yields a token that's already expired against
+/// the live server's real clock.
+Future<String> signInViaRunner({DateTime? asOf}) async {
   final response = await http
-      .post(_runnerUri('/signin'))
+      .post(
+        _runnerUri('/signin'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          if (asOf != null) 'timestamp': asOf.toIso8601String(),
+        }),
+      )
       .timeout(_runnerTimeout);
   if (response.statusCode != 200) {
     throw Exception(

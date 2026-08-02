@@ -14,6 +14,23 @@ AuthRepository authRepository(Ref ref) => AuthRepositoryImpl(
   ref.watch(secureStorageProvider),
 );
 
+/// Bumped when a request comes back 401, so [AuthSession] can end the session
+/// reactively. The Dio auth interceptor lives on [dioProvider], which
+/// [authSessionProvider] itself depends on (transitively, via
+/// [authRepositoryProvider]) — the interceptor reading or invalidating
+/// `authSessionProvider` directly would be a genuine dependency cycle
+/// (Riverpod's `Ref.read`/`invalidate` reject reading a provider that
+/// depends back on the reader). This signal has no dependencies of its own,
+/// so the interceptor can safely bump it and [AuthSession] can safely listen
+/// to it.
+@Riverpod(keepAlive: true)
+class SessionInvalidationSignal extends _$SessionInvalidationSignal {
+  @override
+  int build() => 0;
+
+  void fire() => state++;
+}
+
 /// The signed-in session: `null` when signed out, the bearer token when
 /// signed in. [build] resolves the persisted token at startup; [signIn] and
 /// [signUp] authenticate, persist the returned token, and update the state so
@@ -27,6 +44,7 @@ class AuthSession extends _$AuthSession {
   Future<String?> build() async {
     _repo = ref.watch(authRepositoryProvider);
     _device = ref.watch(deviceProvider);
+    ref.listen(sessionInvalidationSignalProvider, (_, _) => forceSignOut());
     try {
       return await _repo.readAuthToken();
     } on Exception {
@@ -69,6 +87,18 @@ class AuthSession extends _$AuthSession {
       } on DomainError {
         // Best-effort: still sign out locally below.
       }
+    }
+    await _repo.clearAuthToken();
+    state = const AsyncData(null);
+  }
+
+  /// Ends the session locally without calling `/signout` — used when a
+  /// request comes back 401, since the token is already invalid server-side
+  /// and calling `/signout` would just 401 again. A no-op when already
+  /// signed out.
+  Future<void> forceSignOut() async {
+    if (state.value == null) {
+      return;
     }
     await _repo.clearAuthToken();
     state = const AsyncData(null);

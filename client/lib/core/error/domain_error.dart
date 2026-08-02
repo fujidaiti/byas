@@ -13,6 +13,13 @@ sealed class DomainError implements Exception {
   String toString() => 'DomainError(${message ?? defaultMessage})';
 }
 
+final class UnauthorizedError extends DomainError {
+  const UnauthorizedError([super.message]);
+
+  @override
+  String get defaultMessage => 'Session expired. Please sign in again.';
+}
+
 final class NotFoundError extends DomainError {
   const NotFoundError([super.message]);
 
