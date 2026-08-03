@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:paperdoll/core/config/app_config_provider.dart';
+import 'package:paperdoll/core/network/auth_interceptor.dart';
 import 'package:paperdoll/core/network/error_interceptor.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -26,6 +27,7 @@ Dio dio(Ref ref) {
       sendTimeout: _sendTimeout,
     ),
   );
+  client.interceptors.add(AuthInterceptor(ref));
   client.interceptors.add(const ErrorInterceptor());
   ref.onDispose(client.close);
   return client;

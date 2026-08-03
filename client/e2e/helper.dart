@@ -51,7 +51,10 @@ const _runnerTimeout = Duration(seconds: 60);
 /// and returns its bearer token.
 Future<String> signInViaRunner() async {
   final response = await http
-      .post(_runnerUri('/signin'))
+      .post(
+        _runnerUri('/signin'),
+        headers: {'Content-Type': 'application/json'},
+      )
       .timeout(_runnerTimeout);
   if (response.statusCode != 200) {
     throw Exception(

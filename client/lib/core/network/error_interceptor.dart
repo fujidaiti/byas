@@ -27,6 +27,9 @@ class ErrorInterceptor extends Interceptor {
       if (status == 400) {
         return BadRequestError(message);
       }
+      if (status == 401) {
+        return UnauthorizedError(message);
+      }
       if (status == 404) {
         return NotFoundError(message);
       }

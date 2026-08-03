@@ -82,24 +82,27 @@ func NewServer(db *sql.DB, httpProxy *url.URL) *http.Server {
 		ScraperService:     scrp,
 	}
 
+	authorized := http.NewServeMux()
+	authorized.HandleFunc("GET /newspapers/today", h.getTodaysNewspaper)
+	authorized.HandleFunc("GET /feeds", h.getFeeds)
+	authorized.HandleFunc("PUT /feeds", h.subscribeToFeed)
+	authorized.HandleFunc("GET /feeds/search", h.searchFeeds)
+	authorized.HandleFunc("GET /feeds/{id}", h.getFeed)
+	authorized.HandleFunc("GET /feeds/{id}/timeline", h.getFeedTimeline)
+	authorized.HandleFunc("GET /feed-entries/{id}", h.getFeedEntry)
+	authorized.HandleFunc("GET /web-clips/{id}", h.getWebClip)
+	authorized.HandleFunc("POST /reading-list", h.saveToReadingList)
+	authorized.HandleFunc("GET /reading-list", h.getReadingList)
+	authorized.HandleFunc("GET /reading-list/archived", h.getArchivedReadingList)
+	authorized.HandleFunc("DELETE /reading-list/{id}", h.deleteReadingListItem)
+	authorized.HandleFunc("PATCH /reading-list/{id}", h.setReadingListItemArchivedStatus)
+	authorized.HandleFunc("POST /signout", h.signOut)
+
 	mux := http.NewServeMux()
+	mux.Handle("/", AuthMiddleware(authorized, h.UserService))
 	mux.HandleFunc("GET /health", h.getHealth)
-	mux.HandleFunc("GET /newspapers/today", h.getTodaysNewspaper)
-	mux.HandleFunc("GET /feeds", h.getFeeds)
-	mux.HandleFunc("PUT /feeds", h.subscribeToFeed)
-	mux.HandleFunc("GET /feeds/search", h.searchFeeds)
-	mux.HandleFunc("GET /feeds/{id}", h.getFeed)
-	mux.HandleFunc("GET /feeds/{id}/timeline", h.getFeedTimeline)
-	mux.HandleFunc("GET /feed-entries/{id}", h.getFeedEntry)
-	mux.HandleFunc("GET /web-clips/{id}", h.getWebClip)
-	mux.HandleFunc("POST /reading-list", h.saveToReadingList)
-	mux.HandleFunc("GET /reading-list", h.getReadingList)
-	mux.HandleFunc("GET /reading-list/archived", h.getArchivedReadingList)
-	mux.HandleFunc("DELETE /reading-list/{id}", h.deleteReadingListItem)
-	mux.HandleFunc("PATCH /reading-list/{id}", h.setReadingListItemArchivedStatus)
 	mux.HandleFunc("POST /signup", h.SignUp)
 	mux.HandleFunc("POST /signin", h.signIn)
-	mux.HandleFunc("POST /signout", h.signOut)
 
 	return &http.Server{
 		Addr:    ":8080",

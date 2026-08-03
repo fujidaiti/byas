@@ -47,4 +47,4 @@ final class DeviceProvider extends $FunctionalProvider<Device, Device, Device>
   }
 }
 
-String _$deviceHash() => r'a8207fb5a86a254e3c65652b3106d3edb7f4b338';
+String _$deviceHash() => r'758aca46274b4347387189344cc80926de6c21a3';

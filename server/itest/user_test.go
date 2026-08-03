@@ -473,3 +473,101 @@ func TestAuth_SignOut(t *testing.T) {
 		})
 	}
 }
+
+func TestAuth_VerifyAuthToken(t *testing.T) {
+	t.Cleanup(testenv.TearDown)
+
+	s := user.Service{DB: testenv.DB()}
+	aEmail, aPswd := "alice@example.com", "alice#password$123"
+	bEmail, bPswd := "bob@example.com", "bob#password$789"
+	// Alice signs up
+	s.Now = func() time.Time { return mustTimeUTC("2026-07-01 13:30:00") }
+	token1, err := s.SignUp(t.Context(),
+		must(user.ParseEmail(aEmail)),
+		must(user.ValidatePassword(aPswd)),
+		"Pixel9a",
+	)
+	if err != nil {
+		t.Fatalf("failed to sign up: %v", err)
+	}
+	// Alice signs in from another device
+	s.Now = func() time.Time { return mustTimeUTC("2026-07-02 09:00:00") }
+	token2, err := s.SignIn(t.Context(), must(user.ParseEmail(aEmail)), aPswd, "iPad")
+	if err != nil {
+		t.Fatalf("failed to sign in: %v", err)
+	}
+	// Bob signs up
+	s.Now = func() time.Time { return mustTimeUTC("2026-07-02 23:18:45") }
+	token3, err := s.SignUp(t.Context(),
+		must(user.ParseEmail(bEmail)),
+		must(user.ValidatePassword(bPswd)),
+		"iPhone17",
+	)
+	if err != nil {
+		t.Fatalf("failed to sign up: %v", err)
+	}
+	// Bob signs in from another device
+	s.Now = func() time.Time { return mustTimeUTC("2026-07-04 19:30:00") }
+	token4, err := s.SignIn(t.Context(), must(user.ParseEmail(bEmail)), bPswd, "macbookAir 2020")
+	if err != nil {
+		t.Fatalf("failed to sign in: %v", err)
+	}
+
+	var aID, bID user.UserID
+	scanRowOrFatal(t, `SELECT id FROM users WHERE email = $1`, []any{aEmail}, &aID)
+	scanRowOrFatal(t, `SELECT id FROM users WHERE email = $1`, []any{bEmail}, &bID)
+
+	test := []struct {
+		name    string
+		token   user.AuthToken
+		checkAt time.Time
+		want    user.UserID
+		wantErr error
+	}{
+		{
+			name:    "alice's sign-up token",
+			token:   token1,
+			checkAt: mustTimeUTC("2026-07-01 13:30:30"),
+			want:    aID,
+		},
+		{
+			name:    "alice's sign-in token",
+			token:   token2,
+			checkAt: mustTimeUTC("2026-07-02 09:12:32"),
+			want:    aID,
+		},
+		{
+			name:    "bob's sign-up token",
+			token:   token3,
+			checkAt: mustTimeUTC("2026-07-12 02:10:00"),
+			want:    bID,
+		},
+		{
+			name:    "bob's expired sign-in token",
+			token:   token4,
+			checkAt: mustTimeUTC("2026-11-04 12:00:00"),
+			want:    0,
+			wantErr: user.ErrTokenInvalid,
+		},
+		{
+			name:    "unknown token",
+			token:   user.AuthToken{},
+			checkAt: mustTimeUTC("2026-08-01 09:00:00"),
+			want:    0,
+			wantErr: user.ErrTokenInvalid,
+		},
+	}
+
+	for _, tt := range test {
+		s.Now = func() time.Time { return tt.checkAt }
+		t.Run(tt.name, func(t *testing.T) {
+			gotID, gotErr := s.VerifyAuthToken(t.Context(), tt.token.Encode())
+			if gotID != tt.want {
+				t.Errorf("got ID=%d, want %d", gotID, tt.want)
+			}
+			if !errors.Is(gotErr, tt.wantErr) {
+				t.Errorf("got %q, want %q", gotErr, tt.wantErr)
+			}
+		})
+	}
+}
