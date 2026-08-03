@@ -9,8 +9,10 @@ runner, client, and test DB fit together).
 
 Before running, check that:
 
-- An Android emulator is running (`emulator-5554` by default): `fvm flutter devices`
-- Docker is running (the test DB is spun up in a container via testcontainers): `docker info > /dev/null 2>&1 && echo "docker is running"`
+- An Android emulator is running (`emulator-5554` by default):
+  `fvm flutter devices`
+- Docker is running (the test DB is spun up in a container via testcontainers):
+  `docker info > /dev/null 2>&1 && echo "docker is running"`
 
 ## Running
 
