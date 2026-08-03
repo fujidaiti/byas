@@ -11,7 +11,6 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -108,20 +107,6 @@ func patrolArgs() []string {
 	return nil
 }
 
-// hasTargetOverride reports whether extraArgs already specifies a
-// "-t"/"--target", so runTests can drop its own default. Patrol treats
-// repeated "-t"/"--target" flags as additive rather than last-wins, so
-// passing both runs the default target *and* the caller's, duplicating
-// test execution instead of narrowing it.
-func hasTargetOverride(extraArgs []string) bool {
-	for _, a := range extraArgs {
-		if a == "-t" || a == "--target" || strings.HasPrefix(a, "--target=") {
-			return true
-		}
-	}
-	return false
-}
-
 // runTests drives the Patrol test suite via the `patrol test` CLI.
 // extraArgs, if non-empty, is appended after the default arguments below.
 func runTests(ctx context.Context, extraArgs []string) error {
@@ -136,9 +121,6 @@ func runTests(ctx context.Context, extraArgs []string) error {
 		// TODO: make the API base URL configurable.
 		"--dart-define",
 		"API_BASE_URL=http://10.0.2.2:8080",
-	}
-	if !hasTargetOverride(extraArgs) {
-		args = append(args, "-t", "e2e/")
 	}
 	args = append(args, extraArgs...)
 	cmd := exec.CommandContext(ctx, "patrol", args...)
