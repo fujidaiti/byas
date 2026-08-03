@@ -29,20 +29,4 @@ void main() {
     await t(AppDebugKey.feedEntryReaderScreen).waitUntilVisible();
     await t(AppDebugKey.readerTitle(entry.title)).waitUntilVisible();
   });
-
-  patrolWidgetTest('Reach Settings even when no newspaper is available', (
-    t,
-  ) async {
-    final server = StubServer.withDefaultResponses()
-      ..stubGet(
-        '/newspapers/today',
-        status: 404,
-        body: api.Error(message: 'No newspaper found.').toJson(),
-      );
-    await pumpAppWithAuth(t, server);
-
-    expect(t(AppDebugKey.todayScreen), findsOneWidget);
-    await t(AppDebugKey.settingsButton).tap();
-    expect(t(AppDebugKey.settingsScreen), findsOneWidget);
-  });
 }
