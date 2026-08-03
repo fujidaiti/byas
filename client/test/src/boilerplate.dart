@@ -30,13 +30,14 @@ import 'stub_server.dart';
 Future<void> pumpApp(PatrolTester $, StubServer server, {String? token}) async {
   installFakeWebViewPlatform();
 
-  final container = ProviderContainer.test(
+  final container = createPaperdollContainer(
     overrides: [
       appConfigProvider.overrideWithValue(const AppConfig('http://mock')),
       deviceProvider.overrideWithValue(_StubDevice()),
       secureStorageProvider.overrideWithValue(_InMemorySecureStorage()),
     ],
   );
+  addTearDown(container.dispose);
 
   container.read(dioProvider).interceptors.add(server);
   addTearDown(
