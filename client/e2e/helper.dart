@@ -8,7 +8,14 @@ import 'package:paperdoll/features/auth/presentation/providers/auth_providers.da
 import 'package:patrol/patrol.dart';
 
 Future<void> pumpApp(PatrolIntegrationTester $) async {
-  await $.pumpWidget(const ProviderScope(child: PaperdollApp()));
+  final container = createPaperdollContainer();
+  addTearDown(container.dispose);
+  await $.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: const PaperdollApp(),
+    ),
+  );
 }
 
 /// Boots the app already authenticated, skipping the sign-in/up UI: fetches a
@@ -20,7 +27,7 @@ Future<void> pumpAppWithAuth(PatrolIntegrationTester $) async {
   final token = await signInViaRunner();
   // Persist the token through the real repository path, then run the app on the
   // same container so its AuthSession reads the token back at startup.
-  final container = ProviderContainer();
+  final container = createPaperdollContainer();
   addTearDown(container.dispose);
   await container.read(authRepositoryProvider).writeAuthToken(token);
   await $.pumpWidget(

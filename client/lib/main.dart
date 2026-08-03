@@ -6,10 +6,13 @@ import 'package:paperdoll/core/logging/logging_provider_observer.dart';
 
 void main() {
   configureLogging();
+  final container = createPaperdollContainer(
+    observers: [const LoggingProviderObserver()],
+  );
   runApp(
-    const ProviderScope(
-      observers: [LoggingProviderObserver()],
-      child: PaperdollApp(),
+    UncontrolledProviderScope(
+      container: container,
+      child: const PaperdollApp(),
     ),
   );
 }
