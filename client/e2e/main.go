@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -83,14 +84,48 @@ func run() error {
 		//   4. ctx is never canceled, as no goroutine returns an error.
 		//   5. g.Wait() can't return until those two goroutines finish.
 		defer stop()
-		return runTests(ctx)
+		return runTests(ctx, patrolArgs())
 	})
 	return g.Wait()
 }
 
-func runTests(ctx context.Context) error {
-	cmd := exec.CommandContext(ctx,
-		"patrol",
+// patrolArgs returns the extra arguments to forward to the underlying
+// `patrol test` invocation, taken from everything after a literal "--" in
+// the runner's own command-line arguments. This lets callers narrow down
+// which tests run, e.g. to debug a single failing case:
+//
+//	go run ./e2e -- --tags smoke --target e2e/auth_test.dart
+//
+// See https://github.com/leancodepl/patrol/blob/master/docs/documentation/other/patrol-tags.mdx
+// for the full set of options patrol accepts here.
+func patrolArgs() []string {
+	args := os.Args[1:]
+	for i, a := range args {
+		if a == "--" {
+			return args[i+1:]
+		}
+	}
+	return nil
+}
+
+// hasTargetOverride reports whether extraArgs already specifies a
+// "-t"/"--target", so runTests can drop its own default. Patrol treats
+// repeated "-t"/"--target" flags as additive rather than last-wins, so
+// passing both runs the default target *and* the caller's, duplicating
+// test execution instead of narrowing it.
+func hasTargetOverride(extraArgs []string) bool {
+	for _, a := range extraArgs {
+		if a == "-t" || a == "--target" || strings.HasPrefix(a, "--target=") {
+			return true
+		}
+	}
+	return false
+}
+
+// runTests drives the Patrol test suite via the `patrol test` CLI.
+// extraArgs, if non-empty, is appended after the default arguments below.
+func runTests(ctx context.Context, extraArgs []string) error {
+	args := []string{
 		"test",
 		"--flutter-command",
 		// TODO: make flutter command path configurable
@@ -98,12 +133,15 @@ func runTests(ctx context.Context) error {
 		"-d",
 		// TODO: make the target device configurable
 		"emulator-5554",
-		"-t",
-		"e2e/",
 		// TODO: make the API base URL configurable.
 		"--dart-define",
 		"API_BASE_URL=http://10.0.2.2:8080",
-	)
+	}
+	if !hasTargetOverride(extraArgs) {
+		args = append(args, "-t", "e2e/")
+	}
+	args = append(args, extraArgs...)
+	cmd := exec.CommandContext(ctx, "patrol", args...)
 	// The runner lives in client/e2e/, so the client package root is one level up.
 	cmd.Dir = ".."
 	cmd.Stdout = os.Stdout
