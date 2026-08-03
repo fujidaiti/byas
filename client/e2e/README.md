@@ -24,10 +24,11 @@ cd e2e && go run ./...
 
 Everything after a literal `--` is forwarded to the underlying `patrol test`
 invocation, so you can use Patrol's own `--tags` and `--target` options to
-narrow down which tests run instead of executing the whole suite:
+narrow down which tests run instead of executing the whole suite. Each test has
+a short, unique tag (e.g. `signup`, `signin`, `signout`, `today-read`):
 
 ```sh
-go run ./... -- --tags smoke
+go run ./... -- --tags signin
 go run ./... -- --target e2e/auth_test.dart
-go run ./... -- --target e2e/auth_test.dart --tags smoke
+go run ./... -- --target e2e/auth_test.dart --tags signin
 ```
