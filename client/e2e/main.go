@@ -95,8 +95,7 @@ func run() error {
 //
 //	go run ./e2e -- --tags smoke --target e2e/auth_test.dart
 //
-// See https://github.com/leancodepl/patrol/blob/master/docs/documentation/other/patrol-tags.mdx
-// for the full set of options patrol accepts here.
+// See "patrol test --help" for the full set of options patrol accepts here.
 func patrolArgs() []string {
 	args := os.Args[1:]
 	for i, a := range args {
