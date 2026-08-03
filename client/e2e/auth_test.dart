@@ -10,7 +10,7 @@ void main() {
   // right after a test's app relaunch ("Software caused connection abort").
   WidgetsFlutterBinding.ensureInitialized();
 
-  patrolTest('Sign up for a new account', (t) async {
+  patrolTest('Sign up for a new account', tags: 'signup', (t) async {
     await setUpServer(seederId: 'auth_no_users');
     await pumpApp(t);
 
@@ -23,7 +23,7 @@ void main() {
     await t(AppDebugKey.todayScreen).waitUntilVisible();
   });
 
-  patrolTest('Sign in to an existing account', (t) async {
+  patrolTest('Sign in to an existing account', tags: 'signin', (t) async {
     await setUpServer(seederId: 'auth_existing_user');
     await pumpApp(t);
 
@@ -36,7 +36,7 @@ void main() {
     await t(AppDebugKey.todayScreen).waitUntilVisible();
   });
 
-  patrolTest('Sign out ends the session', (t) async {
+  patrolTest('Sign out ends the session', tags: 'signout', (t) async {
     await setUpServer(seederId: 'auth_no_users');
     await pumpAppWithAuth(t);
 

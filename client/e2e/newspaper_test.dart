@@ -10,7 +10,9 @@ void main() {
   // right after a test's app relaunch ("Software caused connection abort").
   WidgetsFlutterBinding.ensureInitialized();
 
-  patrolTest("Check today's issue and read a story", ($) async {
+  patrolTest("Check today's issue and read a story", tags: 'today-read', (
+    $,
+  ) async {
     await setUpServer(seederId: 'newspaper_today');
     await pumpAppWithAuth($);
 
