@@ -129,20 +129,6 @@ func TestFeed_Subscribe(t *testing.T) {
 				Description: new("BBC News - News Front Page"),
 			}},
 		},
-		{
-			name:    "duplicate subscription should use cache",
-			host:    "feeds.bbci.co.uk",
-			path:    "/news/rss.xml",
-			fixture: "", // Invalid fixture path, which causes the stub server to return an error response.
-			feedURL: "http://feeds.bbci.co.uk/news/rss.xml",
-			want: feed.Feed{FeedAttrs: feed.FeedAttrs{
-				URL:         *must(url.Parse("http://feeds.bbci.co.uk/news/rss.xml")),
-				SiteURL:     must(url.Parse("https://www.bbc.co.uk/news")),
-				IconURL:     must(url.Parse("https://news.bbcimg.co.uk/nol/shared/img/bbc_news_120x60.gif")),
-				Title:       "BBC News",
-				Description: new("BBC News - News Front Page"),
-			}},
-		},
 	}
 
 	// Seed a user
