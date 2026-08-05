@@ -653,7 +653,12 @@ func (h *Handler) subscribeToFeed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	fd, err := h.FeedService.Subscribe(ctx, *u)
+	uid, ok := UserIDFromContext(ctx)
+	if !ok {
+		serverError(w, http.StatusUnauthorized, "unauthorized")
+	}
+
+	fd, err := h.FeedService.Subscribe(ctx, uid, *u)
 	if err != nil {
 		fmt.Print(err)
 		serverError(w, http.StatusInternalServerError, "Failed to subscribe to feed")

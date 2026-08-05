@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/fujidaiti/paperdoll/server/feature/user"
 	"github.com/mmcdole/gofeed"
 )
 
@@ -26,7 +27,7 @@ type FeedAttrs struct {
 // Subscribe registers a web feed by its URL.
 // Feeds are identified by URL and this operation is idempotent;
 // subscribing to the same feed (URL) twice has no additional effect.
-func (s *Service) Subscribe(ctx context.Context, fu url.URL) (Feed, error) {
+func (s *Service) Subscribe(ctx context.Context, uid user.UserID, fu url.URL) (Feed, error) {
 	// TODO: Check if the f already exists first
 	// TODO: Validate and cleanup the url (check schema, remove tracking params, etc.)
 	// TODO: Save fetched entries to DB
