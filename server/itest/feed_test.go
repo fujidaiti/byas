@@ -181,7 +181,7 @@ func TestFeed_Subscribe(t *testing.T) {
 
 			var got2 feedSubscriptionRecord
 			scanRowOrFatal(t, `
-				SELECT id, feed_id, user_id
+				SELECT feed_id, user_id
 				FROM feed_subscriptions ORDER BY created_at DESC LIMIT 1
 			`, []any{}, &got2.FeedID, &got2.UserID)
 			want2 := feedSubscriptionRecord{
