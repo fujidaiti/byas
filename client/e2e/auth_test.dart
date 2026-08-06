@@ -37,7 +37,7 @@ void main() {
   });
 
   patrolTest('Sign out ends the session', tags: 'signout', (t) async {
-    await setUpServer(seederId: 'auth_no_users');
+    await setUpServer(seederId: 'auth_signed_in');
     await pumpAppWithAuth(t);
 
     await t(AppDebugKey.todayScreen).waitUntilVisible();

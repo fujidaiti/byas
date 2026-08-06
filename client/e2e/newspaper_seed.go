@@ -6,6 +6,10 @@ import (
 )
 
 func seedNewspaperSuit_Today(ctx context.Context, db *sql.DB) error {
+	if err := provisionTestAccount(ctx, db); err != nil {
+		return err
+	}
+
 	var feedID int
 	err := db.QueryRowContext(ctx, `
 		INSERT INTO feeds (url, site_url, icon_url, title, description)

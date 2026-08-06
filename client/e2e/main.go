@@ -166,17 +166,18 @@ func messageHandler(ctx context.Context, msgc chan<- message) error {
 		}
 	})
 
-	// /signin provisions the pre-defined test account on the already-running
-	// session API server and returns its bearer token, so gated feature tests
-	// (e.g. newspaper) can boot already authenticated without driving the
-	// sign-up UI.
+	// /signin signs in to the fixed test account (see testAccountEmail) on the
+	// already-running session API server and returns its bearer token, so gated
+	// feature tests (e.g. newspaper) can boot already authenticated without
+	// driving the sign-up UI. The seeder for the running session must have
+	// already provisioned the account via provisionTestAccount; otherwise this
+	// fails.
 	mux.HandleFunc("POST /signin", func(w http.ResponseWriter, r *http.Request) {
-		email := must(user.ParseEmail("e2e-runner@example.com"))
-		pswd := must(user.ValidatePassword("Police-Repurpose-Atypical-Gravel"))
+		email := must(user.ParseEmail(testAccountEmail))
 		svc := &user.Service{DB: testenv.DB(), Now: time.Now}
-		token, err := svc.SignUp(ctx, email, pswd, "TestDevice/1.0")
+		token, err := svc.SignIn(ctx, email, testAccountPassword, "TestDevice/1.0")
 		if err != nil {
-			http.Error(w, fmt.Sprintf("failed to provision test account: %v", err), http.StatusInternalServerError)
+			http.Error(w, fmt.Sprintf("failed to sign in test account: %v", err), http.StatusInternalServerError)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
