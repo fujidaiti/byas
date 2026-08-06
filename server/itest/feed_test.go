@@ -6,12 +6,19 @@ import (
 	"database/sql"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/fujidaiti/paperdoll/server/feature/feed"
 	"github.com/fujidaiti/paperdoll/server/feature/scraper"
+	"github.com/fujidaiti/paperdoll/server/feature/user"
 	"github.com/fujidaiti/paperdoll/server/itest/testenv"
 	"github.com/google/go-cmp/cmp"
 )
+
+type feedSubscriptionRecord struct {
+	FeedID int
+	UserID user.UserID
+}
 
 type feedRecord struct {
 	ID          int
@@ -124,14 +131,28 @@ func TestFeed_Subscribe(t *testing.T) {
 		},
 	}
 
+	// Seed a user
+	us := user.Service{
+		DB:  testenv.DB(),
+		Now: func() time.Time { return mustTimeUTC("2026-07-01 13:30:00") },
+	}
+	_ = must(us.SignUp(
+		t.Context(),
+		must(user.ParseEmail("alice@example.com")),
+		must(user.ValidatePassword("test#password$1234")),
+		"Pixel9a",
+	))
+	var uid user.UserID
+	scanRowOrFatal(t, `SELECT id FROM users LIMIT 1`, []any{}, &uid)
+
 	for _, tt := range tests {
 		testenv.StubHTTP(tt.host, tt.path, tt.fixture)
 		t.Run(tt.name, func(t *testing.T) {
 			feedURL := must(url.Parse(tt.feedURL))
 			s := feed.NewService(testenv.DB(), scraper.NewService(stubServerAddr))
-			fd, err := s.Subscribe(t.Context(), *feedURL)
+			fd, err := s.Subscribe(t.Context(), uid, *feedURL)
 			if err != nil {
-				t.Fatalf("got %v, want a nil error", err)
+				t.Fatalf("got %q, want a nil error", err)
 			}
 
 			if fd.ID == 0 {
@@ -146,7 +167,7 @@ func TestFeed_Subscribe(t *testing.T) {
 			scanRowOrFatal(t, `
 				SELECT id, url, site_url, icon_url, title, description FROM feeds WHERE url = $1
 			`, []any{feedURL.String()}, &got.ID, &got.URL, &got.SiteURL, &got.IconURL, &got.Title, &got.Description)
-			wantRecord := feedRecord{
+			want := feedRecord{
 				ID:          fd.ID,
 				URL:         wantFeed.URL,
 				SiteURL:     nullString(wantFeed.SiteURL),
@@ -154,8 +175,21 @@ func TestFeed_Subscribe(t *testing.T) {
 				Title:       wantFeed.Title,
 				Description: nullString(wantFeed.Description),
 			}
-			if d := cmp.Diff(wantRecord, got); d != "" {
+			if d := cmp.Diff(got, want); d != "" {
 				t.Errorf("stored feed record mismatch:\n%s", d)
+			}
+
+			var got2 feedSubscriptionRecord
+			scanRowOrFatal(t, `
+				SELECT feed_id, user_id
+				FROM feed_subscriptions ORDER BY created_at DESC LIMIT 1
+			`, []any{}, &got2.FeedID, &got2.UserID)
+			want2 := feedSubscriptionRecord{
+				FeedID: fd.ID,
+				UserID: uid,
+			}
+			if d := cmp.Diff(got2, want2); d != "" {
+				t.Errorf("stored subscription record mismatch:\n%s", d)
 			}
 		})
 	}

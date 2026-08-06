@@ -12,10 +12,12 @@ import (
 type seeder = func(ctx context.Context, db *sql.DB) error
 
 var seeders = map[string]seeder{
-	"newspaper_today":    seedNewspaperSuit_Today,
-	"auth_no_users":      seedAuthSuit_NoUsers,
-	"auth_existing_user": seedAuthSuit_ExistingUser,
-	"auth_signed_in":     seedAuthSuit_SignedIn,
+	"newspaper_today":     seedNewspaperSuit_Today,
+	"auth_no_users":       seedAuthSuit_NoUsers,
+	"auth_existing_user":  seedAuthSuit_ExistingUser,
+	"auth_signed_in":      seedAuthSuit_SignedIn,
+	"feed_bbc_news":       seedFeedSuit_BbcNews,
+	"feed_nasa_candidate": seedFeedSuit_NasaCandidate,
 }
 
 // testAccountEmail and testAccountPassword identify the fixed E2E test
