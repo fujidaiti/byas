@@ -351,18 +351,25 @@ func (h *Handler) getFeeds(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
+	uid, ok := UserIDFromContext(ctx)
+	if !ok {
+		serverError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
 	var res getFeedsResBody
 	var where string
-	args := []any{}
+	args := []any{uid}
 	if cursor != nil {
-		where = "WHERE (sort_key, id) > ($1, $2)"
+		where = "WHERE (sort_key, id) > ($2, $3)"
 		args = append(args, cursor.Key, cursor.Tiebreaker)
 	}
 	rows, err := h.DB.QueryContext(ctx, fmt.Sprintf(`
 		SELECT *
 		FROM (
-			SELECT id, url, site_url, icon_url, title, description, LEFT(title, %d) AS sort_key
-			FROM feeds
+			SELECT f.id, f.url, f.site_url, f.icon_url, f.title, f.description, LEFT(title, %d) AS sort_key
+			FROM feed_subscriptions s JOIN feeds f
+			ON s.user_id = $1 AND s.feed_id = f.id
 		)
 		%s
 		ORDER BY sort_key ASC, id ASC
@@ -653,7 +660,12 @@ func (h *Handler) subscribeToFeed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	fd, err := h.FeedService.Subscribe(ctx, *u)
+	uid, ok := UserIDFromContext(ctx)
+	if !ok {
+		serverError(w, http.StatusUnauthorized, "unauthorized")
+	}
+
+	fd, err := h.FeedService.Subscribe(ctx, uid, *u)
 	if err != nil {
 		fmt.Print(err)
 		serverError(w, http.StatusInternalServerError, "Failed to subscribe to feed")

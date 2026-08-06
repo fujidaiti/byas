@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/fujidaiti/paperdoll/server/feature/user"
 	"github.com/mmcdole/gofeed"
 )
 
@@ -23,11 +24,11 @@ type FeedAttrs struct {
 	Description *string
 }
 
-// Subscribe registers a web feed by its URL.
-// Feeds are identified by URL and this operation is idempotent;
-// subscribing to the same feed (URL) twice has no additional effect.
-func (s *Service) Subscribe(ctx context.Context, fu url.URL) (Feed, error) {
-	// TODO: Check if the f already exists first
+// Subscribe creates a new subscription to a web feed for the user, from its URL.
+// Feeds are identified by the URL and this operation is idempotent; subscribing
+// to the same feed (URL) twice has no additional effect.
+func (s *Service) Subscribe(ctx context.Context, uid user.UserID, fu url.URL) (Feed, error) {
+	// TODO: Check if the f already exists first to avoid making an unnecessary request
 	// TODO: Validate and cleanup the url (check schema, remove tracking params, etc.)
 	// TODO: Save fetched entries to DB
 	var f Feed
@@ -47,12 +48,20 @@ func (s *Service) Subscribe(ctx context.Context, fu url.URL) (Feed, error) {
 	if d := f.Description; d != nil {
 		desc = sql.NullString{String: *d, Valid: true}
 	}
+
 	err := s.DB.QueryRowContext(ctx, `
 		INSERT INTO feeds (url, site_url, icon_url, title, description)
 		VALUES ($1, $2, $3, $4, $5)
 		ON CONFLICT (url) DO UPDATE SET url = EXCLUDED.url
 		RETURNING id;
 	`, f.URL.String(), su, iu, f.Title, desc).Scan(&f.ID)
+	if err != nil {
+		return Feed{}, err
+	}
+	_, err = s.DB.ExecContext(ctx, `
+		INSERT INTO feed_subscriptions (user_id, feed_id) VALUES ($1, $2)
+		ON CONFLICT (user_id, feed_id) DO NOTHING
+	`, uid, f.ID)
 	if err != nil {
 		return Feed{}, err
 	}
