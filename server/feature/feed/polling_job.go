@@ -3,6 +3,7 @@ package feed
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -12,6 +13,7 @@ import (
 	"codeberg.org/readeck/go-readability/v2"
 	"github.com/fujidaiti/paperdoll/server/feature/newspaper"
 	"github.com/fujidaiti/paperdoll/server/feature/scraper"
+	"github.com/fujidaiti/paperdoll/server/feature/user"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/mmcdole/gofeed"
@@ -153,7 +155,7 @@ func (j *job) Do(ctx context.Context) error {
 		}
 	}
 
-	err = writeStories(ctx, j.newspaperSvc, feed, entriesToBeStories)
+	err = writeStories(ctx, j.db, j.newspaperSvc, feed, entriesToBeStories)
 	if err != nil {
 		fmt.Printf("Something went wrong while writing stories: %s\n", err)
 	}
@@ -229,7 +231,52 @@ func normalizeEntry(entry *gofeed.Item, feedId int) entryRecord {
 	return e
 }
 
-func writeStories(ctx context.Context, svc *newspaper.Service, f feedRecord, es []entryRecord) error {
+func writeStories(ctx context.Context, db *sql.DB, svc *newspaper.Service, f feedRecord, es []entryRecord) error {
+	rows, err := db.QueryContext(ctx, `
+		SELECT u.id
+		FROM users u
+		JOIN feed_subscriptions s
+		ON s.user_id = u.id AND s.feed_id = $1
+	`, f.id)
+	if err != nil {
+		return fmt.Errorf("failed to fetch subscribers for feed ID=%d: %w", f.id, err)
+	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
+
+	var subscribers []user.UserID
+	for rows.Next() {
+		var uid user.UserID
+		if err := rows.Scan(&uid); err != nil {
+			return fmt.Errorf("failed to scan subscriber's ID for feed ID=%d: %w", f.id, err)
+		}
+		subscribers = append(subscribers, uid)
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("failed while scanning subscribers for feed ID=%d: %w", f.id, err)
+	}
+	if len(subscribers) == 0 {
+		return nil
+	}
+
+	var errs []error
+	for _, uid := range subscribers {
+		errs = append(errs, writeStoriesForUser(ctx, svc, uid, f, es))
+	}
+	return errors.Join(errs...)
+}
+
+func writeStoriesForUser(
+	ctx context.Context,
+	svc *newspaper.Service,
+	uid user.UserID,
+	f feedRecord,
+	es []entryRecord,
+) error {
+	// TODO: apply user-defined filters to feed entries
 	var ss []newspaper.Story
 	for _, e := range es {
 		var pubDate time.Time
@@ -240,7 +287,7 @@ func writeStories(ctx context.Context, svc *newspaper.Service, f feedRecord, es 
 		if e.description.Valid {
 			desc = e.description.String
 		}
-		s, err := newspaper.DraftStory(e.title, desc, f.title, e.id, pubDate)
+		s, err := newspaper.DraftStory(uid, e.title, desc, f.title, e.id, pubDate)
 		if err != nil {
 			fmt.Printf("Cannot write a story from this entry ID=%d. Skipping.\n", e.id)
 		} else {
