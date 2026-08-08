@@ -153,23 +153,6 @@ func TestCollectJobs_FailSoftWithoutSchedule(t *testing.T) {
 	}
 }
 
-// newPollingJob builds a [feed.Job] directly, bypassing [feed.CollectJobs]
-// entirely. Feed fixtures use literal pubDates chosen to sit inside or
-// outside the fixed editorial interval below.
-func newPollingJob(feedID int, feedURL, feedTitle string) *feed.Job {
-	interval := newspaper.EditorialInterval{
-		Last: mustTimeUTC("2026-07-15 09:55:00"),
-		Next: mustTimeUTC("2026-07-15 10:05:00"),
-	}
-	return &feed.Job{
-		DB:           testenv.DB(),
-		Feed:         feed.FeedRecord{ID: feedID, URL: feedURL, Title: feedTitle},
-		Interval:     interval,
-		NewspaperSvc: &newspaper.Service{DB: testenv.DB()},
-		ScrpSvc:      scraper.NewService(stubServerAddr),
-	}
-}
-
 // A full polling job end-to-end: an in-interval item is stored with its
 // fetched article content and drafted into a story for the subscriber,
 // while an out-of-interval item is stored but skipped for both content
@@ -182,7 +165,16 @@ func TestFeedPolling_HappyPath(t *testing.T) {
 	testenv.StubHTTP("feed.test", "/rss", "./testdata/polling_happy_path.xml")
 	testenv.StubHTTP("articles.test", "/happy-in", "./testdata/polling_article.html")
 
-	j := newPollingJob(feedID, "http://feed.test/rss", "Test Feed")
+	j := &feed.Job{
+		DB:   testenv.DB(),
+		Feed: feed.FeedRecord{ID: feedID, URL: "http://feed.test/rss", Title: "Test Feed"},
+		Interval: newspaper.EditorialInterval{
+			Last: mustTimeUTC("2026-07-15 09:55:00"),
+			Next: mustTimeUTC("2026-07-15 10:05:00"),
+		},
+		NewspaperSvc: &newspaper.Service{DB: testenv.DB()},
+		ScrpSvc:      scraper.NewService(stubServerAddr),
+	}
 	if err := j.Do(t.Context()); err != nil {
 		t.Fatalf("job.Do returned an unexpected error: %v", err)
 	}
@@ -295,7 +287,16 @@ func TestFeedPolling_RePoll(t *testing.T) {
 			t.Cleanup(testenv.TearDown)
 			feedID := seedFeed(t, "http://feed.test/rss", "Test Feed")
 			seedSubscriber(t, "alice@example.com", feedID, mustTimeUTC("2026-07-15 10:00:00"))
-			j := newPollingJob(feedID, "http://feed.test/rss", "Test Feed")
+			j := &feed.Job{
+				DB:   testenv.DB(),
+				Feed: feed.FeedRecord{ID: feedID, URL: "http://feed.test/rss", Title: "Test Feed"},
+				Interval: newspaper.EditorialInterval{
+					Last: mustTimeUTC("2026-07-15 09:55:00"),
+					Next: mustTimeUTC("2026-07-15 10:05:00"),
+				},
+				NewspaperSvc: &newspaper.Service{DB: testenv.DB()},
+				ScrpSvc:      scraper.NewService(stubServerAddr),
+			}
 
 			testenv.StubHTTP("feed.test", "/rss", tt.firstFixture)
 			if err := j.Do(t.Context()); err != nil {
@@ -324,7 +325,16 @@ func TestFeedPolling_NoSubscribers(t *testing.T) {
 	feedID := seedFeed(t, "http://feed.test/rss", "Test Feed")
 	testenv.StubHTTP("feed.test", "/rss", "./testdata/polling_no_subscribers.xml")
 
-	j := newPollingJob(feedID, "http://feed.test/rss", "Test Feed")
+	j := &feed.Job{
+		DB:   testenv.DB(),
+		Feed: feed.FeedRecord{ID: feedID, URL: "http://feed.test/rss", Title: "Test Feed"},
+		Interval: newspaper.EditorialInterval{
+			Last: mustTimeUTC("2026-07-15 09:55:00"),
+			Next: mustTimeUTC("2026-07-15 10:05:00"),
+		},
+		NewspaperSvc: &newspaper.Service{DB: testenv.DB()},
+		ScrpSvc:      scraper.NewService(stubServerAddr),
+	}
 	if err := j.Do(t.Context()); err != nil {
 		t.Fatalf("job.Do returned an unexpected error: %v", err)
 	}
@@ -347,7 +357,16 @@ func TestFeedPolling_ArticleFetchFails(t *testing.T) {
 	testenv.StubHTTP("feed.test", "/rss", "./testdata/polling_article_fetch_fails.xml")
 	// No StubHTTP rule registered for /missing, so the stub server 404s it.
 
-	j := newPollingJob(feedID, "http://feed.test/rss", "Test Feed")
+	j := &feed.Job{
+		DB:   testenv.DB(),
+		Feed: feed.FeedRecord{ID: feedID, URL: "http://feed.test/rss", Title: "Test Feed"},
+		Interval: newspaper.EditorialInterval{
+			Last: mustTimeUTC("2026-07-15 09:55:00"),
+			Next: mustTimeUTC("2026-07-15 10:05:00"),
+		},
+		NewspaperSvc: &newspaper.Service{DB: testenv.DB()},
+		ScrpSvc:      scraper.NewService(stubServerAddr),
+	}
 	if err := j.Do(t.Context()); err != nil {
 		t.Errorf("job.Do returned %v, want nil (article fetch failures are fail-soft)", err)
 	}
@@ -369,7 +388,16 @@ func TestFeedPolling_FeedFetchFailure(t *testing.T) {
 	feedID := seedFeed(t, "http://feed.test/rss", "Test Feed")
 	// No StubHTTP rule registered for /rss, so the fetch 404s.
 
-	j := newPollingJob(feedID, "http://feed.test/rss", "Test Feed")
+	j := &feed.Job{
+		DB:   testenv.DB(),
+		Feed: feed.FeedRecord{ID: feedID, URL: "http://feed.test/rss", Title: "Test Feed"},
+		Interval: newspaper.EditorialInterval{
+			Last: mustTimeUTC("2026-07-15 09:55:00"),
+			Next: mustTimeUTC("2026-07-15 10:05:00"),
+		},
+		NewspaperSvc: &newspaper.Service{DB: testenv.DB()},
+		ScrpSvc:      scraper.NewService(stubServerAddr),
+	}
 	if err := j.Do(t.Context()); err == nil {
 		t.Error("want an error when the feed itself fails to fetch, got nil")
 	}
@@ -386,7 +414,16 @@ func TestFeedPolling_EmptyFeed(t *testing.T) {
 	feedID := seedFeed(t, "http://feed.test/rss", "Test Feed")
 	testenv.StubHTTP("feed.test", "/rss", "./testdata/polling_empty_feed.xml")
 
-	j := newPollingJob(feedID, "http://feed.test/rss", "Test Feed")
+	j := &feed.Job{
+		DB:   testenv.DB(),
+		Feed: feed.FeedRecord{ID: feedID, URL: "http://feed.test/rss", Title: "Test Feed"},
+		Interval: newspaper.EditorialInterval{
+			Last: mustTimeUTC("2026-07-15 09:55:00"),
+			Next: mustTimeUTC("2026-07-15 10:05:00"),
+		},
+		NewspaperSvc: &newspaper.Service{DB: testenv.DB()},
+		ScrpSvc:      scraper.NewService(stubServerAddr),
+	}
 	if err := j.Do(t.Context()); err == nil {
 		t.Error("want an error for a feed with zero items, got nil")
 	}
@@ -404,7 +441,16 @@ func TestFeedPolling_MultipleSubscribers(t *testing.T) {
 	uidBob := seedSubscriber(t, "bob@example.com", feedID, mustTimeUTC("2026-07-15 10:00:00"))
 	testenv.StubHTTP("feed.test", "/rss", "./testdata/polling_multiple_subscribers.xml")
 
-	j := newPollingJob(feedID, "http://feed.test/rss", "Test Feed")
+	j := &feed.Job{
+		DB:   testenv.DB(),
+		Feed: feed.FeedRecord{ID: feedID, URL: "http://feed.test/rss", Title: "Test Feed"},
+		Interval: newspaper.EditorialInterval{
+			Last: mustTimeUTC("2026-07-15 09:55:00"),
+			Next: mustTimeUTC("2026-07-15 10:05:00"),
+		},
+		NewspaperSvc: &newspaper.Service{DB: testenv.DB()},
+		ScrpSvc:      scraper.NewService(stubServerAddr),
+	}
 	if err := j.Do(t.Context()); err != nil {
 		t.Fatalf("job.Do returned an unexpected error: %v", err)
 	}
