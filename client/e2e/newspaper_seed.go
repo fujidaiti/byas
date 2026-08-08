@@ -46,8 +46,8 @@ func seedNewspaperSuit_Today(ctx context.Context, db *sql.DB) error {
 
 	var paperID int
 	err = db.QueryRowContext(ctx, `
-		INSERT INTO newspapers (published_at) VALUES ($1) RETURNING id
-	`, mustTimeUTC("2026-07-01 13:00:00")).Scan(&paperID)
+		INSERT INTO newspapers (user_id, published_at) VALUES ($1, $2) RETURNING id
+	`, uid, mustTimeUTC("2026-07-01 13:00:00")).Scan(&paperID)
 	if err != nil {
 		return err
 	}

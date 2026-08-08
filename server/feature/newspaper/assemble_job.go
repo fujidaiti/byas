@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/fujidaiti/paperdoll/server/feature/user"
 )
 
 func CollectJobs(ctx context.Context, db *sql.DB) ([]job, error) {
@@ -21,30 +23,65 @@ func CollectJobs(ctx context.Context, db *sql.DB) ([]job, error) {
 	}
 	fmt.Printf("Prepare for next schedule: %s\n", pubDate)
 
-	var newspaperID int
-	err = db.QueryRowContext(ctx, `
-		INSERT INTO newspapers (draft, published_at)
-		VALUES (TRUE, $1)
-		ON CONFLICT (published_at) DO NOTHING
-		RETURNING id;
-	`, pubDate).Scan(&newspaperID)
-	if errors.Is(err, sql.ErrNoRows) {
-		// TODO: Handle the case where a record exists but the newspaper was not
-		// assembled due to a server outage.
-		fmt.Printf(
-			"The newspaper for %s already exists or is being assembled. Skipping.\n",
-			pubDate,
-		)
-		return []job{}, nil
-	} else if err != nil {
+	userIDs, err := collectUserIDs(ctx, db)
+	if err != nil {
 		return nil, err
 	}
 
-	return []job{{db, newspaperID}}, nil
+	var jobs []job
+	for _, uid := range userIDs {
+		var newspaperID int
+		err = db.QueryRowContext(ctx, `
+			INSERT INTO newspapers (user_id, draft, published_at)
+			VALUES ($1, TRUE, $2)
+			ON CONFLICT (user_id, published_at) DO NOTHING
+			RETURNING id;
+		`, uid, pubDate).Scan(&newspaperID)
+		if errors.Is(err, sql.ErrNoRows) {
+			// TODO: Handle the case where a record exists but the newspaper was not
+			// assembled due to a server outage.
+			fmt.Printf(
+				"The newspaper for user %d at %s already exists or is being assembled. Skipping.\n",
+				uid, pubDate,
+			)
+			continue
+		} else if err != nil {
+			return nil, err
+		}
+		jobs = append(jobs, job{db, uid, newspaperID})
+	}
+
+	return jobs, nil
+}
+
+func collectUserIDs(ctx context.Context, db *sql.DB) ([]user.UserID, error) {
+	rows, err := db.QueryContext(ctx, `SELECT id FROM users;`)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
+
+	var ids []user.UserID
+	for rows.Next() {
+		var uid user.UserID
+		if err := rows.Scan(&uid); err != nil {
+			return nil, err
+		}
+		ids = append(ids, uid)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return ids, nil
 }
 
 type job struct {
 	db          *sql.DB
+	userID      user.UserID
 	newspaperID int
 }
 
@@ -53,7 +90,7 @@ func (j *job) Timeout() time.Duration {
 }
 
 func (j *job) Do(ctx context.Context) error {
-	fmt.Printf("Assembling newspaper (ID=%d)\n", j.newspaperID)
+	fmt.Printf("Assembling newspaper (ID=%d, UserID=%d)\n", j.newspaperID, j.userID)
 	n, err := j.assembleAndPublish(ctx)
 	if err != nil {
 		fmt.Println("Something went wrong while assembling. Deleting.")
@@ -86,8 +123,8 @@ func (j *job) assembleAndPublish(ctx context.Context) (int64, error) {
 	res, err := tx.ExecContext(ctx, `
 		UPDATE stories
 		SET newspaper_id = $1
-		WHERE newspaper_id IS NULL;
-	`, j.newspaperID)
+		WHERE newspaper_id IS NULL AND user_id = $2;
+	`, j.newspaperID, j.userID)
 	if err != nil {
 		return 0, err
 	}

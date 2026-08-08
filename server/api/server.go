@@ -163,13 +163,20 @@ func (h *Handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
+	uid, ok := UserIDFromContext(ctx)
+	if !ok {
+		serverError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
 	res := getTodaysNewspaperResponse{}
 	err := h.DB.QueryRowContext(ctx, `
 		SELECT id, published_at
 		FROM newspapers
+		WHERE user_id = $1
 		ORDER BY published_at DESC
 		LIMIT 1;
-	`).Scan(&res.ID, &res.PublishedAt)
+	`, uid).Scan(&res.ID, &res.PublishedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		serverError(w, http.StatusNotFound, "No newspaper found.")
 		return
