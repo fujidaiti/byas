@@ -1,15 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The item's link has no matching StubHTTP rule, so fetching its
+  article 404s; polling must stay fail-soft (entry kept with NULL
+  content, story still drafted).
+-->
 <rss version="2.0">
-<channel>
-<title>Polling Test Feed</title>
-<link>http://feed.test/rss</link>
-<description>Feed used by feed polling integration tests</description>
-<item>
-<title>Only item</title>
-<link>http://articles.test/missing</link>
-<guid>fetch-fail</guid>
-<description>Desc</description>
-<pubDate>Wed, 15 Jul 2026 10:00:00 +0000</pubDate>
-</item>
-</channel>
+  <channel>
+    <title>Polling Test Feed</title>
+    <link>http://feed.test/rss</link>
+    <description>Feed used by feed polling integration tests</description>
+    <item>
+      <title>Only item</title>
+      <link>http://articles.test/missing</link>
+      <guid>fetch-fail</guid>
+      <description>Desc</description>
+      <pubDate>Wed, 15 Jul 2026 10:00:00 +0000</pubDate>
+    </item>
+  </channel>
 </rss>

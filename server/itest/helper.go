@@ -44,7 +44,15 @@ func scanRowOrFatal(t *testing.T, query string, args []any, dest ...any) {
 	}
 }
 
+// func scanValueOrFatal[T any](t *testing.T, query string, args []any) T {
+// 	t.Helper()
+// 	var val T
+// 	scanRowOrFatal(t, query, args, &val)
+// 	return val
+// }
+
 func scanRowsOrFatal[T any](t *testing.T, query string, args []any, scan func(*sql.Rows, *T) error) []T {
+	t.Helper()
 	rows, err := testenv.DB().QueryContext(t.Context(), query, args...)
 	if err != nil {
 		t.Fatalf("failed to scan rows: %v\nquery: %s", err, query)
@@ -66,4 +74,11 @@ func scanRowsOrFatal[T any](t *testing.T, query string, args []any, scan func(*s
 		t.Fatalf("failed to scan rows: %v\nquery: %s", err, query)
 	}
 	return dests
+}
+
+func execOrFatal(t *testing.T, query string, args ...any) {
+	t.Helper()
+	if _, err := testenv.DB().ExecContext(t.Context(), query, args...); err != nil {
+		t.Fatalf("failed to exec: %v\nquery: %s", err, query)
+	}
 }

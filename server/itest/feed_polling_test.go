@@ -17,21 +17,6 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
-const pollingArticleFixture = "./testdata/polling_article.html"
-
-// pollingInterval is the fixed editorial interval every Do-behavior test hands
-// to its [feed.Job] directly, without deriving it from seeded
-// newspaper_schedules rows. Feed fixtures use literal pubDates chosen to sit
-// inside or outside this window.
-var pollingInterval = newspaper.EditorialInterval{
-	Last: time.Date(2026, 7, 15, 9, 55, 0, 0, time.UTC),
-	Next: time.Date(2026, 7, 15, 10, 5, 0, 0, time.UTC),
-}
-
-// pollingSignupTime is an arbitrary fixed clock for seeding subscribers; it
-// has no relationship to pollingInterval.
-var pollingSignupTime = time.Date(2026, 7, 15, 10, 0, 0, 0, time.UTC)
-
 func seedFeed(t *testing.T, url, title string) int {
 	t.Helper()
 	var id int
@@ -39,57 +24,35 @@ func seedFeed(t *testing.T, url, title string) int {
 	return id
 }
 
-func seedSubscriber(t *testing.T, email string, feedID int) user.UserID {
+func seedSubscriber(t *testing.T, email string, feedID int, now time.Time) user.UserID {
 	t.Helper()
-	us := user.Service{DB: testenv.DB(), Now: func() time.Time { return pollingSignupTime }}
-	_ = must(
-		us.SignUp(
-			t.Context(),
-			must(user.ParseEmail(email)),
-			must(user.ValidatePassword("test#password$1234")),
-			"Pixel9a",
-		),
-	)
+	us := user.Service{DB: testenv.DB(), Now: func() time.Time { return now }}
+	_ = must(us.SignUp(
+		t.Context(),
+		must(user.ParseEmail(email)),
+		must(user.ValidatePassword("test#password$1234")),
+		"Pixel9a",
+	))
 	var uid user.UserID
 	scanRowOrFatal(t, `SELECT id FROM users WHERE email = $1`, []any{email}, &uid)
 	execOrFatal(t, `INSERT INTO feed_subscriptions (user_id, feed_id) VALUES ($1, $2)`, uid, feedID)
 	return uid
 }
 
-func execOrFatal(t *testing.T, query string, args ...any) {
-	t.Helper()
-	if _, err := testenv.DB().ExecContext(t.Context(), query, args...); err != nil {
-		t.Fatalf("failed to exec: %v\nquery: %s", err, query)
-	}
-}
-
-// collectJobsNow is the fixed clock every CollectJobs test hands to
-// [feed.CollectJobs].
-var collectJobsNow = time.Date(2026, 7, 15, 10, 0, 0, 0, time.Local)
-
-// seedSchedule seeds one newspaper_schedules row at the given minute-of-day.
-func seedSchedule(t *testing.T, label string, minuteOfDay int) {
-	t.Helper()
-	execOrFatal(t, `INSERT INTO newspaper_schedules (label, minute_of_date) VALUES ($1, $2)`, label, minuteOfDay)
-}
-
-func collectJobs(t *testing.T, now time.Time) ([]feed.Job, error) {
-	t.Helper()
-	return feed.CollectJobs(
-		t.Context(),
-		testenv.DB(),
-		&newspaper.Service{DB: testenv.DB()},
-		scraper.NewService(stubServerAddr),
-		now,
-	)
-}
-
+// CollectJobs returns exactly one job per feed row, regardless of how many
+// feeds exist.
 func TestCollectJobs_OneJobPerFeed(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
 	feedAID := seedFeed(t, "http://feed-a.test/rss", "Feed A")
 	feedBID := seedFeed(t, "http://feed-b.test/rss", "Feed B")
 
-	jobs, err := collectJobs(t, collectJobsNow)
+	jobs, err := feed.CollectJobs(
+		t.Context(),
+		testenv.DB(),
+		&newspaper.Service{DB: testenv.DB()},
+		scraper.NewService(stubServerAddr),
+		time.Date(2026, 7, 15, 10, 0, 0, 0, time.Local),
+	)
 	if err != nil {
 		t.Fatalf("CollectJobs returned an unexpected error: %v", err)
 	}
@@ -108,10 +71,17 @@ func TestCollectJobs_OneJobPerFeed(t *testing.T) {
 	}
 }
 
+// CollectJobs returns no jobs when there are no feeds to poll.
 func TestCollectJobs_NoFeeds(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
 
-	jobs, err := collectJobs(t, collectJobsNow)
+	jobs, err := feed.CollectJobs(
+		t.Context(),
+		testenv.DB(),
+		&newspaper.Service{DB: testenv.DB()},
+		scraper.NewService(stubServerAddr),
+		time.Date(2026, 7, 15, 10, 0, 0, 0, time.Local),
+	)
 	if err != nil {
 		t.Fatalf("CollectJobs returned an unexpected error: %v", err)
 	}
@@ -120,37 +90,61 @@ func TestCollectJobs_NoFeeds(t *testing.T) {
 	}
 }
 
+// A job's editorial interval is derived from the newspaper schedules
+// immediately surrounding now, given two seeded schedule points that
+// straddle it.
 func TestCollectJobs_IntervalFromSchedule(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
 	seedFeed(t, "http://feed.test/rss", "Test Feed")
-	midnight := time.Date(collectJobsNow.Year(), collectJobsNow.Month(), collectJobsNow.Day(), 0, 0, 0, 0, time.Local)
+	// Seed schedules
+	// TODO: add a domain function for adding a publishing schedule and
+	// refactor this test to use it instead of inserting into newspaper_schedules directly.
+	now := time.Date(2026, 7, 15, 10, 0, 0, 0, time.Local)
+	before := now.Add(-5 * time.Minute)
+	after := now.Add(5 * time.Minute)
+	midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
 	minuteOfDay := func(t time.Time) int { return int(t.Sub(midnight).Minutes()) }
-	seedSchedule(t, "before", minuteOfDay(collectJobsNow.Add(-5*time.Minute)))
-	seedSchedule(t, "after", minuteOfDay(collectJobsNow.Add(5*time.Minute)))
+	execOrFatal(t, `
+		INSERT INTO newspaper_schedules (label, minute_of_date) VALUES ($1, $2)
+	`, "before", minuteOfDay(before))
+	execOrFatal(t, `
+		INSERT INTO newspaper_schedules (label, minute_of_date) VALUES ($1, $2)
+	`, "after", minuteOfDay(after))
 
-	jobs, err := collectJobs(t, collectJobsNow)
+	jobs, err := feed.CollectJobs(
+		t.Context(),
+		testenv.DB(),
+		&newspaper.Service{DB: testenv.DB()},
+		scraper.NewService(stubServerAddr),
+		now,
+	)
 	if err != nil {
 		t.Fatalf("CollectJobs returned an unexpected error: %v", err)
 	}
-	if len(jobs) != 1 {
-		t.Fatalf("got %d jobs, want 1", len(jobs))
+	if n := len(jobs); n != 1 {
+		t.Fatalf("got %d jobs, want 1", n)
 	}
 
-	wantInterval, err := newspaper.FindEditorialInterval(t.Context(), testenv.DB(), collectJobsNow)
-	if err != nil {
-		t.Fatalf("FindEditorialInterval returned an unexpected error: %v", err)
-	}
+	wantInterval := newspaper.EditorialInterval{Last: before, Next: after}
 	if d := cmp.Diff(wantInterval, jobs[0].Interval); d != "" {
 		t.Errorf("job interval mismatch:\n%s", d)
 	}
 }
 
+// A feed with no newspaper schedules registered still yields a job, just
+// with a zero (invalid) editorial interval instead of an error.
 func TestCollectJobs_FailSoftWithoutSchedule(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
 	seedFeed(t, "http://feed.test/rss", "Test Feed")
 	// No newspaper_schedules rows seeded.
 
-	jobs, err := collectJobs(t, collectJobsNow)
+	jobs, err := feed.CollectJobs(
+		t.Context(),
+		testenv.DB(),
+		&newspaper.Service{DB: testenv.DB()},
+		scraper.NewService(stubServerAddr),
+		time.Date(2026, 7, 15, 10, 0, 0, 0, time.Local),
+	)
 	if err != nil {
 		t.Fatalf("CollectJobs returned an unexpected error: %v", err)
 	}
@@ -163,55 +157,48 @@ func TestCollectJobs_FailSoftWithoutSchedule(t *testing.T) {
 }
 
 // newPollingJob builds a [feed.Job] directly, bypassing [feed.CollectJobs]
-// entirely, with pollingInterval as its editorial interval.
+// entirely. Feed fixtures use literal pubDates chosen to sit inside or
+// outside the fixed editorial interval below.
 func newPollingJob(feedID int, feedURL, feedTitle string) *feed.Job {
+	interval := newspaper.EditorialInterval{
+		Last: mustTimeUTC("2026-07-15 09:55:00"),
+		Next: mustTimeUTC("2026-07-15 10:05:00"),
+	}
 	return &feed.Job{
 		DB:           testenv.DB(),
 		Feed:         feed.FeedRecord{ID: feedID, URL: feedURL, Title: feedTitle},
-		Interval:     pollingInterval,
+		Interval:     interval,
 		NewspaperSvc: &newspaper.Service{DB: testenv.DB()},
 		ScrpSvc:      scraper.NewService(stubServerAddr),
 	}
 }
 
-type feedEntryRow struct {
-	DedupKey    string
-	FeedID      int
-	URL         string
-	Title       string
-	Description sql.NullString
-	Content     sql.NullString
-	PublishedAt sql.NullTime
-}
-
-type storyRow struct {
-	FeedEntryID int
-	UserID      user.UserID
-	Title       string
-	Description sql.NullString
-	Source      sql.NullString
-}
-
-func storyEntryID(t *testing.T, dedupKey string) int {
-	t.Helper()
-	var id int
-	scanRowOrFatal(t, `SELECT id FROM feed_entries WHERE dedup_key = $1`, []any{dedupKey}, &id)
-	return id
-}
-
+// A full polling job end-to-end: an in-interval item is stored with its
+// fetched article content and drafted into a story for the subscriber,
+// while an out-of-interval item is stored but skipped for both content
+// fetching and story drafting.
 func TestFeedPolling_HappyPath(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
 	feedID := seedFeed(t, "http://feed.test/rss", "Test Feed")
-	uid := seedSubscriber(t, "alice@example.com", feedID)
+	uid := seedSubscriber(t, "alice@example.com", feedID, mustTimeUTC("2026-07-15 10:00:00"))
 
 	testenv.StubHTTP("feed.test", "/rss", "./testdata/polling_happy_path.xml")
-	testenv.StubHTTP("articles.test", "/happy-in", pollingArticleFixture)
+	testenv.StubHTTP("articles.test", "/happy-in", "./testdata/polling_article.html")
 
 	j := newPollingJob(feedID, "http://feed.test/rss", "Test Feed")
 	if err := j.Do(t.Context()); err != nil {
 		t.Fatalf("job.Do returned an unexpected error: %v", err)
 	}
 
+	type feedEntryRow struct {
+		DedupKey    string
+		FeedID      int
+		URL         string
+		Title       string
+		Description sql.NullString
+		Content     sql.NullString
+		PublishedAt sql.NullTime
+	}
 	entries := scanRowsOrFatal(t, `
 		SELECT dedup_key, feed_id, url, title, description, content, published_at
 		FROM feed_entries ORDER BY dedup_key
@@ -230,7 +217,7 @@ func TestFeedPolling_HappyPath(t *testing.T) {
 		URL:         "http://articles.test/happy-in",
 		Title:       "In interval",
 		Description: sql.NullString{String: "In desc", Valid: true},
-		PublishedAt: sql.NullTime{Time: time.Date(2026, 7, 15, 10, 0, 0, 0, time.UTC), Valid: true},
+		PublishedAt: sql.NullTime{Time: mustTimeUTC("2026-07-15 10:00:00"), Valid: true},
 	}
 	wantOut := feedEntryRow{
 		DedupKey:    "happy-out",
@@ -238,7 +225,7 @@ func TestFeedPolling_HappyPath(t *testing.T) {
 		URL:         "http://articles.test/happy-out",
 		Title:       "Out of interval",
 		Description: sql.NullString{String: "Out desc", Valid: true},
-		PublishedAt: sql.NullTime{Time: time.Date(2026, 7, 15, 7, 0, 0, 0, time.UTC), Valid: true},
+		PublishedAt: sql.NullTime{Time: mustTimeUTC("2026-07-15 07:00:00"), Valid: true},
 	}
 	if d := cmp.Diff(wantIn, inEntry, ignoreContent); d != "" {
 		t.Errorf("in-interval entry mismatch:\n%s", d)
@@ -253,6 +240,13 @@ func TestFeedPolling_HappyPath(t *testing.T) {
 		t.Errorf("out-of-interval entry: want content to stay NULL, got %q", outEntry.Content.String)
 	}
 
+	type storyRow struct {
+		FeedEntryID int
+		UserID      user.UserID
+		Title       string
+		Description sql.NullString
+		Source      sql.NullString
+	}
 	stories := scanRowsOrFatal(t, `
 		SELECT feed_entry_id, user_id, title, description, source FROM stories
 	`, nil, func(rows *sql.Rows, s *storyRow) error {
@@ -261,8 +255,10 @@ func TestFeedPolling_HappyPath(t *testing.T) {
 	if len(stories) != 1 {
 		t.Fatalf("got %d stories, want exactly 1", len(stories))
 	}
+	var inEntryID int
+	scanRowOrFatal(t, `SELECT id FROM feed_entries WHERE dedup_key = 'happy-in'`, nil, &inEntryID)
 	want := storyRow{
-		FeedEntryID: storyEntryID(t, "happy-in"),
+		FeedEntryID: inEntryID,
 		UserID:      uid,
 		Title:       "In interval",
 		Description: sql.NullString{String: "In desc", Valid: true},
@@ -273,6 +269,9 @@ func TestFeedPolling_HappyPath(t *testing.T) {
 	}
 }
 
+// Polling the same feed twice does not duplicate entries or stories for
+// items already seen, but does add a new entry and story when a second poll
+// picks up a genuinely new item.
 func TestFeedPolling_RePoll(t *testing.T) {
 	tests := []struct {
 		name                           string
@@ -299,7 +298,7 @@ func TestFeedPolling_RePoll(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Cleanup(testenv.TearDown)
 			feedID := seedFeed(t, "http://feed.test/rss", "Test Feed")
-			seedSubscriber(t, "alice@example.com", feedID)
+			seedSubscriber(t, "alice@example.com", feedID, mustTimeUTC("2026-07-15 10:00:00"))
 			j := newPollingJob(feedID, "http://feed.test/rss", "Test Feed")
 
 			testenv.StubHTTP("feed.test", "/rss", tt.firstFixture)
@@ -325,6 +324,8 @@ func TestFeedPolling_RePoll(t *testing.T) {
 	}
 }
 
+// A feed with no subscribers still gets its item stored as a feed_entry,
+// but no story is drafted since there's no one to draft it for.
 func TestFeedPolling_NoSubscribers(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
 	feedID := seedFeed(t, "http://feed.test/rss", "Test Feed")
@@ -346,10 +347,13 @@ func TestFeedPolling_NoSubscribers(t *testing.T) {
 	}
 }
 
+// A failure to fetch an item's article page is fail-soft: the entry is
+// stored with NULL content and the story is still drafted, and job.Do
+// itself returns no error.
 func TestFeedPolling_ArticleFetchFails(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
 	feedID := seedFeed(t, "http://feed.test/rss", "Test Feed")
-	seedSubscriber(t, "alice@example.com", feedID)
+	seedSubscriber(t, "alice@example.com", feedID, mustTimeUTC("2026-07-15 10:00:00"))
 	testenv.StubHTTP("feed.test", "/rss", "./testdata/polling_article_fetch_fails.xml")
 	// No StubHTTP rule registered for /missing, so the stub server 404s it.
 
@@ -370,6 +374,9 @@ func TestFeedPolling_ArticleFetchFails(t *testing.T) {
 	}
 }
 
+// A failure to fetch the feed itself (no stub registered, so it 404s) is a
+// hard error: job.Do returns an error and nothing is written to
+// feed_entries.
 func TestFeedPolling_FeedFetchFailure(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
 	feedID := seedFeed(t, "http://feed.test/rss", "Test Feed")
@@ -387,6 +394,8 @@ func TestFeedPolling_FeedFetchFailure(t *testing.T) {
 	}
 }
 
+// A feed with zero items is treated as an error rather than a successful
+// no-op poll, and nothing is written to feed_entries.
 func TestFeedPolling_EmptyFeed(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
 	feedID := seedFeed(t, "http://feed.test/rss", "Test Feed")
@@ -404,11 +413,13 @@ func TestFeedPolling_EmptyFeed(t *testing.T) {
 	}
 }
 
+// A single in-interval item on a feed with multiple subscribers is drafted
+// into one story per subscriber.
 func TestFeedPolling_MultipleSubscribers(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
 	feedID := seedFeed(t, "http://feed.test/rss", "Test Feed")
-	uidAlice := seedSubscriber(t, "alice@example.com", feedID)
-	uidBob := seedSubscriber(t, "bob@example.com", feedID)
+	uidAlice := seedSubscriber(t, "alice@example.com", feedID, mustTimeUTC("2026-07-15 10:00:00"))
+	uidBob := seedSubscriber(t, "bob@example.com", feedID, mustTimeUTC("2026-07-15 10:00:00"))
 	testenv.StubHTTP("feed.test", "/rss", "./testdata/polling_multiple_subscribers.xml")
 
 	j := newPollingJob(feedID, "http://feed.test/rss", "Test Feed")
@@ -416,18 +427,13 @@ func TestFeedPolling_MultipleSubscribers(t *testing.T) {
 		t.Fatalf("job.Do returned an unexpected error: %v", err)
 	}
 
-	stories := scanRowsOrFatal(
-		t,
-		`SELECT user_id FROM stories ORDER BY user_id`,
-		nil,
-		func(rows *sql.Rows, uid *user.UserID) error {
-			return rows.Scan(uid)
-		},
-	)
-	// alice signs up before bob, and users.id is an ascending identity column,
-	// so uidAlice < uidBob and this matches the ORDER BY above.
-	want := []user.UserID{uidAlice, uidBob}
-	if d := cmp.Diff(want, stories); d != "" {
-		t.Errorf("subscriber user IDs mismatch:\n%s", d)
+	var aliceStoryCount, bobStoryCount int
+	scanRowOrFatal(t, `SELECT count(*) FROM stories WHERE user_id = $1`, []any{uidAlice}, &aliceStoryCount)
+	scanRowOrFatal(t, `SELECT count(*) FROM stories WHERE user_id = $1`, []any{uidBob}, &bobStoryCount)
+	if aliceStoryCount != 1 {
+		t.Errorf("got %d stories for alice, want 1", aliceStoryCount)
+	}
+	if bobStoryCount != 1 {
+		t.Errorf("got %d stories for bob, want 1", bobStoryCount)
 	}
 }
