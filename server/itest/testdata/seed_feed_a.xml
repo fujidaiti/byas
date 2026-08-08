@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Minimal feed used only to seed a feeds row via feed.Subscribe. Polling
+  tests register their own richer fixture for the entries under test.
+-->
+<rss version="2.0">
+  <channel>
+    <title>Feed A</title>
+    <link>http://feed-a.test/rss</link>
+    <description>Seeded test feed</description>
+  </channel>
+</rss>

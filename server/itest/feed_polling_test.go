@@ -4,6 +4,7 @@ package itest
 
 import (
 	"database/sql"
+	"net/url"
 	"slices"
 	"testing"
 	"time"
@@ -17,12 +18,8 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
-func seedFeed(t *testing.T, url, title string) int {
-	t.Helper()
-	return scanValOrFatal[int](t, `INSERT INTO feeds (url, title) VALUES ($1, $2) RETURNING id`, url, title)
-}
-
-func seedSubscriber(t *testing.T, email string, feedID int, now time.Time) user.UserID {
+// seedUser creates a real user via user.Service.SignUp and returns their ID.
+func seedUser(t *testing.T, email string, now time.Time) user.UserID {
 	t.Helper()
 	us := user.Service{DB: testenv.DB(), Now: func() time.Time { return now }}
 	_ = must(us.SignUp(
@@ -31,17 +28,35 @@ func seedSubscriber(t *testing.T, email string, feedID int, now time.Time) user.
 		must(user.ValidatePassword("test#password$1234")),
 		"Pixel9a",
 	))
-	uid := scanValOrFatal[user.UserID](t, `SELECT id FROM users WHERE email = $1`, email)
-	execOrFatal(t, `INSERT INTO feed_subscriptions (user_id, feed_id) VALUES ($1, $2)`, uid, feedID)
-	return uid
+	return scanValOrFatal[user.UserID](t, `SELECT id FROM users WHERE email = $1`, email)
+}
+
+// seedFeed subscribes uid to the feed at feedURL through the real
+// feed.Service.Subscribe, stubbing the HTTP fetch with fixturePath so it
+// resolves to a real feed. Returns the feed ID. Calling it again with the
+// same feedURL and a different uid adds that user as an additional
+// subscriber to the same feed row (Subscribe upserts on URL and no-ops on
+// existing subscriptions) — this is how "multiple subscribers" tests are
+// composed, no separate helper needed.
+func seedFeed(t *testing.T, uid user.UserID, feedURL, fixturePath string) int {
+	t.Helper()
+	u := must(url.Parse(feedURL))
+	testenv.StubHTTP(u.Host, u.Path, fixturePath)
+	s := feed.NewService(testenv.DB(), scraper.NewService(stubServerAddr))
+	f, err := s.Subscribe(t.Context(), uid, *u)
+	if err != nil {
+		t.Fatalf("failed to seed feed %q: %v", feedURL, err)
+	}
+	return f.ID
 }
 
 // CollectJobs returns exactly one job per feed row, regardless of how many
 // feeds exist.
 func TestCollectJobs_OneJobPerFeed(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
-	feedAID := seedFeed(t, "http://feed-a.test/rss", "Feed A")
-	feedBID := seedFeed(t, "http://feed-b.test/rss", "Feed B")
+	uid := seedUser(t, "seed@example.com", mustTimeUTC("2026-07-15 10:00:00"))
+	feedAID := seedFeed(t, uid, "http://feed-a.test/rss", "./testdata/seed_feed_a.xml")
+	feedBID := seedFeed(t, uid, "http://feed-b.test/rss", "./testdata/seed_feed_b.xml")
 
 	jobs, err := feed.CollectJobs(
 		t.Context(),
@@ -92,7 +107,8 @@ func TestCollectJobs_NoFeeds(t *testing.T) {
 // straddle it.
 func TestCollectJobs_IntervalFromSchedule(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
-	seedFeed(t, "http://feed.test/rss", "Test Feed")
+	uid := seedUser(t, "seed@example.com", mustTimeUTC("2026-07-15 10:00:00"))
+	seedFeed(t, uid, "http://feed.test/rss", "./testdata/seed_test_feed.xml")
 	// Seed schedules
 	// TODO: add a domain function for adding a publishing schedule and
 	// refactor this test to use it instead of inserting into newspaper_schedules directly.
@@ -132,7 +148,8 @@ func TestCollectJobs_IntervalFromSchedule(t *testing.T) {
 // with a zero (invalid) editorial interval instead of an error.
 func TestCollectJobs_FailSoftWithoutSchedule(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
-	seedFeed(t, "http://feed.test/rss", "Test Feed")
+	uid := seedUser(t, "seed@example.com", mustTimeUTC("2026-07-15 10:00:00"))
+	seedFeed(t, uid, "http://feed.test/rss", "./testdata/seed_test_feed.xml")
 	// No newspaper_schedules rows seeded.
 
 	jobs, err := feed.CollectJobs(
@@ -159,8 +176,8 @@ func TestCollectJobs_FailSoftWithoutSchedule(t *testing.T) {
 // fetching and story drafting.
 func TestFeedPolling_HappyPath(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
-	feedID := seedFeed(t, "http://feed.test/rss", "Test Feed")
-	uid := seedSubscriber(t, "alice@example.com", feedID, mustTimeUTC("2026-07-15 10:00:00"))
+	uid := seedUser(t, "alice@example.com", mustTimeUTC("2026-07-15 10:00:00"))
+	feedID := seedFeed(t, uid, "http://feed.test/rss", "./testdata/seed_test_feed.xml")
 
 	testenv.StubHTTP("feed.test", "/rss", "./testdata/polling_happy_path.xml")
 	testenv.StubHTTP("articles.test", "/happy-in", "./testdata/polling_article.html")
@@ -285,8 +302,8 @@ func TestFeedPolling_RePoll(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Cleanup(testenv.TearDown)
-			feedID := seedFeed(t, "http://feed.test/rss", "Test Feed")
-			seedSubscriber(t, "alice@example.com", feedID, mustTimeUTC("2026-07-15 10:00:00"))
+			uid := seedUser(t, "alice@example.com", mustTimeUTC("2026-07-15 10:00:00"))
+			feedID := seedFeed(t, uid, "http://feed.test/rss", "./testdata/seed_test_feed.xml")
 			j := &feed.Job{
 				DB:   testenv.DB(),
 				Feed: feed.FeedRecord{ID: feedID, URL: "http://feed.test/rss", Title: "Test Feed"},
@@ -322,7 +339,19 @@ func TestFeedPolling_RePoll(t *testing.T) {
 // but no story is drafted since there's no one to draft it for.
 func TestFeedPolling_NoSubscribers(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
-	feedID := seedFeed(t, "http://feed.test/rss", "Test Feed")
+	// Inserted directly rather than via feed.Subscribe (bypassing business
+	// logic here on purpose).
+	//
+	// TODO: replace with a real seed path once a domain function exists for
+	// unsubscribing. feed.Subscribe is currently the only way to create a
+	// feeds row and it always attaches a subscriber, so a zero-subscriber
+	// feed can't be reached through business logic today.
+	feedID := scanValOrFatal[int](
+		t,
+		`INSERT INTO feeds (url, title) VALUES ($1, $2) RETURNING id`,
+		"http://feed.test/rss",
+		"Test Feed",
+	)
 	testenv.StubHTTP("feed.test", "/rss", "./testdata/polling_no_subscribers.xml")
 
 	j := &feed.Job{
@@ -352,8 +381,8 @@ func TestFeedPolling_NoSubscribers(t *testing.T) {
 // itself returns no error.
 func TestFeedPolling_ArticleFetchFails(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
-	feedID := seedFeed(t, "http://feed.test/rss", "Test Feed")
-	seedSubscriber(t, "alice@example.com", feedID, mustTimeUTC("2026-07-15 10:00:00"))
+	uid := seedUser(t, "alice@example.com", mustTimeUTC("2026-07-15 10:00:00"))
+	feedID := seedFeed(t, uid, "http://feed.test/rss", "./testdata/seed_test_feed.xml")
 	testenv.StubHTTP("feed.test", "/rss", "./testdata/polling_article_fetch_fails.xml")
 	// No StubHTTP rule registered for /missing, so the stub server 404s it.
 
@@ -380,13 +409,17 @@ func TestFeedPolling_ArticleFetchFails(t *testing.T) {
 	}
 }
 
-// A failure to fetch the feed itself (no stub registered, so it 404s) is a
-// hard error: job.Do returns an error and nothing is written to
-// feed_entries.
+// A failure to fetch the feed itself is a hard error: job.Do returns an
+// error and nothing is written to feed_entries.
 func TestFeedPolling_FeedFetchFailure(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
-	feedID := seedFeed(t, "http://feed.test/rss", "Test Feed")
-	// No StubHTTP rule registered for /rss, so the fetch 404s.
+	uid := seedUser(t, "seed@example.com", mustTimeUTC("2026-07-15 10:00:00"))
+	feedID := seedFeed(t, uid, "http://feed.test/rss", "./testdata/seed_test_feed.xml")
+	// Force the feed's own re-fetch during polling to 404: seeding above
+	// already consumed a successful fetch of this URL, so point the stub at
+	// a nonexistent (but still .xml, to avoid the stub server's extension
+	// check) file to make job.Do's fetch fail.
+	testenv.StubHTTP("feed.test", "/rss", "./testdata/nonexistent.xml")
 
 	j := &feed.Job{
 		DB:   testenv.DB(),
@@ -411,7 +444,8 @@ func TestFeedPolling_FeedFetchFailure(t *testing.T) {
 // no-op poll, and nothing is written to feed_entries.
 func TestFeedPolling_EmptyFeed(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
-	feedID := seedFeed(t, "http://feed.test/rss", "Test Feed")
+	uid := seedUser(t, "seed@example.com", mustTimeUTC("2026-07-15 10:00:00"))
+	feedID := seedFeed(t, uid, "http://feed.test/rss", "./testdata/seed_test_feed.xml")
 	testenv.StubHTTP("feed.test", "/rss", "./testdata/polling_empty_feed.xml")
 
 	j := &feed.Job{
@@ -436,9 +470,10 @@ func TestFeedPolling_EmptyFeed(t *testing.T) {
 // into one story per subscriber.
 func TestFeedPolling_MultipleSubscribers(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
-	feedID := seedFeed(t, "http://feed.test/rss", "Test Feed")
-	uidAlice := seedSubscriber(t, "alice@example.com", feedID, mustTimeUTC("2026-07-15 10:00:00"))
-	uidBob := seedSubscriber(t, "bob@example.com", feedID, mustTimeUTC("2026-07-15 10:00:00"))
+	uidAlice := seedUser(t, "alice@example.com", mustTimeUTC("2026-07-15 10:00:00"))
+	feedID := seedFeed(t, uidAlice, "http://feed.test/rss", "./testdata/seed_test_feed.xml")
+	uidBob := seedUser(t, "bob@example.com", mustTimeUTC("2026-07-15 10:00:00"))
+	seedFeed(t, uidBob, "http://feed.test/rss", "./testdata/seed_test_feed.xml")
 	testenv.StubHTTP("feed.test", "/rss", "./testdata/polling_multiple_subscribers.xml")
 
 	j := &feed.Job{
