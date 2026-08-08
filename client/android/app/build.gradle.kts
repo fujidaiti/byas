@@ -30,6 +30,10 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("androidx.activity:activity-compose")
+
+    // Encrypted key-value storage backing TokenStore, readable both from the Flutter
+    // engine (via MethodChannel) and from SaveWebClipActivity outside of it.
+    implementation("androidx.security:security-crypto:1.1.0")
 }
 
 android {

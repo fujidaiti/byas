@@ -1,5 +1,6 @@
 package dev.norelease.paperdoll
 
+import android.content.Context
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,6 +19,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -51,6 +53,9 @@ enum class SaveErrorKind {
     /** The request never reached the server (no connectivity, timeout, etc.). */
     Network,
 
+    /** No auth token is stored locally, so the request was never sent. */
+    Unauthenticated,
+
     /** The server responded with an error, or anything else went wrong. */
     Unexpected,
 }
@@ -60,9 +65,15 @@ private fun SaveErrorKind.message(): String =
         SaveErrorKind.Network ->
             "Couldn't reach the server. Check your connection and try again."
 
+        SaveErrorKind.Unauthenticated ->
+            "Log in to Paperdoll first, then try sharing again."
+
         SaveErrorKind.Unexpected ->
             "Couldn't add to your reading list. Please try again."
     }
+
+/** Thrown by [postToReadingList] when no auth token is stored locally. */
+class UnauthenticatedException : Exception()
 
 private fun SaveState.statusHeadline(): String =
     when (this) {
@@ -79,17 +90,24 @@ fun SaveWebClipScreen(url: String, title: String?, onClose: () -> Unit) {
     // Only observes the request; the request itself runs in SaveScope so it outlives this
     // composition. When the dialog closes, only this observer is cancelled, not the POST.
     val observerScope = rememberCoroutineScope()
+    // Application context, not the activity: the request runs in the process-lifetime
+    // SaveScope and may still be in flight after this activity is destroyed.
+    val appContext = LocalContext.current.applicationContext
 
     LaunchedEffect(url) {
-        val deferred = SaveScope.scope.async { runCatching { postToReadingList(url, title) } }
+        val deferred =
+            SaveScope.scope.async { runCatching { postToReadingList(appContext, url, title) } }
         observerScope.launch {
             state =
                 deferred.await().fold(
                     onSuccess = { SaveState.Success },
                     onFailure = {
                         val kind =
-                            if (it is IOException) SaveErrorKind.Network
-                            else SaveErrorKind.Unexpected
+                            when (it) {
+                                is UnauthenticatedException -> SaveErrorKind.Unauthenticated
+                                is IOException -> SaveErrorKind.Network
+                                else -> SaveErrorKind.Unexpected
+                            }
                         SaveState.Error(kind)
                     },
                 )
@@ -180,13 +198,19 @@ private fun truncateTitle(title: String): String =
         title
     }
 
-fun postToReadingList(url: String, title: String?) {
+/** Storage key shared with Dart's `authTokenStorageKey` (auth_repository_impl.dart). */
+private const val AUTH_TOKEN_KEY = "auth_token"
+
+fun postToReadingList(context: Context, url: String, title: String?) {
+    val token = TokenStore.read(context, AUTH_TOKEN_KEY) ?: throw UnauthenticatedException()
+
     val endpoint = URL(BuildConfig.API_BASE_URL + "/reading-list")
     val connection = endpoint.openConnection() as HttpURLConnection
     try {
         connection.requestMethod = "POST"
         connection.setRequestProperty("Content-Type", "application/json")
         connection.setRequestProperty("Accept", "application/json")
+        connection.setRequestProperty("Authorization", "Bearer $token")
         connection.connectTimeout = 15_000
         connection.readTimeout = 15_000
         connection.doOutput = true
