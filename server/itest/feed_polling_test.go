@@ -311,14 +311,11 @@ func TestFeedPolling_RePoll(t *testing.T) {
 				t.Fatalf("second poll: job.Do returned an unexpected error: %v", err)
 			}
 
-			var entryCount, storyCount int
-			scanRowOrFatal(t, `SELECT count(*) FROM feed_entries`, nil, &entryCount)
-			scanRowOrFatal(t, `SELECT count(*) FROM stories`, nil, &storyCount)
-			if entryCount != tt.wantEntryCount {
-				t.Errorf("got %d feed_entries after re-poll, want %d", entryCount, tt.wantEntryCount)
+			if n := scanValueOrFatal[int](t, `SELECT count(*) FROM feed_entries`, nil); n != tt.wantEntryCount {
+				t.Errorf("got %d feed_entries after re-poll, want %d", n, tt.wantEntryCount)
 			}
-			if storyCount != tt.wantStoryCount {
-				t.Errorf("got %d stories after re-poll, want %d", storyCount, tt.wantStoryCount)
+			if n := scanValueOrFatal[int](t, `SELECT count(*) FROM stories`, nil); n != tt.wantStoryCount {
+				t.Errorf("got %d stories after re-poll, want %d", n, tt.wantStoryCount)
 			}
 		})
 	}
@@ -336,14 +333,11 @@ func TestFeedPolling_NoSubscribers(t *testing.T) {
 		t.Fatalf("job.Do returned an unexpected error: %v", err)
 	}
 
-	var entryCount, storyCount int
-	scanRowOrFatal(t, `SELECT count(*) FROM feed_entries`, nil, &entryCount)
-	scanRowOrFatal(t, `SELECT count(*) FROM stories`, nil, &storyCount)
-	if entryCount != 1 {
-		t.Errorf("got %d feed_entries, want 1", entryCount)
+	if n := scanValueOrFatal[int](t, `SELECT count(*) FROM feed_entries`, nil); n != 1 {
+		t.Errorf("got %d feed_entries, want 1", n)
 	}
-	if storyCount != 0 {
-		t.Errorf("got %d stories, want 0", storyCount)
+	if n := scanValueOrFatal[int](t, `SELECT count(*) FROM stories`, nil); n != 0 {
+		t.Errorf("got %d stories, want 0", n)
 	}
 }
 
@@ -367,10 +361,8 @@ func TestFeedPolling_ArticleFetchFails(t *testing.T) {
 	if content.Valid {
 		t.Errorf("want content to stay NULL after a failed article fetch, got %q", content.String)
 	}
-	var storyCount int
-	scanRowOrFatal(t, `SELECT count(*) FROM stories`, nil, &storyCount)
-	if storyCount != 1 {
-		t.Errorf("got %d stories, want 1 (story is queued before the article fetch runs)", storyCount)
+	if n := scanValueOrFatal[int](t, `SELECT count(*) FROM stories`, nil); n != 1 {
+		t.Errorf("got %d stories, want 1 (story is queued before the article fetch runs)", n)
 	}
 }
 
@@ -387,10 +379,8 @@ func TestFeedPolling_FeedFetchFailure(t *testing.T) {
 		t.Error("want an error when the feed itself fails to fetch, got nil")
 	}
 
-	var entryCount int
-	scanRowOrFatal(t, `SELECT count(*) FROM feed_entries`, nil, &entryCount)
-	if entryCount != 0 {
-		t.Errorf("got %d feed_entries, want 0", entryCount)
+	if n := scanValueOrFatal[int](t, `SELECT count(*) FROM feed_entries`, nil); n != 0 {
+		t.Errorf("got %d feed_entries, want 0", n)
 	}
 }
 
@@ -405,11 +395,8 @@ func TestFeedPolling_EmptyFeed(t *testing.T) {
 	if err := j.Do(t.Context()); err == nil {
 		t.Error("want an error for a feed with zero items, got nil")
 	}
-
-	var entryCount int
-	scanRowOrFatal(t, `SELECT count(*) FROM feed_entries`, nil, &entryCount)
-	if entryCount != 0 {
-		t.Errorf("got %d feed_entries, want 0", entryCount)
+	if n := scanValueOrFatal[int](t, `SELECT count(*) FROM feed_entries`, nil); n != 0 {
+		t.Errorf("got %d feed_entries, want 0", n)
 	}
 }
 
@@ -427,13 +414,10 @@ func TestFeedPolling_MultipleSubscribers(t *testing.T) {
 		t.Fatalf("job.Do returned an unexpected error: %v", err)
 	}
 
-	var aliceStoryCount, bobStoryCount int
-	scanRowOrFatal(t, `SELECT count(*) FROM stories WHERE user_id = $1`, []any{uidAlice}, &aliceStoryCount)
-	scanRowOrFatal(t, `SELECT count(*) FROM stories WHERE user_id = $1`, []any{uidBob}, &bobStoryCount)
-	if aliceStoryCount != 1 {
-		t.Errorf("got %d stories for alice, want 1", aliceStoryCount)
+	if n := scanValueOrFatal[int](t, `SELECT count(*) FROM stories WHERE user_id = $1`, []any{uidAlice}); n != 1 {
+		t.Errorf("got %d stories for alice, want 1", n)
 	}
-	if bobStoryCount != 1 {
-		t.Errorf("got %d stories for bob, want 1", bobStoryCount)
+	if n := scanValueOrFatal[int](t, `SELECT count(*) FROM stories WHERE user_id = $1`, []any{uidBob}); n != 1 {
+		t.Errorf("got %d stories for bob, want 1", n)
 	}
 }

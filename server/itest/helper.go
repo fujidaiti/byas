@@ -44,12 +44,12 @@ func scanRowOrFatal(t *testing.T, query string, args []any, dest ...any) {
 	}
 }
 
-// func scanValueOrFatal[T any](t *testing.T, query string, args []any) T {
-// 	t.Helper()
-// 	var val T
-// 	scanRowOrFatal(t, query, args, &val)
-// 	return val
-// }
+func scanValueOrFatal[T any](t *testing.T, query string, args []any) T {
+	t.Helper()
+	var val T
+	scanRowOrFatal(t, query, args, &val)
+	return val
+}
 
 func scanRowsOrFatal[T any](t *testing.T, query string, args []any, scan func(*sql.Rows, *T) error) []T {
 	t.Helper()
