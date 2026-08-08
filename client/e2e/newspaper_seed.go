@@ -3,15 +3,25 @@ package main
 import (
 	"context"
 	"database/sql"
+	"time"
+
+	"github.com/fujidaiti/paperdoll/server/feature/user"
 )
 
 func seedNewspaperSuit_Today(ctx context.Context, db *sql.DB) error {
-	if err := provisionTestAccount(ctx, db); err != nil {
+	token, err := provisionTestAccount(ctx, db)
+	if err != nil {
+		return err
+	}
+
+	svc := &user.Service{DB: db, Now: time.Now}
+	uid, err := svc.VerifyAuthToken(ctx, token.Encode())
+	if err != nil {
 		return err
 	}
 
 	var feedID int
-	err := db.QueryRowContext(ctx, `
+	err = db.QueryRowContext(ctx, `
 		INSERT INTO feeds (url, site_url, icon_url, title, description)
 		VALUES ($1, $2, $3, $4, $5)
 		ON CONFLICT (url) DO UPDATE SET url = EXCLUDED.url
@@ -43,9 +53,9 @@ func seedNewspaperSuit_Today(ctx context.Context, db *sql.DB) error {
 	}
 
 	_, err = db.ExecContext(ctx, `
-		INSERT INTO stories (feed_entry_id, newspaper_id, title, description, published_at, source)
-		VALUES ($1, $2, $3, $4, $5, $6)
-	`, entryID, paperID, "Hello there", "This is the first blog post on example.com",
+		INSERT INTO stories (user_id, feed_entry_id, newspaper_id, title, description, published_at, source)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+	`, uid, entryID, paperID, "Hello there", "This is the first blog post on example.com",
 		mustTimeUTC("2026-07-01 15:30:12"), "example.com")
 	if err != nil {
 		return err

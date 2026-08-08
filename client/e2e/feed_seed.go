@@ -20,7 +20,7 @@ var stubServerAddr = must(url.Parse("http://127.0.0.1:8081"))
 // there's no public service method for entries outside the background
 // polling job.
 func seedFeedSuit_BbcNews(ctx context.Context, db *sql.DB) error {
-	if err := provisionTestAccount(ctx, db); err != nil {
+	if _, err := provisionTestAccount(ctx, db); err != nil {
 		return err
 	}
 
@@ -60,7 +60,7 @@ func seedFeedSuit_BbcNews(ctx context.Context, db *sql.DB) error {
 // search-and-subscribe flow during the test, via the session's own API
 // server (wired to the same stub server as its outbound HTTP proxy).
 func seedFeedSuit_NasaCandidate(ctx context.Context, db *sql.DB) error {
-	if err := provisionTestAccount(ctx, db); err != nil {
+	if _, err := provisionTestAccount(ctx, db); err != nil {
 		return err
 	}
 	testenv.StubHTTP("www.nasa.gov", "/news-release/feed/", "./testdata/nasa_news_release.xml")
