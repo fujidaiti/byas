@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Second poll of a two-poll pair (see polling_repoll_new_item_before.xml):
+  the pre-existing item is joined by one new item, which alone should
+  produce a new feed_entries/stories row.
+-->
+<rss version="2.0">
+  <channel>
+    <title>Polling Test Feed</title>
+    <link>http://feed.test/rss</link>
+    <description>Feed used by feed polling integration tests</description>
+    <item>
+      <title>Existing item</title>
+      <link>http://articles.test/repoll-existing</link>
+      <guid>repoll-existing</guid>
+      <description>Desc</description>
+      <pubDate>Wed, 15 Jul 2026 10:00:00 +0000</pubDate>
+    </item>
+    <item>
+      <title>New item</title>
+      <link>http://articles.test/repoll-new</link>
+      <guid>repoll-new</guid>
+      <description>Desc</description>
+      <pubDate>Wed, 15 Jul 2026 10:01:00 +0000</pubDate>
+    </item>
+  </channel>
+</rss>

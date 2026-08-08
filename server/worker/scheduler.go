@@ -58,7 +58,7 @@ func StartScheduler(ctx context.Context) {
 		gocron.NewTask(func() {
 			fmt.Println("--------------------------")
 			fmt.Println("Rfreshing feeds...")
-			jobs, err := feed.CollectJobs(ctx, db, newspaperSvc, scraperSvc)
+			jobs, err := feed.CollectJobs(ctx, db, newspaperSvc, scraperSvc, time.Now())
 			if err != nil {
 				fmt.Println(err)
 				return

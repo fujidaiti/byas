@@ -77,7 +77,7 @@ func TestFeed_Subscribe(t *testing.T) {
 			name:    "wikipedia recent changes",
 			host:    "en.wikipedia.org",
 			path:    "/w/api.php",
-			fixture: "./testdata/wikipedia_recent_changes.xml",
+			fixture: "./testdata/feed/wikipedia_recent_changes.xml",
 			feedURL: "http://en.wikipedia.org/w/api.php?limit=50&action=feedrecentchanges&feedformat=rss",
 			want: feed.Feed{FeedAttrs: feed.FeedAttrs{
 				URL:         *must(url.Parse("http://en.wikipedia.org/w/api.php?limit=50&action=feedrecentchanges&feedformat=rss")),
@@ -91,7 +91,7 @@ func TestFeed_Subscribe(t *testing.T) {
 			name:    "nasa news releases",
 			host:    "www.nasa.gov",
 			path:    "/news-release/feed/",
-			fixture: "./testdata/nasa_news_release.xml",
+			fixture: "./testdata/feed/nasa_news_release.xml",
 			feedURL: "http://www.nasa.gov/news-release/feed/",
 			want: feed.Feed{FeedAttrs: feed.FeedAttrs{
 				URL:         *must(url.Parse("http://www.nasa.gov/news-release/feed/")),
@@ -105,7 +105,7 @@ func TestFeed_Subscribe(t *testing.T) {
 			name:    "stackoverflow recent questions",
 			host:    "stackoverflow.com",
 			path:    "/feeds",
-			fixture: "./testdata/stackoverflow_feeds.xml",
+			fixture: "./testdata/feed/stackoverflow_feeds.xml",
 			feedURL: "http://stackoverflow.com/feeds",
 			want: feed.Feed{FeedAttrs: feed.FeedAttrs{
 				URL:         *must(url.Parse("http://stackoverflow.com/feeds")),
@@ -119,7 +119,7 @@ func TestFeed_Subscribe(t *testing.T) {
 			name:    "bbc news front page",
 			host:    "feeds.bbci.co.uk",
 			path:    "/news/rss.xml",
-			fixture: "./testdata/bbc_news_rss.xml",
+			fixture: "./testdata/feed/bbc_news_rss.xml",
 			feedURL: "http://feeds.bbci.co.uk/news/rss.xml",
 			want: feed.Feed{FeedAttrs: feed.FeedAttrs{
 				URL:         *must(url.Parse("http://feeds.bbci.co.uk/news/rss.xml")),
@@ -206,7 +206,7 @@ func TestFeed_SearchFeeds(t *testing.T) {
 			name:    "wikipedia recent changes",
 			host:    "en.wikipedia.org",
 			path:    "/w/api.php",
-			fixture: "./testdata/wikipedia_recent_changes.xml",
+			fixture: "./testdata/feed/wikipedia_recent_changes.xml",
 			query:   "http://en.wikipedia.org/w/api.php?limit=50&action=feedrecentchanges&feedformat=rss",
 			want: feed.FeedAttrs{
 				URL:         *must(url.Parse("http://en.wikipedia.org/w/api.php?limit=50&action=feedrecentchanges&feedformat=rss")),
@@ -220,7 +220,7 @@ func TestFeed_SearchFeeds(t *testing.T) {
 			name:    "bbc news front page",
 			host:    "feeds.bbci.co.uk",
 			path:    "/news/rss.xml",
-			fixture: "./testdata/bbc_news_rss.xml",
+			fixture: "./testdata/feed/bbc_news_rss.xml",
 			query:   "http://feeds.bbci.co.uk/news/rss.xml",
 			want: feed.FeedAttrs{
 				URL:         *must(url.Parse("http://feeds.bbci.co.uk/news/rss.xml")),

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Valid RSS with zero items; polling must fail (an empty feed is
+  treated as an error) and leave feed_entries untouched.
+-->
+<rss version="2.0">
+  <channel>
+    <title>Polling Test Feed</title>
+    <link>http://feed.test/rss</link>
+    <description>Feed used by feed polling integration tests</description>
+  </channel>
+</rss>

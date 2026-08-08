@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/fujidaiti/paperdoll/server/feature/user"
 )
 
 type Story struct {
 	ID          int
+	UserID      user.UserID
 	FeedEntryID int
 	NewspaperID int
 	Title       string
@@ -25,7 +28,7 @@ type Story struct {
 }
 
 func DraftStory(
-	title, description, source string, feedEntryID int, publishedAt time.Time,
+	userID user.UserID, title, description, source string, feedEntryID int, publishedAt time.Time,
 ) (Story, error) {
 	if title == "" {
 		return Story{}, fmt.Errorf("title cannot be empty")
@@ -34,6 +37,7 @@ func DraftStory(
 		return Story{}, fmt.Errorf("invalid feed entry ID: %d", feedEntryID)
 	}
 	s := Story{
+		UserID:      userID,
 		FeedEntryID: feedEntryID,
 		Title:       title,
 		Description: description,
@@ -51,16 +55,16 @@ func (s *Service) SubmitStories(ctx context.Context, ss []Story) error {
 	}
 	var vals []string
 	var args []any
-	for i, story := range ss {
-		desc := sql.NullString{String: story.Description, Valid: story.Description != ""}
-		src := sql.NullString{String: story.Source, Valid: story.Source != ""}
-		pubDate := sql.NullTime{Time: story.PublishedAt, Valid: !story.PublishedAt.IsZero()}
-		k := i * 5
-		vals = append(vals, fmt.Sprintf("($%d, $%d, $%d, $%d, $%d)", k+1, k+2, k+3, k+4, k+5))
-		args = append(args, story.Title, desc, src, story.FeedEntryID, pubDate)
+	for i, s := range ss {
+		desc := sql.NullString{String: s.Description, Valid: s.Description != ""}
+		src := sql.NullString{String: s.Source, Valid: s.Source != ""}
+		pubDate := sql.NullTime{Time: s.PublishedAt, Valid: !s.PublishedAt.IsZero()}
+		k := i * 6
+		vals = append(vals, fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d)", k+1, k+2, k+3, k+4, k+5, k+6))
+		args = append(args, s.UserID, s.Title, desc, src, s.FeedEntryID, pubDate)
 	}
 	_, err := s.DB.ExecContext(ctx, fmt.Sprintf(`
-			INSERT INTO stories (title, description, source, feed_entry_id, published_at)
+			INSERT INTO stories (user_id, title, description, source, feed_entry_id, published_at)
 			VALUES %s;
 		`, strings.Join(vals, ",")), args...)
 	if err != nil {

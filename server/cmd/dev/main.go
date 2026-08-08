@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/fujidaiti/paperdoll/server/feature/feed"
 	"github.com/fujidaiti/paperdoll/server/feature/newspaper"
@@ -41,7 +42,7 @@ func poll() {
 		}
 	}()
 
-	jobs, err := feed.CollectJobs(ctx, db, &newspaper.Service{DB: db}, scraper.NewService(nil))
+	jobs, err := feed.CollectJobs(ctx, db, &newspaper.Service{DB: db}, scraper.NewService(nil), time.Now())
 	if err != nil {
 		panic(err)
 	}
