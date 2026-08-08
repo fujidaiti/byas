@@ -19,9 +19,7 @@ import (
 
 func seedFeed(t *testing.T, url, title string) int {
 	t.Helper()
-	var id int
-	scanRowOrFatal(t, `INSERT INTO feeds (url, title) VALUES ($1, $2) RETURNING id`, []any{url, title}, &id)
-	return id
+	return scanValOrFatal[int](t, `INSERT INTO feeds (url, title) VALUES ($1, $2) RETURNING id`, url, title)
 }
 
 func seedSubscriber(t *testing.T, email string, feedID int, now time.Time) user.UserID {
@@ -33,8 +31,7 @@ func seedSubscriber(t *testing.T, email string, feedID int, now time.Time) user.
 		must(user.ValidatePassword("test#password$1234")),
 		"Pixel9a",
 	))
-	var uid user.UserID
-	scanRowOrFatal(t, `SELECT id FROM users WHERE email = $1`, []any{email}, &uid)
+	uid := scanValOrFatal[user.UserID](t, `SELECT id FROM users WHERE email = $1`, email)
 	execOrFatal(t, `INSERT INTO feed_subscriptions (user_id, feed_id) VALUES ($1, $2)`, uid, feedID)
 	return uid
 }
@@ -255,8 +252,7 @@ func TestFeedPolling_HappyPath(t *testing.T) {
 	if len(stories) != 1 {
 		t.Fatalf("got %d stories, want exactly 1", len(stories))
 	}
-	var inEntryID int
-	scanRowOrFatal(t, `SELECT id FROM feed_entries WHERE dedup_key = 'happy-in'`, nil, &inEntryID)
+	inEntryID := scanValOrFatal[int](t, `SELECT id FROM feed_entries WHERE dedup_key = 'happy-in'`)
 	want := storyRow{
 		FeedEntryID: inEntryID,
 		UserID:      uid,
@@ -311,10 +307,10 @@ func TestFeedPolling_RePoll(t *testing.T) {
 				t.Fatalf("second poll: job.Do returned an unexpected error: %v", err)
 			}
 
-			if n := scanValueOrFatal[int](t, `SELECT count(*) FROM feed_entries`); n != tt.wantEntryCount {
+			if n := scanValOrFatal[int](t, `SELECT count(*) FROM feed_entries`); n != tt.wantEntryCount {
 				t.Errorf("got %d feed_entries after re-poll, want %d", n, tt.wantEntryCount)
 			}
-			if n := scanValueOrFatal[int](t, `SELECT count(*) FROM stories`); n != tt.wantStoryCount {
+			if n := scanValOrFatal[int](t, `SELECT count(*) FROM stories`); n != tt.wantStoryCount {
 				t.Errorf("got %d stories after re-poll, want %d", n, tt.wantStoryCount)
 			}
 		})
@@ -333,10 +329,10 @@ func TestFeedPolling_NoSubscribers(t *testing.T) {
 		t.Fatalf("job.Do returned an unexpected error: %v", err)
 	}
 
-	if n := scanValueOrFatal[int](t, `SELECT count(*) FROM feed_entries`); n != 1 {
+	if n := scanValOrFatal[int](t, `SELECT count(*) FROM feed_entries`); n != 1 {
 		t.Errorf("got %d feed_entries, want 1", n)
 	}
-	if n := scanValueOrFatal[int](t, `SELECT count(*) FROM stories`); n != 0 {
+	if n := scanValOrFatal[int](t, `SELECT count(*) FROM stories`); n != 0 {
 		t.Errorf("got %d stories, want 0", n)
 	}
 }
@@ -356,12 +352,11 @@ func TestFeedPolling_ArticleFetchFails(t *testing.T) {
 		t.Errorf("job.Do returned %v, want nil (article fetch failures are fail-soft)", err)
 	}
 
-	var content sql.NullString
-	scanRowOrFatal(t, `SELECT content FROM feed_entries WHERE dedup_key = 'fetch-fail'`, nil, &content)
+	content := scanValOrFatal[sql.NullString](t, `SELECT content FROM feed_entries WHERE dedup_key = 'fetch-fail'`)
 	if content.Valid {
 		t.Errorf("want content to stay NULL after a failed article fetch, got %q", content.String)
 	}
-	if n := scanValueOrFatal[int](t, `SELECT count(*) FROM stories`); n != 1 {
+	if n := scanValOrFatal[int](t, `SELECT count(*) FROM stories`); n != 1 {
 		t.Errorf("got %d stories, want 1 (story is queued before the article fetch runs)", n)
 	}
 }
@@ -379,7 +374,7 @@ func TestFeedPolling_FeedFetchFailure(t *testing.T) {
 		t.Error("want an error when the feed itself fails to fetch, got nil")
 	}
 
-	if n := scanValueOrFatal[int](t, `SELECT count(*) FROM feed_entries`); n != 0 {
+	if n := scanValOrFatal[int](t, `SELECT count(*) FROM feed_entries`); n != 0 {
 		t.Errorf("got %d feed_entries, want 0", n)
 	}
 }
@@ -395,7 +390,7 @@ func TestFeedPolling_EmptyFeed(t *testing.T) {
 	if err := j.Do(t.Context()); err == nil {
 		t.Error("want an error for a feed with zero items, got nil")
 	}
-	if n := scanValueOrFatal[int](t, `SELECT count(*) FROM feed_entries`); n != 0 {
+	if n := scanValOrFatal[int](t, `SELECT count(*) FROM feed_entries`); n != 0 {
 		t.Errorf("got %d feed_entries, want 0", n)
 	}
 }
@@ -414,10 +409,10 @@ func TestFeedPolling_MultipleSubscribers(t *testing.T) {
 		t.Fatalf("job.Do returned an unexpected error: %v", err)
 	}
 
-	if n := scanValueOrFatal[int](t, `SELECT count(*) FROM stories WHERE user_id = $1`, uidAlice); n != 1 {
+	if n := scanValOrFatal[int](t, `SELECT count(*) FROM stories WHERE user_id = $1`, uidAlice); n != 1 {
 		t.Errorf("got %d stories for alice, want 1", n)
 	}
-	if n := scanValueOrFatal[int](t, `SELECT count(*) FROM stories WHERE user_id = $1`, uidBob); n != 1 {
+	if n := scanValOrFatal[int](t, `SELECT count(*) FROM stories WHERE user_id = $1`, uidBob); n != 1 {
 		t.Errorf("got %d stories for bob, want 1", n)
 	}
 }

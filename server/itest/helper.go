@@ -44,7 +44,7 @@ func scanRowOrFatal(t *testing.T, query string, args []any, dest ...any) {
 	}
 }
 
-func scanValueOrFatal[T any](t *testing.T, query string, args ...any) T {
+func scanValOrFatal[T any](t *testing.T, query string, args ...any) T {
 	t.Helper()
 	var val T
 	scanRowOrFatal(t, query, args, &val)
