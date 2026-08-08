@@ -10,8 +10,13 @@ import (
 	"time"
 
 	"codeberg.org/readeck/go-readability/v2"
+	"github.com/fujidaiti/paperdoll/server/feature/user"
 	"github.com/microcosm-cc/bluemonday"
 )
+
+// ErrItemNotFound is returned when the item doesn't exist or doesn't belong
+// to the calling user.
+var ErrItemNotFound = errors.New("item not found")
 
 // DeleteItem removes an item from the list.
 // Reports false with no error if the id does not exist, true otherwise.
@@ -20,11 +25,11 @@ import (
 // join row here leaves the backing web_clips row unreachable (it can only be
 // reached via a reading_list_items row), so a background job should periodically
 // delete web_clips that have no referencing reading_list_items.
-func (s *Service) DeleteItem(ctx context.Context, id int) (bool, error) {
+func (s *Service) DeleteItem(ctx context.Context, uid user.UserID, id int) (bool, error) {
 	res, err := s.DB.ExecContext(ctx, `
 		DELETE FROM reading_list_items
-		WHERE id = $1;
-	`, id)
+		WHERE id = $1 AND user_id = $2;
+	`, id, uid)
 	if err != nil {
 		return false, err
 	}
@@ -35,27 +40,27 @@ func (s *Service) DeleteItem(ctx context.Context, id int) (bool, error) {
 	}
 }
 
-func (s *Service) ArchiveItem(ctx context.Context, id int) error {
-	return s.setItemArchivedStatus(ctx, id, true)
+func (s *Service) ArchiveItem(ctx context.Context, uid user.UserID, id int) error {
+	return s.setItemArchivedStatus(ctx, uid, id, true)
 }
 
-func (s *Service) UnarchiveItem(ctx context.Context, id int) error {
-	return s.setItemArchivedStatus(ctx, id, false)
+func (s *Service) UnarchiveItem(ctx context.Context, uid user.UserID, id int) error {
+	return s.setItemArchivedStatus(ctx, uid, id, false)
 }
 
-func (s *Service) setItemArchivedStatus(ctx context.Context, id int, archived bool) error {
+func (s *Service) setItemArchivedStatus(ctx context.Context, uid user.UserID, id int, archived bool) error {
 	res, err := s.DB.ExecContext(ctx, `
 		UPDATE reading_list_items
 		SET archived = $1
-		WHERE id = $2;
-	`, archived, id)
+		WHERE id = $2 AND user_id = $3;
+	`, archived, id, uid)
 	if err != nil {
 		return err
 	}
 	if n, err := res.RowsAffected(); err != nil {
-		return nil
+		return err
 	} else if n == 0 {
-		return errors.New("item not found")
+		return ErrItemNotFound
 	}
 	return nil
 }
@@ -70,30 +75,30 @@ type SavedItem struct {
 	SavedAt     time.Time
 }
 
-func (s *Service) SaveFeedEntry(ctx context.Context, id int) (SavedItem, error) {
+func (s *Service) SaveFeedEntry(ctx context.Context, uid user.UserID, id int) (SavedItem, error) {
 	var it SavedItem
 	err := s.DB.QueryRowContext(ctx, `
-		INSERT INTO reading_list_items (kind, feed_entry_id, title, description)
-		SELECT 'feed_entry', id, title, description
+		INSERT INTO reading_list_items (kind, feed_entry_id, title, description, user_id)
+		SELECT 'feed_entry', id, title, description, $2
 		FROM feed_entries
 		WHERE id = $1
 		RETURNING id, feed_entry_id, kind, title, description, saved_at;
-	`, id).Scan(&it.ID, &it.ResourceID, &it.Kind, &it.Title, &it.Description, &it.SavedAt)
+	`, id, uid).Scan(&it.ID, &it.ResourceID, &it.Kind, &it.Title, &it.Description, &it.SavedAt)
 	// TODO: Return a dedicated error for the case where the id doesn't exist
 	return it, err
 }
 
-func (s *Service) SaveWebClipByID(ctx context.Context, id int) (SavedItem, error) {
+func (s *Service) SaveWebClipByID(ctx context.Context, uid user.UserID, id int) (SavedItem, error) {
 	// reading_list_items.title is NOT NULL but web_clips.title is nullable,
 	// so coalesce to keep the placeholder well-formed.
 	var it SavedItem
 	err := s.DB.QueryRowContext(ctx, `
-		INSERT INTO reading_list_items (kind, web_clip_id, title, description)
-		SELECT 'web_clip', id, COALESCE(title, ''), description
+		INSERT INTO reading_list_items (kind, web_clip_id, title, description, user_id)
+		SELECT 'web_clip', id, COALESCE(title, ''), description, $2
 		FROM web_clips
 		WHERE id = $1
 		RETURNING id, web_clip_id, kind, title, description, saved_at;
-	`, id).Scan(&it.ID, &it.ResourceID, &it.Kind, &it.Title, &it.Description, &it.SavedAt)
+	`, id, uid).Scan(&it.ID, &it.ResourceID, &it.Kind, &it.Title, &it.Description, &it.SavedAt)
 	// TODO: Return a dedicated error for the case where the id doesn't exist
 	return it, err
 }
@@ -104,7 +109,7 @@ func (s *Service) SaveWebClipByID(ctx context.Context, id int) (SavedItem, error
 // Note that this function immediately returns after creating a placeholder reading list item.
 // It then tries fetching the clip itself asynchronously, and fills the
 // placeholders with actual metadata.
-func (s *Service) SaveWebClip(ctx context.Context, ln url.URL, title string) (SavedItem, error) {
+func (s *Service) SaveWebClip(ctx context.Context, uid user.UserID, ln url.URL, title string) (SavedItem, error) {
 	// TODO: Cleanup URL
 	// TODO: Validate URL (schema, host)
 	var it SavedItem
@@ -127,10 +132,10 @@ func (s *Service) SaveWebClip(ctx context.Context, ln url.URL, title string) (Sa
 		return it, err
 	}
 	err = tx.QueryRowContext(ctx, `
-		INSERT INTO reading_list_items (kind, web_clip_id, title)
-		VALUES ('web_clip', $1, $2)
+		INSERT INTO reading_list_items (kind, web_clip_id, title, user_id)
+		VALUES ('web_clip', $1, $2, $3)
 		RETURNING id, web_clip_id, kind, title, description, saved_at;
-	`, clipID, title).Scan(&it.ID, &it.ResourceID, &it.Kind, &it.Title, &it.Description, &it.SavedAt)
+	`, clipID, title, uid).Scan(&it.ID, &it.ResourceID, &it.Kind, &it.Title, &it.Description, &it.SavedAt)
 	if err != nil {
 		return it, err
 	}

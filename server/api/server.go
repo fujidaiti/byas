@@ -191,16 +191,16 @@ func (h *Handler) getTodaysNewspaper(w http.ResponseWriter, r *http.Request) {
 	rows, err := h.DB.QueryContext(ctx, `
 		SELECT id, feed_entry_id, title, description, source, published_at,
 			(SELECT id FROM reading_list_items
-				WHERE feed_entry_id = stories.feed_entry_id
+				WHERE feed_entry_id = stories.feed_entry_id AND user_id = $4
 				LIMIT 1) as reading_list_item_id,
 			(SELECT archived FROM reading_list_items
-				WHERE feed_entry_id = stories.feed_entry_id
+				WHERE feed_entry_id = stories.feed_entry_id AND user_id = $4
 				LIMIT 1)
 		FROM stories
 		WHERE newspaper_id = $1 AND id > $2
 		ORDER BY id ASC
 		LIMIT $3;
-	`, res.ID, cursor, paginationSize+1)
+	`, res.ID, cursor, paginationSize+1, uid)
 	if err != nil {
 		fmt.Println(err)
 		serverError(
@@ -284,20 +284,26 @@ func (h *Handler) getFeedEntry(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
+	uid, ok := UserIDFromContext(ctx)
+	if !ok {
+		serverError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
 	res := getFeedEntryResponse{}
 	var rlID *int
 	var rlArchived *bool
 	err = h.DB.QueryRowContext(ctx, `
 		SELECT id, feed_id, url, title, description, content, snapshot_at, published_at,
 			(SELECT id FROM reading_list_items
-				WHERE feed_entry_id = feed_entries.id
+				WHERE feed_entry_id = feed_entries.id AND user_id = $2
 				LIMIT 1),
 			(SELECT archived FROM reading_list_items
-				WHERE feed_entry_id = feed_entries.id
+				WHERE feed_entry_id = feed_entries.id AND user_id = $2
 				LIMIT 1)
 		FROM feed_entries
 		WHERE id = $1;
-	`, id).Scan(
+	`, id, uid).Scan(
 		&res.ID, &res.FeedID, &res.URL, &res.Title, &res.Description, &res.Content,
 		&res.SnapshotAt, &res.PublishedAt, &rlID, &rlArchived,
 	)
@@ -522,10 +528,16 @@ func (h *Handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
+	uid, ok := UserIDFromContext(ctx)
+	if !ok {
+		serverError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
 	var where string
-	args := []any{id}
+	args := []any{id, uid}
 	if cursor != nil {
-		where = "AND (COALESCE(published_at, snapshot_at), id) < ($2, $3)"
+		where = "AND (COALESCE(published_at, snapshot_at), id) < ($3, $4)"
 		args = append(args, cursor.Key, cursor.Tiebreaker)
 	}
 	// TODO: Replace this correlated subquery with a LEFT JOIN once
@@ -534,10 +546,10 @@ func (h *Handler) getFeedTimeline(w http.ResponseWriter, r *http.Request) {
 	rows, err := h.DB.QueryContext(ctx, fmt.Sprintf(`
 		SELECT id, feed_id, url, title, description, published_at, snapshot_at,
 			(SELECT id FROM reading_list_items
-				WHERE feed_entry_id = feed_entries.id
+				WHERE feed_entry_id = feed_entries.id AND user_id = $2
 				LIMIT 1) as reading_list_item_id,
 			(SELECT archived FROM reading_list_items
-				WHERE feed_entry_id = feed_entries.id
+				WHERE feed_entry_id = feed_entries.id AND user_id = $2
 				LIMIT 1)
 		FROM feed_entries
 		WHERE feed_id = $1 %s
@@ -737,6 +749,12 @@ func (h *Handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
+	uid, ok := UserIDFromContext(ctx)
+	if !ok {
+		serverError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
 	var saved readinglist.SavedItem
 	switch {
 	case b.URL != nil:
@@ -751,7 +769,7 @@ func (h *Handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 		if b.Title != nil {
 			title = *b.Title
 		}
-		saved, err = h.ReadingListService.SaveWebClip(ctx, *u, title)
+		saved, err = h.ReadingListService.SaveWebClip(ctx, uid, *u, title)
 		if err != nil {
 			fmt.Println(err)
 			serverError(w, http.StatusInternalServerError, "Failed to save clip")
@@ -761,7 +779,7 @@ func (h *Handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 	case b.FeedEntryID != nil:
 		// TODO: Return 404 instead of 500 when the given ID doesn't exist
 		var err error
-		saved, err = h.ReadingListService.SaveFeedEntry(ctx, *b.FeedEntryID)
+		saved, err = h.ReadingListService.SaveFeedEntry(ctx, uid, *b.FeedEntryID)
 		if err != nil {
 			fmt.Println(err)
 			serverError(w, http.StatusInternalServerError, "Failed to save feed entry")
@@ -771,7 +789,7 @@ func (h *Handler) saveToReadingList(w http.ResponseWriter, r *http.Request) {
 	case b.WebClipID != nil:
 		// TODO: Return 404 instead of 500 when the given ID doesn't exist
 		var err error
-		saved, err = h.ReadingListService.SaveWebClipByID(ctx, *b.WebClipID)
+		saved, err = h.ReadingListService.SaveWebClipByID(ctx, uid, *b.WebClipID)
 		if err != nil {
 			fmt.Println(err)
 			serverError(w, http.StatusInternalServerError, "Failed to save web clip")
@@ -833,16 +851,22 @@ func (h *Handler) writeReadingList(w http.ResponseWriter, r *http.Request, archi
 	}
 
 	ctx := r.Context()
-	args := []any{archived}
+	uid, ok := UserIDFromContext(ctx)
+	if !ok {
+		serverError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	args := []any{archived, uid}
 	var where string
 	if cursor != nil {
 		args = append(args, cursor.Key, cursor.Tiebreaker)
-		where = "AND (saved_at, id) < ($2, $3)"
+		where = "AND (saved_at, id) < ($3, $4)"
 	}
 	rows, err := h.DB.QueryContext(ctx, fmt.Sprintf(`
 		SELECT id, kind, title, description, saved_at, web_clip_id, feed_entry_id
 		FROM reading_list_items
-		WHERE archived = $1 %s
+		WHERE archived = $1 AND user_id = $2 %s
 		ORDER BY saved_at DESC, id DESC
 		LIMIT %d;
 	`, where, paginationSize+1), args...)
@@ -945,20 +969,26 @@ func (h *Handler) getWebClip(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
+	uid, ok := UserIDFromContext(ctx)
+	if !ok {
+		serverError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
 	var res getWebClipResBody
 	var rlID *int
 	var rlArchived *bool
 	err = h.DB.QueryRowContext(ctx, `
 		SELECT id, url, title, description, content,
 			(SELECT id FROM reading_list_items
-				WHERE web_clip_id = web_clips.id
+				WHERE web_clip_id = web_clips.id AND user_id = $2
 				LIMIT 1),
 			(SELECT archived FROM reading_list_items
-				WHERE web_clip_id = web_clips.id
+				WHERE web_clip_id = web_clips.id AND user_id = $2
 				LIMIT 1)
 		FROM web_clips
 		WHERE id = $1;
-	`, id).Scan(&res.ID, &res.URL, &res.Title, &res.Description, &res.Content, &rlID, &rlArchived)
+	`, id, uid).Scan(&res.ID, &res.URL, &res.Title, &res.Description, &res.Content, &rlID, &rlArchived)
 	if errors.Is(err, sql.ErrNoRows) {
 		serverError(w, http.StatusNotFound, "Web clip not found.")
 		return
@@ -989,7 +1019,12 @@ func (h *Handler) deleteReadingListItem(w http.ResponseWriter, r *http.Request) 
 		serverError(w, http.StatusBadRequest, "Malformed ID")
 		return
 	}
-	ok, err := h.ReadingListService.DeleteItem(r.Context(), id)
+	uid, authOK := UserIDFromContext(r.Context())
+	if !authOK {
+		serverError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	ok, err := h.ReadingListService.DeleteItem(r.Context(), uid, id)
 	if err != nil {
 		fmt.Println(err)
 		serverError(w, http.StatusInternalServerError, "Something went wrong.")
@@ -1020,6 +1055,11 @@ func (h *Handler) setReadingListItemArchivedStatus(w http.ResponseWriter, r *htt
 		serverError(w, http.StatusBadRequest, "Invalid ID")
 		return
 	}
+	uid, ok := UserIDFromContext(r.Context())
+	if !ok {
+		serverError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
 	var b setReadingListItemArchivedStatusReqBody
 	err = json.NewDecoder(r.Body).Decode(&b)
 	if err != nil || b.Archived == nil {
@@ -1027,11 +1067,14 @@ func (h *Handler) setReadingListItemArchivedStatus(w http.ResponseWriter, r *htt
 		return
 	}
 	if *b.Archived {
-		err = h.ReadingListService.ArchiveItem(r.Context(), id)
+		err = h.ReadingListService.ArchiveItem(r.Context(), uid, id)
 	} else {
-		err = h.ReadingListService.UnarchiveItem(r.Context(), id)
+		err = h.ReadingListService.UnarchiveItem(r.Context(), uid, id)
 	}
-	if err != nil {
+	if errors.Is(err, readinglist.ErrItemNotFound) {
+		serverError(w, http.StatusNotFound, "Item not found")
+		return
+	} else if err != nil {
 		fmt.Println(err)
 		serverError(w, http.StatusInternalServerError, "Something went wrong")
 		return

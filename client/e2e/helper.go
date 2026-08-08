@@ -18,6 +18,7 @@ var seeders = map[string]seeder{
 	"auth_signed_in":      seedAuthSuit_SignedIn,
 	"feed_bbc_news":       seedFeedSuit_BbcNews,
 	"feed_nasa_candidate": seedFeedSuit_NasaCandidate,
+	"reading_list_item":   seedReadingListSuit_Item,
 }
 
 // testAccountEmail and testAccountPassword identify the fixed E2E test
