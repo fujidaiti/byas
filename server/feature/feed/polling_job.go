@@ -36,10 +36,7 @@ type entryRecord struct {
 	publishedAt sql.NullTime
 }
 
-// Job polls a single feed for new entries and drafts stories for its
-// subscribers. Production code obtains Jobs exclusively through
-// [CollectJobs]; the fields are exported so tests can construct a Job
-// directly without going through CollectJobs.
+// Job polls a single feed for new entries and drafts stories for its subscribers.
 type Job struct {
 	DB           *sql.DB
 	Feed         FeedRecord
