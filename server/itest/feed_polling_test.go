@@ -311,10 +311,10 @@ func TestFeedPolling_RePoll(t *testing.T) {
 				t.Fatalf("second poll: job.Do returned an unexpected error: %v", err)
 			}
 
-			if n := scanValueOrFatal[int](t, `SELECT count(*) FROM feed_entries`, nil); n != tt.wantEntryCount {
+			if n := scanValueOrFatal[int](t, `SELECT count(*) FROM feed_entries`); n != tt.wantEntryCount {
 				t.Errorf("got %d feed_entries after re-poll, want %d", n, tt.wantEntryCount)
 			}
-			if n := scanValueOrFatal[int](t, `SELECT count(*) FROM stories`, nil); n != tt.wantStoryCount {
+			if n := scanValueOrFatal[int](t, `SELECT count(*) FROM stories`); n != tt.wantStoryCount {
 				t.Errorf("got %d stories after re-poll, want %d", n, tt.wantStoryCount)
 			}
 		})
@@ -333,10 +333,10 @@ func TestFeedPolling_NoSubscribers(t *testing.T) {
 		t.Fatalf("job.Do returned an unexpected error: %v", err)
 	}
 
-	if n := scanValueOrFatal[int](t, `SELECT count(*) FROM feed_entries`, nil); n != 1 {
+	if n := scanValueOrFatal[int](t, `SELECT count(*) FROM feed_entries`); n != 1 {
 		t.Errorf("got %d feed_entries, want 1", n)
 	}
-	if n := scanValueOrFatal[int](t, `SELECT count(*) FROM stories`, nil); n != 0 {
+	if n := scanValueOrFatal[int](t, `SELECT count(*) FROM stories`); n != 0 {
 		t.Errorf("got %d stories, want 0", n)
 	}
 }
@@ -361,7 +361,7 @@ func TestFeedPolling_ArticleFetchFails(t *testing.T) {
 	if content.Valid {
 		t.Errorf("want content to stay NULL after a failed article fetch, got %q", content.String)
 	}
-	if n := scanValueOrFatal[int](t, `SELECT count(*) FROM stories`, nil); n != 1 {
+	if n := scanValueOrFatal[int](t, `SELECT count(*) FROM stories`); n != 1 {
 		t.Errorf("got %d stories, want 1 (story is queued before the article fetch runs)", n)
 	}
 }
@@ -379,7 +379,7 @@ func TestFeedPolling_FeedFetchFailure(t *testing.T) {
 		t.Error("want an error when the feed itself fails to fetch, got nil")
 	}
 
-	if n := scanValueOrFatal[int](t, `SELECT count(*) FROM feed_entries`, nil); n != 0 {
+	if n := scanValueOrFatal[int](t, `SELECT count(*) FROM feed_entries`); n != 0 {
 		t.Errorf("got %d feed_entries, want 0", n)
 	}
 }
@@ -395,7 +395,7 @@ func TestFeedPolling_EmptyFeed(t *testing.T) {
 	if err := j.Do(t.Context()); err == nil {
 		t.Error("want an error for a feed with zero items, got nil")
 	}
-	if n := scanValueOrFatal[int](t, `SELECT count(*) FROM feed_entries`, nil); n != 0 {
+	if n := scanValueOrFatal[int](t, `SELECT count(*) FROM feed_entries`); n != 0 {
 		t.Errorf("got %d feed_entries, want 0", n)
 	}
 }
@@ -414,10 +414,10 @@ func TestFeedPolling_MultipleSubscribers(t *testing.T) {
 		t.Fatalf("job.Do returned an unexpected error: %v", err)
 	}
 
-	if n := scanValueOrFatal[int](t, `SELECT count(*) FROM stories WHERE user_id = $1`, []any{uidAlice}); n != 1 {
+	if n := scanValueOrFatal[int](t, `SELECT count(*) FROM stories WHERE user_id = $1`, uidAlice); n != 1 {
 		t.Errorf("got %d stories for alice, want 1", n)
 	}
-	if n := scanValueOrFatal[int](t, `SELECT count(*) FROM stories WHERE user_id = $1`, []any{uidBob}); n != 1 {
+	if n := scanValueOrFatal[int](t, `SELECT count(*) FROM stories WHERE user_id = $1`, uidBob); n != 1 {
 		t.Errorf("got %d stories for bob, want 1", n)
 	}
 }
