@@ -20,7 +20,8 @@ func seedAuthSuit_NoUsers(ctx context.Context, db *sql.DB) error {
 // pump the app already authenticated but don't exercise feature-specific data
 // (e.g. the sign-out test).
 func seedAuthSuit_SignedIn(ctx context.Context, db *sql.DB) error {
-	return provisionTestAccount(ctx, db)
+	_, err := provisionTestAccount(ctx, db)
+	return err
 }
 
 // seedAuthSuit_ExistingUser inserts a single account so sign-in and

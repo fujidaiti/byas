@@ -29,12 +29,11 @@ const (
 	testAccountPassword = "Police-Repurpose-Atypical-Gravel"
 )
 
-func provisionTestAccount(ctx context.Context, db *sql.DB) error {
+func provisionTestAccount(ctx context.Context, db *sql.DB) (user.AuthToken, error) {
 	email := must(user.ParseEmail(testAccountEmail))
 	pswd := must(user.ValidatePassword(testAccountPassword))
 	svc := &user.Service{DB: db, Now: time.Now}
-	_, err := svc.SignUp(ctx, email, pswd, "seeder")
-	return err
+	return svc.SignUp(ctx, email, pswd, "seeder")
 }
 
 func seedDB(ctx context.Context, db *sql.DB, seederID string) error {
