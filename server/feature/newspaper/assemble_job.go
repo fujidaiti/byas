@@ -10,6 +10,7 @@ import (
 	"github.com/fujidaiti/paperdoll/server/feature/user"
 )
 
+// TODO: do the same task in a single batch instead of creating a job per user
 func CollectJobs(ctx context.Context, db *sql.DB) ([]job, error) {
 	now := time.Now()
 	ei, err := FindEditorialInterval(ctx, db, now)

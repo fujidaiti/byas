@@ -15,6 +15,8 @@ import (
 // seedSchedule registers a newspaper_schedules row at the given local
 // clock time (only the time-of-day component matters; minute_of_date is
 // relative to at's own local midnight, matching schedule.go's own calc).
+//
+// TODO: refactor to use a domain function once per-user schedule is supported
 func seedSchedule(t *testing.T, label string, at time.Time) {
 	t.Helper()
 	local := at.Local()
@@ -24,10 +26,11 @@ func seedSchedule(t *testing.T, label string, at time.Time) {
 	`, label, int(local.Sub(midnight).Minutes()))
 }
 
-// seedClaimableStory inserts a minimal feed, feed entry, and an unclaimed
-// story (newspaper_id IS NULL) owned by uid, bypassing feed polling since
-// these tests only care about story claiming during newspaper assembly.
-func seedClaimableStory(t *testing.T, uid user.UserID) int {
+// seedClaimableStory inserts a minimal feed and feed entry, bypassing feed
+// polling since these tests only care about story claiming during newspaper
+// assembly, then drafts and submits an unclaimed story (newspaper_id IS
+// NULL) owned by uid through the real domain functions in story.go.
+func seedClaimableStory(t *testing.T, uid user.UserID) {
 	t.Helper()
 	feedID := scanValOrFatal[int](t, `
 		INSERT INTO feeds (url, title) VALUES ($1, $2) RETURNING id
@@ -36,9 +39,12 @@ func seedClaimableStory(t *testing.T, uid user.UserID) int {
 		INSERT INTO feed_entries (dedup_key, feed_id, url, title, snapshot_at)
 		VALUES ($1, $2, $3, $4, $5) RETURNING id
 	`, fmt.Sprintf("story-seed-%d", uid), feedID, fmt.Sprintf("http://feed-%d.test/entry", uid), "Test Entry", time.Now())
-	return scanValOrFatal[int](t, `
-		INSERT INTO stories (user_id, feed_entry_id, title) VALUES ($1, $2, $3) RETURNING id
-	`, uid, entryID, "Test Story")
+
+	s := must(newspaper.DraftStory(uid, "Test Story", "", "Test Feed", entryID, time.Time{}))
+	svc := newspaper.Service{DB: testenv.DB()}
+	if err := svc.SubmitStories(t.Context(), []newspaper.Story{s}); err != nil {
+		t.Fatalf("SubmitStories returned an unexpected error: %v", err)
+	}
 }
 
 // CollectJobs creates exactly one newspaper (and job) per registered user,
@@ -88,19 +94,17 @@ func TestNewspaperCollectJobs_NoUsers(t *testing.T) {
 func TestNewspaperCollectJobs_SkipsUserWithExistingNewspaper(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
 	now := time.Now()
-	uidAlice := seedUser(t, "alice@example.com", now)
-	uidBob := seedUser(t, "bob@example.com", now)
 	seedSchedule(t, "before", now.Add(-2*time.Minute))
 	seedSchedule(t, "after", now.Add(3*time.Minute))
 
-	ei, err := newspaper.FindEditorialInterval(t.Context(), testenv.DB(), now)
-	if err != nil {
-		t.Fatalf("FindEditorialInterval returned an unexpected error: %v", err)
+	// Alice already has a newspaper for the upcoming schedule tick: run
+	// CollectJobs for her alone first, before bob is registered.
+	uidAlice := seedUser(t, "alice@example.com", now)
+	if _, err := newspaper.CollectJobs(t.Context(), testenv.DB()); err != nil {
+		t.Fatalf("CollectJobs returned an unexpected error: %v", err)
 	}
-	execOrFatal(t, `
-		INSERT INTO newspapers (user_id, draft, published_at) VALUES ($1, TRUE, $2)
-	`, uidAlice, ei.Next)
 
+	uidBob := seedUser(t, "bob@example.com", now)
 	jobs, err := newspaper.CollectJobs(t.Context(), testenv.DB())
 	if err != nil {
 		t.Fatalf("CollectJobs returned an unexpected error: %v", err)
