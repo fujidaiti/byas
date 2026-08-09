@@ -26,44 +26,23 @@ func seedSchedule(t *testing.T, label string, at time.Time) {
 	`, label, int(local.Sub(midnight).Minutes()))
 }
 
-// seedClaimableStory inserts a minimal feed and feed entry, bypassing feed
-// polling since these tests only care about story claiming during newspaper
-// assembly, then drafts and submits an unclaimed story (newspaper_id IS
-// NULL) owned by uid through the real domain functions in story.go.
-func seedClaimableStory(t *testing.T, uid user.UserID) {
-	t.Helper()
-	feedID := scanValOrFatal[int](t, `
-		INSERT INTO feeds (url, title) VALUES ($1, $2) RETURNING id
-	`, fmt.Sprintf("http://feed-%d.test/rss", uid), "Test Feed")
-	entryID := scanValOrFatal[int](t, `
-		INSERT INTO feed_entries (dedup_key, feed_id, url, title, snapshot_at)
-		VALUES ($1, $2, $3, $4, $5) RETURNING id
-	`, fmt.Sprintf("story-seed-%d", uid), feedID, fmt.Sprintf("http://feed-%d.test/entry", uid), "Test Entry", time.Now())
-
-	s := must(newspaper.DraftStory(uid, "Test Story", "", "Test Feed", entryID, time.Time{}))
-	svc := newspaper.Service{DB: testenv.DB()}
-	if err := svc.SubmitStories(t.Context(), []newspaper.Story{s}); err != nil {
-		t.Fatalf("SubmitStories returned an unexpected error: %v", err)
-	}
-}
-
 // CollectJobs creates exactly one newspaper (and job) per registered user,
 // all at the same shared schedule time, since per-user schedules don't
 // exist yet.
 func TestNewspaperCollectJobs_OneJobPerUser(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
-	now := time.Now()
+	now := time.Date(2026, 7, 15, 10, 0, 0, 0, time.Local)
 	uidAlice := seedUser(t, "alice@example.com", now)
 	uidBob := seedUser(t, "bob@example.com", now)
 	seedSchedule(t, "before", now.Add(-2*time.Minute))
 	seedSchedule(t, "after", now.Add(3*time.Minute))
 
-	jobs, err := newspaper.CollectJobs(t.Context(), testenv.DB())
+	jobs, err := newspaper.CollectJobs(t.Context(), testenv.DB(), now)
 	if err != nil {
 		t.Fatalf("CollectJobs returned an unexpected error: %v", err)
 	}
-	if len(jobs) != 2 {
-		t.Fatalf("got %d jobs, want 2", len(jobs))
+	if n := len(jobs); n != 2 {
+		t.Fatalf("got %d jobs, want 2", n)
 	}
 
 	for _, uid := range []user.UserID{uidAlice, uidBob} {
@@ -76,16 +55,16 @@ func TestNewspaperCollectJobs_OneJobPerUser(t *testing.T) {
 // CollectJobs returns no jobs when there are no users to issue newspapers for.
 func TestNewspaperCollectJobs_NoUsers(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
-	now := time.Now()
+	now := time.Date(2026, 7, 15, 10, 0, 0, 0, time.Local)
 	seedSchedule(t, "before", now.Add(-2*time.Minute))
 	seedSchedule(t, "after", now.Add(3*time.Minute))
 
-	jobs, err := newspaper.CollectJobs(t.Context(), testenv.DB())
+	jobs, err := newspaper.CollectJobs(t.Context(), testenv.DB(), now)
 	if err != nil {
 		t.Fatalf("CollectJobs returned an unexpected error: %v", err)
 	}
-	if len(jobs) != 0 {
-		t.Errorf("got %d jobs, want 0", len(jobs))
+	if n := len(jobs); n != 0 {
+		t.Errorf("got %d jobs, want 0", n)
 	}
 }
 
@@ -93,19 +72,19 @@ func TestNewspaperCollectJobs_NoUsers(t *testing.T) {
 // skipped, without blocking newspaper creation for other users.
 func TestNewspaperCollectJobs_SkipsUserWithExistingNewspaper(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
-	now := time.Now()
+	now := time.Date(2026, 7, 15, 10, 0, 0, 0, time.Local)
 	seedSchedule(t, "before", now.Add(-2*time.Minute))
 	seedSchedule(t, "after", now.Add(3*time.Minute))
 
 	// Alice already has a newspaper for the upcoming schedule tick: run
 	// CollectJobs for her alone first, before bob is registered.
 	uidAlice := seedUser(t, "alice@example.com", now)
-	if _, err := newspaper.CollectJobs(t.Context(), testenv.DB()); err != nil {
+	if _, err := newspaper.CollectJobs(t.Context(), testenv.DB(), now); err != nil {
 		t.Fatalf("CollectJobs returned an unexpected error: %v", err)
 	}
 
 	uidBob := seedUser(t, "bob@example.com", now)
-	jobs, err := newspaper.CollectJobs(t.Context(), testenv.DB())
+	jobs, err := newspaper.CollectJobs(t.Context(), testenv.DB(), now)
 	if err != nil {
 		t.Fatalf("CollectJobs returned an unexpected error: %v", err)
 	}
@@ -124,20 +103,38 @@ func TestNewspaperCollectJobs_SkipsUserWithExistingNewspaper(t *testing.T) {
 // the other user's stories and newspaper untouched.
 func TestNewspaperAssemble_ScopesStoriesByUser(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
-	now := time.Now()
+	now := time.Date(2026, 7, 15, 10, 0, 0, 0, time.Local)
 	uidAlice := seedUser(t, "alice@example.com", now)
 	uidBob := seedUser(t, "bob@example.com", now)
 	seedSchedule(t, "before", now.Add(-2*time.Minute))
 	seedSchedule(t, "after", now.Add(3*time.Minute))
-	seedClaimableStory(t, uidAlice)
-	seedClaimableStory(t, uidBob)
+	// Inserts a minimal feed and feed entry, bypassing feed
+	// polling since these tests only care about story claiming during newspaper
+	// assembly, then drafts and submits an unclaimed story (newspaper_id IS
+	// NULL) owned by uid through the real domain functions in story.go.
+	svc := newspaper.Service{DB: testenv.DB()}
+	var stories []newspaper.Story
+	for _, uid := range []user.UserID{uidAlice, uidBob} {
+		feedID := scanValOrFatal[int](t, `
+			INSERT INTO feeds (url, title) VALUES ($1, $2) RETURNING id
+		`, fmt.Sprintf("http://feed-%d.test/rss", uid), "Test Feed")
+		entryID := scanValOrFatal[int](t, `
+			INSERT INTO feed_entries (dedup_key, feed_id, url, title, snapshot_at)
+			VALUES ($1, $2, $3, $4, $5) RETURNING id
+		`, fmt.Sprintf("story-seed-%d", uid), feedID, fmt.Sprintf("http://feed-%d.test/entry", uid), "Test Entry", now)
+		s := must(newspaper.DraftStory(uid, "Test Story", "", "Test Feed", entryID, time.Time{}))
+		stories = append(stories, s)
+	}
+	if err := svc.SubmitStories(t.Context(), stories); err != nil {
+		t.Fatalf("SubmitStories returned an unexpected error: %v", err)
+	}
 
-	jobs, err := newspaper.CollectJobs(t.Context(), testenv.DB())
+	jobs, err := newspaper.CollectJobs(t.Context(), testenv.DB(), now)
 	if err != nil {
 		t.Fatalf("CollectJobs returned an unexpected error: %v", err)
 	}
-	if len(jobs) != 2 {
-		t.Fatalf("got %d jobs, want 2", len(jobs))
+	if n := len(jobs); n != 2 {
+		t.Fatalf("got %d jobs, want 2", n)
 	}
 
 	// Run only one of the two jobs. Which user it belongs to doesn't matter:
@@ -164,17 +161,17 @@ func TestNewspaperAssemble_ScopesStoriesByUser(t *testing.T) {
 // newspaper row cleaned up rather than published empty.
 func TestNewspaperAssemble_NoStoriesCleansUpNewspaper(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
-	now := time.Now()
+	now := time.Date(2026, 7, 15, 10, 0, 0, 0, time.Local)
 	seedUser(t, "alice@example.com", now)
 	seedSchedule(t, "before", now.Add(-2*time.Minute))
 	seedSchedule(t, "after", now.Add(3*time.Minute))
 
-	jobs, err := newspaper.CollectJobs(t.Context(), testenv.DB())
+	jobs, err := newspaper.CollectJobs(t.Context(), testenv.DB(), now)
 	if err != nil {
 		t.Fatalf("CollectJobs returned an unexpected error: %v", err)
 	}
-	if len(jobs) != 1 {
-		t.Fatalf("got %d jobs, want 1", len(jobs))
+	if n := len(jobs); n != 1 {
+		t.Fatalf("got %d jobs, want 1", n)
 	}
 
 	if err := jobs[0].Do(t.Context()); err != nil {
