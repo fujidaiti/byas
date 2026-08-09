@@ -11,7 +11,7 @@ import (
 )
 
 // TODO: do the same task in a single batch instead of creating a job per user
-func CollectJobs(ctx context.Context, db *sql.DB, now time.Time) ([]job, error) {
+func CollectJobs(ctx context.Context, db *sql.DB, now time.Time) ([]Job, error) {
 	ei, err := FindEditorialInterval(ctx, db, now)
 	pubDate := ei.Next
 	if err != nil {
@@ -19,7 +19,7 @@ func CollectJobs(ctx context.Context, db *sql.DB, now time.Time) ([]job, error) 
 	}
 	if pubDate.Sub(now) > 10*time.Minute {
 		fmt.Printf("Not yet close enough to the next schedule %s. Skipping.\n", pubDate)
-		return []job{}, nil
+		return []Job{}, nil
 	}
 	fmt.Printf("Prepare for next schedule: %s\n", pubDate)
 
@@ -45,7 +45,7 @@ func CollectJobs(ctx context.Context, db *sql.DB, now time.Time) ([]job, error) 
 		return nil, err
 	}
 
-	var jobs []job
+	var jobs []Job
 	for _, uid := range userIDs {
 		var newspaperID int
 		err = db.QueryRowContext(ctx, `
@@ -64,24 +64,24 @@ func CollectJobs(ctx context.Context, db *sql.DB, now time.Time) ([]job, error) 
 		} else if err != nil {
 			return nil, err
 		}
-		jobs = append(jobs, job{db, uid, newspaperID})
+		jobs = append(jobs, Job{db, uid, newspaperID})
 	}
 
 	return jobs, nil
 }
 
-type job struct {
-	db          *sql.DB
-	userID      user.UserID
-	newspaperID int
+type Job struct {
+	DB          *sql.DB
+	UserID      user.UserID
+	NewspaperID int
 }
 
-func (j *job) Timeout() time.Duration {
+func (j *Job) Timeout() time.Duration {
 	return time.Minute
 }
 
-func (j *job) Do(ctx context.Context) error {
-	fmt.Printf("Assembling newspaper (ID=%d, UserID=%d)\n", j.newspaperID, j.userID)
+func (j *Job) Do(ctx context.Context) error {
+	fmt.Printf("Assembling newspaper (ID=%d, UserID=%d)\n", j.NewspaperID, j.UserID)
 	n, err := j.assembleAndPublish(ctx)
 	if err != nil {
 		fmt.Println("Something went wrong while assembling. Deleting.")
@@ -93,15 +93,15 @@ func (j *job) Do(ctx context.Context) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	_, dErr := j.db.ExecContext(ctx, `DELETE FROM newspapers WHERE id = $1;`, j.newspaperID)
+	_, dErr := j.DB.ExecContext(ctx, `DELETE FROM newspapers WHERE id = $1;`, j.NewspaperID)
 	if dErr != nil {
 		return fmt.Errorf("%w; cleanup failed: %w", err, dErr)
 	}
 	return err
 }
 
-func (j *job) assembleAndPublish(ctx context.Context) (int64, error) {
-	tx, err := j.db.BeginTx(ctx, nil)
+func (j *Job) assembleAndPublish(ctx context.Context) (int64, error) {
+	tx, err := j.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, err
 	}
@@ -115,7 +115,7 @@ func (j *job) assembleAndPublish(ctx context.Context) (int64, error) {
 		UPDATE stories
 		SET newspaper_id = $1
 		WHERE newspaper_id IS NULL AND user_id = $2;
-	`, j.newspaperID, j.userID)
+	`, j.NewspaperID, j.UserID)
 	if err != nil {
 		return 0, err
 	}
@@ -128,7 +128,7 @@ func (j *job) assembleAndPublish(ctx context.Context) (int64, error) {
 		UPDATE newspapers
 		SET draft = FALSE
 		WHERE id = $1;
-	`, j.newspaperID)
+	`, j.NewspaperID)
 	if err != nil {
 		return n, err
 	}

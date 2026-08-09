@@ -45,9 +45,19 @@ func TestNewspaperCollectJobs_OneJobPerUser(t *testing.T) {
 		t.Fatalf("got %d jobs, want 2", n)
 	}
 
+	jobByUser := make(map[user.UserID]int, len(jobs))
+	for _, j := range jobs {
+		jobByUser[j.UserID] = j.NewspaperID
+	}
 	for _, uid := range []user.UserID{uidAlice, uidBob} {
-		if n := scanValOrFatal[int](t, `SELECT count(*) FROM newspapers WHERE user_id = $1`, uid); n != 1 {
-			t.Errorf("got %d newspapers for user %d, want 1", n, uid)
+		newspaperID, ok := jobByUser[uid]
+		if !ok {
+			t.Errorf("no job returned for user %d", uid)
+			continue
+		}
+		want := scanValOrFatal[int](t, `SELECT id FROM newspapers WHERE user_id = $1`, uid)
+		if newspaperID != want {
+			t.Errorf("job for user %d has NewspaperID %d, want %d", uid, newspaperID, want)
 		}
 	}
 }
@@ -90,6 +100,16 @@ func TestNewspaperCollectJobs_SkipsUserWithExistingNewspaper(t *testing.T) {
 	}
 	if len(jobs) != 1 {
 		t.Fatalf("got %d jobs, want 1 (only bob's)", len(jobs))
+	}
+	if jobs[0].UserID != uidBob {
+		t.Errorf("got job for user %d, want bob's job (user %d)", jobs[0].UserID, uidBob)
+	}
+	if want := scanValOrFatal[int](
+		t,
+		`SELECT id FROM newspapers WHERE user_id = $1`,
+		uidBob,
+	); jobs[0].NewspaperID != want {
+		t.Errorf("got job.NewspaperID %d, want %d (bob's actual newspaper row)", jobs[0].NewspaperID, want)
 	}
 	if n := scanValOrFatal[int](t, `SELECT count(*) FROM newspapers WHERE user_id = $1`, uidBob); n != 1 {
 		t.Errorf("got %d newspapers for bob, want 1", n)
@@ -148,6 +168,11 @@ func TestNewspaperAssemble_ScopesStoriesByUser(t *testing.T) {
 	}
 	if n := scanValOrFatal[int](t, `SELECT count(*) FROM stories WHERE newspaper_id IS NULL`); n != 1 {
 		t.Errorf("got %d unclaimed stories, want exactly 1 (the other user's story untouched)", n)
+	}
+	if n := scanValOrFatal[int](t, `
+		SELECT count(*) FROM stories WHERE newspaper_id = $1 AND user_id = $2
+	`, jobs[0].NewspaperID, jobs[0].UserID); n != 1 {
+		t.Errorf("got %d stories claimed by the processed job's own newspaper/user, want 1", n)
 	}
 	if n := scanValOrFatal[int](t, `SELECT count(*) FROM newspapers WHERE draft = FALSE`); n != 1 {
 		t.Errorf("got %d published newspapers, want exactly 1", n)
