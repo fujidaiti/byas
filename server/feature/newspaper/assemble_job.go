@@ -23,8 +23,25 @@ func CollectJobs(ctx context.Context, db *sql.DB) ([]job, error) {
 	}
 	fmt.Printf("Prepare for next schedule: %s\n", pubDate)
 
-	userIDs, err := collectUserIDs(ctx, db)
+	// Collect user IDs
+	rows, err := db.QueryContext(ctx, `SELECT id FROM users;`)
 	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
+	var userIDs []user.UserID
+	for rows.Next() {
+		var uid user.UserID
+		if err := rows.Scan(&uid); err != nil {
+			return nil, err
+		}
+		userIDs = append(userIDs, uid)
+	}
+	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
@@ -38,8 +55,7 @@ func CollectJobs(ctx context.Context, db *sql.DB) ([]job, error) {
 			RETURNING id;
 		`, uid, pubDate).Scan(&newspaperID)
 		if errors.Is(err, sql.ErrNoRows) {
-			// TODO: Handle the case where a record exists but the newspaper was not
-			// assembled due to a server outage.
+			// TODO: Handle the case where a record exists but the newspaper was not assembled due to a server outage.
 			fmt.Printf(
 				"The newspaper for user %d at %s already exists or is being assembled. Skipping.\n",
 				uid, pubDate,
@@ -52,31 +68,6 @@ func CollectJobs(ctx context.Context, db *sql.DB) ([]job, error) {
 	}
 
 	return jobs, nil
-}
-
-func collectUserIDs(ctx context.Context, db *sql.DB) ([]user.UserID, error) {
-	rows, err := db.QueryContext(ctx, `SELECT id FROM users;`)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		if err := rows.Close(); err != nil {
-			fmt.Println(err)
-		}
-	}()
-
-	var ids []user.UserID
-	for rows.Next() {
-		var uid user.UserID
-		if err := rows.Scan(&uid); err != nil {
-			return nil, err
-		}
-		ids = append(ids, uid)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return ids, nil
 }
 
 type job struct {
