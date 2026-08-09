@@ -6,10 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/fujidaiti/paperdoll/server/feature/user"
 )
 
-func CollectJobs(ctx context.Context, db *sql.DB) ([]job, error) {
-	now := time.Now()
+// TODO: do the same task in a single batch instead of creating a job per user
+func CollectJobs(ctx context.Context, db *sql.DB, now time.Time) ([]Job, error) {
 	ei, err := FindEditorialInterval(ctx, db, now)
 	pubDate := ei.Next
 	if err != nil {
@@ -17,43 +19,69 @@ func CollectJobs(ctx context.Context, db *sql.DB) ([]job, error) {
 	}
 	if pubDate.Sub(now) > 10*time.Minute {
 		fmt.Printf("Not yet close enough to the next schedule %s. Skipping.\n", pubDate)
-		return []job{}, nil
+		return []Job{}, nil
 	}
 	fmt.Printf("Prepare for next schedule: %s\n", pubDate)
 
-	var newspaperID int
-	err = db.QueryRowContext(ctx, `
-		INSERT INTO newspapers (draft, published_at)
-		VALUES (TRUE, $1)
-		ON CONFLICT (published_at) DO NOTHING
-		RETURNING id;
-	`, pubDate).Scan(&newspaperID)
-	if errors.Is(err, sql.ErrNoRows) {
-		// TODO: Handle the case where a record exists but the newspaper was not
-		// assembled due to a server outage.
-		fmt.Printf(
-			"The newspaper for %s already exists or is being assembled. Skipping.\n",
-			pubDate,
-		)
-		return []job{}, nil
-	} else if err != nil {
+	// Collect user IDs
+	rows, err := db.QueryContext(ctx, `SELECT id FROM users;`)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
+	var userIDs []user.UserID
+	for rows.Next() {
+		var uid user.UserID
+		if err := rows.Scan(&uid); err != nil {
+			return nil, err
+		}
+		userIDs = append(userIDs, uid)
+	}
+	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
-	return []job{{db, newspaperID}}, nil
+	var jobs []Job
+	for _, uid := range userIDs {
+		var newspaperID int
+		err = db.QueryRowContext(ctx, `
+			INSERT INTO newspapers (user_id, draft, published_at)
+			VALUES ($1, TRUE, $2)
+			ON CONFLICT (user_id, published_at) DO NOTHING
+			RETURNING id;
+		`, uid, pubDate).Scan(&newspaperID)
+		if errors.Is(err, sql.ErrNoRows) {
+			// TODO: Handle the case where a record exists but the newspaper was not assembled due to a server outage.
+			fmt.Printf(
+				"The newspaper for user %d at %s already exists or is being assembled. Skipping.\n",
+				uid, pubDate,
+			)
+			continue
+		} else if err != nil {
+			return nil, err
+		}
+		jobs = append(jobs, Job{db, uid, newspaperID})
+	}
+
+	return jobs, nil
 }
 
-type job struct {
-	db          *sql.DB
-	newspaperID int
+type Job struct {
+	DB          *sql.DB
+	UserID      user.UserID
+	NewspaperID int
 }
 
-func (j *job) Timeout() time.Duration {
+func (j *Job) Timeout() time.Duration {
 	return time.Minute
 }
 
-func (j *job) Do(ctx context.Context) error {
-	fmt.Printf("Assembling newspaper (ID=%d)\n", j.newspaperID)
+func (j *Job) Do(ctx context.Context) error {
+	fmt.Printf("Assembling newspaper (ID=%d, UserID=%d)\n", j.NewspaperID, j.UserID)
 	n, err := j.assembleAndPublish(ctx)
 	if err != nil {
 		fmt.Println("Something went wrong while assembling. Deleting.")
@@ -65,15 +93,15 @@ func (j *job) Do(ctx context.Context) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	_, dErr := j.db.ExecContext(ctx, `DELETE FROM newspapers WHERE id = $1;`, j.newspaperID)
+	_, dErr := j.DB.ExecContext(ctx, `DELETE FROM newspapers WHERE id = $1;`, j.NewspaperID)
 	if dErr != nil {
 		return fmt.Errorf("%w; cleanup failed: %w", err, dErr)
 	}
 	return err
 }
 
-func (j *job) assembleAndPublish(ctx context.Context) (int64, error) {
-	tx, err := j.db.BeginTx(ctx, nil)
+func (j *Job) assembleAndPublish(ctx context.Context) (int64, error) {
+	tx, err := j.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, err
 	}
@@ -86,8 +114,8 @@ func (j *job) assembleAndPublish(ctx context.Context) (int64, error) {
 	res, err := tx.ExecContext(ctx, `
 		UPDATE stories
 		SET newspaper_id = $1
-		WHERE newspaper_id IS NULL;
-	`, j.newspaperID)
+		WHERE newspaper_id IS NULL AND user_id = $2;
+	`, j.NewspaperID, j.UserID)
 	if err != nil {
 		return 0, err
 	}
@@ -100,7 +128,7 @@ func (j *job) assembleAndPublish(ctx context.Context) (int64, error) {
 		UPDATE newspapers
 		SET draft = FALSE
 		WHERE id = $1;
-	`, j.newspaperID)
+	`, j.NewspaperID)
 	if err != nil {
 		return n, err
 	}

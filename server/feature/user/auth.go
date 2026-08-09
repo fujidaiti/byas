@@ -25,8 +25,10 @@ var (
 	ErrTokenInvalid = errors.New("token is invalid or has been expired")
 )
 
+// TODO: re-define this as a named type
 type UserID = int
 
+// TODO: re-define this as a named type of string
 type ValidPassword struct{ value string }
 
 // Printable ASCII characters only; 15-64 characters
@@ -39,6 +41,7 @@ func ValidatePassword(p string) (ValidPassword, error) {
 	return ValidPassword{p}, nil
 }
 
+// TODO: re-define this as a named type of string
 type CanonicalEmail struct{ value string }
 
 func ParseEmail(addr string) (CanonicalEmail, error) {

@@ -83,7 +83,7 @@ func StartScheduler(ctx context.Context) {
 	_, err = scheduler.NewJob(
 		gocron.DurationJob(5*time.Minute),
 		gocron.NewTask(func() {
-			jobs, err := newspaper.CollectJobs(ctx, db)
+			jobs, err := newspaper.CollectJobs(ctx, db, time.Now())
 			if err != nil {
 				fmt.Println(err)
 			}
