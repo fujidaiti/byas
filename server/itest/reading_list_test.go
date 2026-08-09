@@ -19,15 +19,15 @@ import (
 // Feed entries are normally created by feed polling, which is far more setup
 // than these tests need, so this bypasses it the same way newspaper_test.go
 // does.
-func seedFeedEntry(t *testing.T, seed, title string) int {
+func seedFeedEntry(t *testing.T, seed, title, description string) int {
 	t.Helper()
 	feedID := scanValOrFatal[int](t, `
 		INSERT INTO feeds (url, title) VALUES ($1, $2) RETURNING id
 	`, fmt.Sprintf("http://%s.test/rss", seed), title+" Feed")
 	return scanValOrFatal[int](t, `
-		INSERT INTO feed_entries (dedup_key, feed_id, url, title, snapshot_at)
-		VALUES ($1, $2, $3, $4, $5) RETURNING id
-	`, seed, feedID, fmt.Sprintf("http://%s.test/entry", seed), title, time.Now())
+		INSERT INTO feed_entries (dedup_key, feed_id, url, title, description, snapshot_at)
+		VALUES ($1, $2, $3, $4, $5, $6) RETURNING id
+	`, seed, feedID, fmt.Sprintf("http://%s.test/entry", seed), title, description, time.Now())
 }
 
 // SaveFeedEntry copies the entry's metadata into a new reading list item owned
@@ -36,7 +36,7 @@ func TestReadingList_SaveFeedEntry(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
 	now := mustTimeUTC("2026-07-15 10:00:00")
 	uidAlice := seedUser(t, "alice@example.com", now)
-	entryID := seedFeedEntry(t, "save-me", "Save Me")
+	entryID := seedFeedEntry(t, "save-me", "Save Me", "An entry worth saving.")
 
 	s := readinglist.NewService(testenv.DB(), scraper.NewService(stubServerAddr))
 	item, err := s.SaveFeedEntry(t.Context(), uidAlice, entryID)
@@ -56,16 +56,62 @@ func TestReadingList_SaveFeedEntry(t *testing.T) {
 	if item.Title != "Save Me" {
 		t.Errorf("got title %q, want the entry's own title %q", item.Title, "Save Me")
 	}
+	if item.Description == nil {
+		t.Error("got nil description, want the entry's own description")
+	} else if *item.Description != "An entry worth saving." {
+		t.Errorf("got description %q, want %q", *item.Description, "An entry worth saving.")
+	}
 	if item.SavedAt.IsZero() {
 		t.Error("saved_at must be assigned, got the zero time")
 	}
 
-	gotUID := scanValOrFatal[user.UserID](t, `SELECT user_id FROM reading_list_items WHERE id = $1`, item.ID)
-	if gotUID != uidAlice {
-		t.Errorf("got user_id %d, want alice's id %d", gotUID, uidAlice)
+	// The saved row itself, column by column: the returned item is only a
+	// report of what was written, not proof of it.
+	if n := scanValOrFatal[int](t, `SELECT count(*) FROM reading_list_items`); n != 1 {
+		t.Fatalf("got %d reading list items, want exactly 1", n)
 	}
-	if scanValOrFatal[bool](t, `SELECT archived FROM reading_list_items WHERE id = $1`, item.ID) {
+	var (
+		gotKind        string
+		gotFeedEntryID int
+		gotWebClipID   *int
+		gotTitle       string
+		gotDescription *string
+		gotArchived    bool
+		gotSavedAt     time.Time
+		gotUID         user.UserID
+	)
+	scanRowOrFatal(t, `
+		SELECT kind, feed_entry_id, web_clip_id, title, description, archived, saved_at, user_id
+		FROM reading_list_items WHERE id = $1
+	`, []any{item.ID},
+		&gotKind, &gotFeedEntryID, &gotWebClipID, &gotTitle,
+		&gotDescription, &gotArchived, &gotSavedAt, &gotUID,
+	)
+	if gotKind != "feed_entry" {
+		t.Errorf("got stored kind %q, want %q", gotKind, "feed_entry")
+	}
+	if gotFeedEntryID != entryID {
+		t.Errorf("got stored feed_entry_id %d, want the seeded entry %d", gotFeedEntryID, entryID)
+	}
+	if gotWebClipID != nil {
+		t.Errorf("got stored web_clip_id %d, want NULL for a feed entry item", *gotWebClipID)
+	}
+	if gotTitle != "Save Me" {
+		t.Errorf("got stored title %q, want the entry's own title %q", gotTitle, "Save Me")
+	}
+	if gotDescription == nil {
+		t.Error("got stored description NULL, want the entry's own description")
+	} else if *gotDescription != "An entry worth saving." {
+		t.Errorf("got stored description %q, want %q", *gotDescription, "An entry worth saving.")
+	}
+	if gotArchived {
 		t.Error("a newly saved item must not be archived")
+	}
+	if !gotSavedAt.Equal(item.SavedAt) {
+		t.Errorf("got stored saved_at %v, want the returned %v", gotSavedAt, item.SavedAt)
+	}
+	if gotUID != uidAlice {
+		t.Errorf("got stored user_id %d, want alice's id %d", gotUID, uidAlice)
 	}
 }
 
@@ -99,11 +145,49 @@ func TestReadingList_SaveWebClip(t *testing.T) {
 	if gotURL != clipURL.String() {
 		t.Errorf("got clip URL %q, want %q", gotURL, clipURL.String())
 	}
-	gotUID := scanValOrFatal[user.UserID](t, `
-		SELECT user_id FROM reading_list_items WHERE id = $1
-	`, item.ID)
+
+	// The saved row itself. Its title is deliberately left out here: the
+	// background fetch may already have replaced the placeholder, so the title
+	// is only asserted once the fetch is known to be finished, below.
+	if n := scanValOrFatal[int](t, `SELECT count(*) FROM reading_list_items`); n != 1 {
+		t.Fatalf("got %d reading list items, want exactly 1", n)
+	}
+	var (
+		gotKind        string
+		gotWebClipID   int
+		gotFeedEntryID *int
+		gotDescription *string
+		gotArchived    bool
+		gotSavedAt     time.Time
+		gotUID         user.UserID
+	)
+	scanRowOrFatal(t, `
+		SELECT kind, web_clip_id, feed_entry_id, description, archived, saved_at, user_id
+		FROM reading_list_items WHERE id = $1
+	`, []any{item.ID},
+		&gotKind, &gotWebClipID, &gotFeedEntryID,
+		&gotDescription, &gotArchived, &gotSavedAt, &gotUID,
+	)
+	if gotKind != "web_clip" {
+		t.Errorf("got stored kind %q, want %q", gotKind, "web_clip")
+	}
+	if gotWebClipID != item.ResourceID {
+		t.Errorf("got stored web_clip_id %d, want the returned resource ID %d", gotWebClipID, item.ResourceID)
+	}
+	if gotFeedEntryID != nil {
+		t.Errorf("got stored feed_entry_id %d, want NULL for a web clip item", *gotFeedEntryID)
+	}
+	if gotDescription != nil {
+		t.Errorf("got stored description %q, want NULL (the clip isn't fetched yet)", *gotDescription)
+	}
+	if gotArchived {
+		t.Error("a newly saved item must not be archived")
+	}
+	if !gotSavedAt.Equal(item.SavedAt) {
+		t.Errorf("got stored saved_at %v, want the returned %v", gotSavedAt, item.SavedAt)
+	}
 	if gotUID != uidAlice {
-		t.Errorf("got user_id %d, want alice's id %d", gotUID, uidAlice)
+		t.Errorf("got stored user_id %d, want alice's id %d", gotUID, uidAlice)
 	}
 
 	// TODO: make this better
@@ -175,9 +259,52 @@ func TestReadingList_SaveWebClipByID(t *testing.T) {
 		t.Errorf("got description %q, want %q", *item.Description, "An existing clip.")
 	}
 
-	gotUID := scanValOrFatal[user.UserID](t, `SELECT user_id FROM reading_list_items WHERE id = $1`, item.ID)
+	// The saved row itself, column by column.
+	if n := scanValOrFatal[int](t, `SELECT count(*) FROM reading_list_items`); n != 1 {
+		t.Fatalf("got %d reading list items, want exactly 1", n)
+	}
+	var (
+		gotKind        string
+		gotWebClipID   int
+		gotFeedEntryID *int
+		gotTitle       string
+		gotDescription *string
+		gotArchived    bool
+		gotSavedAt     time.Time
+		gotUID         user.UserID
+	)
+	scanRowOrFatal(t, `
+		SELECT kind, web_clip_id, feed_entry_id, title, description, archived, saved_at, user_id
+		FROM reading_list_items WHERE id = $1
+	`, []any{item.ID},
+		&gotKind, &gotWebClipID, &gotFeedEntryID, &gotTitle,
+		&gotDescription, &gotArchived, &gotSavedAt, &gotUID,
+	)
+	if gotKind != "web_clip" {
+		t.Errorf("got stored kind %q, want %q", gotKind, "web_clip")
+	}
+	if gotWebClipID != clipID {
+		t.Errorf("got stored web_clip_id %d, want the seeded clip %d", gotWebClipID, clipID)
+	}
+	if gotFeedEntryID != nil {
+		t.Errorf("got stored feed_entry_id %d, want NULL for a web clip item", *gotFeedEntryID)
+	}
+	if gotTitle != "Existing Clip" {
+		t.Errorf("got stored title %q, want the clip's own title %q", gotTitle, "Existing Clip")
+	}
+	if gotDescription == nil {
+		t.Error("got stored description NULL, want the clip's own description")
+	} else if *gotDescription != "An existing clip." {
+		t.Errorf("got stored description %q, want %q", *gotDescription, "An existing clip.")
+	}
+	if gotArchived {
+		t.Error("a newly saved item must not be archived")
+	}
+	if !gotSavedAt.Equal(item.SavedAt) {
+		t.Errorf("got stored saved_at %v, want the returned %v", gotSavedAt, item.SavedAt)
+	}
 	if gotUID != uidBob {
-		t.Errorf("got user_id %d, want bob's id %d", gotUID, uidBob)
+		t.Errorf("got stored user_id %d, want bob's id %d", gotUID, uidBob)
 	}
 }
 
@@ -213,7 +340,7 @@ func TestReadingList_DeleteRequiresOwnership(t *testing.T) {
 	now := mustTimeUTC("2026-07-15 10:00:00")
 	uidAlice := seedUser(t, "alice@example.com", now)
 	uidBob := seedUser(t, "bob@example.com", now)
-	entryID := seedFeedEntry(t, "delete-me", "Delete Me")
+	entryID := seedFeedEntry(t, "delete-me", "Delete Me", "An entry worth deleting.")
 
 	s := readinglist.NewService(testenv.DB(), scraper.NewService(stubServerAddr))
 	item := must(s.SaveFeedEntry(t.Context(), uidAlice, entryID))
@@ -257,7 +384,7 @@ func TestReadingList_ArchiveAndUnarchiveRequireOwnership(t *testing.T) {
 	now := mustTimeUTC("2026-07-15 10:00:00")
 	uidAlice := seedUser(t, "alice@example.com", now)
 	uidBob := seedUser(t, "bob@example.com", now)
-	entryID := seedFeedEntry(t, "archive-me", "Archive Me")
+	entryID := seedFeedEntry(t, "archive-me", "Archive Me", "An entry worth archiving.")
 
 	s := readinglist.NewService(testenv.DB(), scraper.NewService(stubServerAddr))
 	item := must(s.SaveFeedEntry(t.Context(), uidAlice, entryID))
