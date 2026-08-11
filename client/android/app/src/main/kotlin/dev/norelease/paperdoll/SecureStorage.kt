@@ -17,15 +17,12 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 /**
- * Native-side backing store for the app's secure key-value storage (currently just the auth
- * token). Reachable both from the Flutter engine (via a MethodChannel in [MainActivity]) and
- * directly from [SaveWebClipActivity], which runs outside the Flutter engine and otherwise has
- * no way to read what Dart's SecureStorage wrote.
+ * Native-side backing store for the app's secure key-value storage.
  *
  * Values are encrypted with an Android Keystore key and stored as Base64 in a Preferences
- * DataStore. Key names are stored as-is: the only one is `auth_token`, which isn't secret.
+ * DataStore. Key names are stored as-is.
  */
-object TokenStore {
+object SecureStorage {
     private val Context.secureKvStore: DataStore<Preferences> by
         preferencesDataStore(name = "secure_kv_store")
 

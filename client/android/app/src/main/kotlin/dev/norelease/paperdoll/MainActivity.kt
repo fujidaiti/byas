@@ -13,24 +13,27 @@ private const val SECURE_STORAGE_CHANNEL = "dev.norelease.paperdoll/secure_stora
 
 class MainActivity : FlutterActivity() {
     // Main dispatcher, because a MethodChannel result must be answered on the platform
-    // thread. TokenStore's own work (DataStore I/O, Keystore) dispatches itself off it.
+    // thread. SecureStorage's own work (DataStore I/O, Keystore) dispatches itself off it.
     private val channelScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, SECURE_STORAGE_CHANNEL)
-            .setMethodCallHandler { call, result ->
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            SECURE_STORAGE_CHANNEL
+        ).setMethodCallHandler { call, result ->
                 channelScope.launch {
                     try {
                         val key = call.argument<String>("key")
                         when (call.method) {
-                            "read" -> result.success(TokenStore.read(applicationContext, key!!))
+                            "read" -> result.success(SecureStorage.read(applicationContext, key!!))
                             "write" -> {
                                 val value = call.argument<String>("value")
-                                TokenStore.write(applicationContext, key!!, value)
+                                SecureStorage.write(applicationContext, key!!, value)
                                 result.success(null)
                             }
+
                             else -> result.notImplemented()
                         }
                     } catch (e: Exception) {

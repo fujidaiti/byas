@@ -41,13 +41,14 @@ class SaveWebClipActivity : ComponentActivity() {
             val dark = isSystemInDarkTheme()
             // Material You dynamic color (wallpaper-derived) is only available on Android 12
             // (API 31) and up; fall back to the Material 3 baseline scheme below that.
-            val colorScheme =
-                when {
-                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
-                        if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-                    dark -> darkColorScheme()
-                    else -> lightColorScheme()
-                }
+            val colorScheme = when {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> if (dark) dynamicDarkColorScheme(
+                    context
+                ) else dynamicLightColorScheme(context)
+
+                dark -> darkColorScheme()
+                else -> lightColorScheme()
+            }
             MaterialTheme(colorScheme = colorScheme) {
                 Surface {
                     SaveWebClipScreen(url = url, title = title, onClose = { finish() })
@@ -64,8 +65,8 @@ class SaveWebClipActivity : ComponentActivity() {
      */
     private fun extractUrl(text: String): String? {
         val trimmed = text.trim()
-        if (Patterns.WEB_URL.matcher(trimmed).matches() &&
-            (trimmed.startsWith("http://") || trimmed.startsWith("https://"))
+        if (Patterns.WEB_URL.matcher(trimmed)
+                .matches() && (trimmed.startsWith("http://") || trimmed.startsWith("https://"))
         ) {
             return trimmed
         }

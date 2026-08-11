@@ -61,27 +61,22 @@ enum class SaveErrorKind {
     Unexpected,
 }
 
-private fun SaveErrorKind.message(): String =
-    when (this) {
-        SaveErrorKind.Network ->
-            "Couldn't reach the server. Check your connection and try again."
+private fun SaveErrorKind.message(): String = when (this) {
+    SaveErrorKind.Network -> "Couldn't reach the server. Check your connection and try again."
 
-        SaveErrorKind.Unauthenticated ->
-            "Log in to Paperdoll first, then try sharing again."
+    SaveErrorKind.Unauthenticated -> "Log in to Paperdoll first, then try sharing again."
 
-        SaveErrorKind.Unexpected ->
-            "Couldn't add to your reading list. Please try again."
-    }
+    SaveErrorKind.Unexpected -> "Couldn't add to your reading list. Please try again."
+}
 
 /** Thrown by [postToReadingList] when no auth token is stored locally. */
 class UnauthenticatedException : Exception()
 
-private fun SaveState.statusHeadline(): String =
-    when (this) {
-        SaveState.Loading -> "Adding to Reading List…"
-        SaveState.Success -> "Added to Reading List"
-        is SaveState.Error -> "Couldn't Save"
-    }
+private fun SaveState.statusHeadline(): String = when (this) {
+    SaveState.Loading -> "Adding to Reading List…"
+    SaveState.Success -> "Added to Reading List"
+    is SaveState.Error -> "Couldn't Save"
+}
 
 private val DIALOG_HEIGHT = 280.dp
 
@@ -99,19 +94,17 @@ fun SaveWebClipScreen(url: String, title: String?, onClose: () -> Unit) {
         val deferred =
             SaveScope.scope.async { runCatching { postToReadingList(appContext, url, title) } }
         observerScope.launch {
-            state =
-                deferred.await().fold(
-                    onSuccess = { SaveState.Success },
-                    onFailure = {
-                        val kind =
-                            when (it) {
-                                is UnauthenticatedException -> SaveErrorKind.Unauthenticated
-                                is IOException -> SaveErrorKind.Network
-                                else -> SaveErrorKind.Unexpected
-                            }
-                        SaveState.Error(kind)
-                    },
-                )
+            state = deferred.await().fold(
+                onSuccess = { SaveState.Success },
+                onFailure = {
+                    val kind = when (it) {
+                        is UnauthenticatedException -> SaveErrorKind.Unauthenticated
+                        is IOException -> SaveErrorKind.Network
+                        else -> SaveErrorKind.Unexpected
+                    }
+                    SaveState.Error(kind)
+                },
+            )
         }
     }
 
@@ -192,18 +185,17 @@ private const val MAX_TITLE_LENGTH = 140
  * Caps [title] at [MAX_TITLE_LENGTH] characters, truncating and appending "..." (so the
  * result never exceeds the limit) when it is longer.
  */
-private fun truncateTitle(title: String): String =
-    if (title.length > MAX_TITLE_LENGTH) {
-        title.take(MAX_TITLE_LENGTH - 3) + "..."
-    } else {
-        title
-    }
+private fun truncateTitle(title: String): String = if (title.length > MAX_TITLE_LENGTH) {
+    title.take(MAX_TITLE_LENGTH - 3) + "..."
+} else {
+    title
+}
 
 /** Storage key shared with Dart's `authTokenStorageKey` (auth_repository_impl.dart). */
 private const val AUTH_TOKEN_KEY = "auth_token"
 
 suspend fun postToReadingList(context: Context, url: String, title: String?) {
-    val token = TokenStore.read(context, AUTH_TOKEN_KEY) ?: throw UnauthenticatedException()
+    val token = SecureStorage.read(context, AUTH_TOKEN_KEY) ?: throw UnauthenticatedException()
 
     withContext(Dispatchers.IO) {
         val endpoint = URL(BuildConfig.API_BASE_URL + "/reading-list")

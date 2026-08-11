@@ -7,17 +7,16 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-val apiBaseUrl: String =
-    run {
-        val envFile = rootProject.file("../.env")
-        if (!envFile.exists()) {
-            throw GradleException(".env not found.")
-        }
-        val props = Properties()
-        envFile.inputStream().use { props.load(it) }
-        props.getProperty("API_BASE_URL")?.trim()?.takeIf { it.isNotEmpty() }
-            ?: throw GradleException("API_BASE_URL is missing or empty.")
+val apiBaseUrl: String = run {
+    val envFile = rootProject.file("../.env")
+    if (!envFile.exists()) {
+        throw GradleException(".env not found.")
     }
+    val props = Properties()
+    envFile.inputStream().use { props.load(it) }
+    props.getProperty("API_BASE_URL")?.trim()?.takeIf { it.isNotEmpty() }
+        ?: throw GradleException("API_BASE_URL is missing or empty.")
+}
 
 dependencies {
     // Patrol: https://patrol.leancode.co/documentation
@@ -31,8 +30,7 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("androidx.activity:activity-compose")
 
-    // Key-value storage backing TokenStore, readable both from the Flutter engine
-    // (via MethodChannel) and from SaveWebClipActivity outside of it; see TokenStore.
+    // Key-value storage backing SecureStorage.
     implementation("androidx.datastore:datastore-preferences:1.2.1")
 }
 
