@@ -1,33 +1,98 @@
 package dev.norelease.paperdoll
 
 import android.content.Context
-import android.content.SharedPreferences
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
+import android.util.Base64
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.flow.first
+import java.security.KeyStore
+import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
+import javax.crypto.spec.GCMParameterSpec
+
+/**
+ * Must stay the only DataStore instance for this file: DataStore throws if a second one
+ * opens the same file in the same process, and both [MainActivity] and
+ * [SaveWebClipActivity] run in this process (neither declares `android:process`).
+ */
+private val Context.secureKvStore: DataStore<Preferences> by
+    preferencesDataStore(name = "secure_kv_store")
 
 /**
  * Native-side backing store for the app's secure key-value storage (currently just the auth
  * token). Reachable both from the Flutter engine (via a MethodChannel in [MainActivity]) and
  * directly from [SaveWebClipActivity], which runs outside the Flutter engine and otherwise has
- * no way to read what Dart's `flutter_secure_storage`-backed [SecureStorage] wrote.
+ * no way to read what Dart's [SecureStorage] wrote.
+ *
+ * Values are encrypted with an Android Keystore key and stored as Base64 in a Preferences
+ * DataStore. Key names are stored as-is: the only one is `auth_token`, which isn't secret.
  */
 object TokenStore {
-    private const val PREFS_FILE_NAME = "secure_kv_store"
+    suspend fun read(context: Context, key: String): String? =
+        context.secureKvStore.data.first()[stringPreferencesKey(key)]?.let { encrypted ->
+            // A value we can't decrypt (key lost, restored onto another device, tampering)
+            // is deliberately indistinguishable from an absent one: the caller's only useful
+            // response either way is to ask the user to log in again.
+            runCatching { Crypto.decrypt(encrypted) }.getOrNull()
+        }
 
-    private fun prefs(context: Context): SharedPreferences =
-        EncryptedSharedPreferences.create(
-            context,
-            PREFS_FILE_NAME,
-            MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
-        )
+    suspend fun write(context: Context, key: String, value: String?) {
+        context.secureKvStore.edit { prefs ->
+            val prefKey = stringPreferencesKey(key)
+            if (value == null) prefs.remove(prefKey) else prefs[prefKey] = Crypto.encrypt(value)
+        }
+    }
+}
 
-    fun read(context: Context, key: String): String? = prefs(context).getString(key, null)
+private object Crypto {
+    private const val KEY_ALIAS = "auth_token_key"
+    private const val ANDROID_KEYSTORE = "AndroidKeyStore"
+    private const val TRANSFORMATION = "AES/GCM/NoPadding"
+    private const val IV_SIZE = 12
+    private const val TAG_SIZE_BITS = 128
 
-    fun write(context: Context, key: String, value: String?) {
-        prefs(context).edit().apply {
-            if (value == null) remove(key) else putString(key, value)
-        }.apply()
+    /** The key material never leaves the Keystore; only handles to it are returned. */
+    private fun getOrCreateKey(): SecretKey {
+        val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
+        (keyStore.getKey(KEY_ALIAS, null) as? SecretKey)?.let { return it }
+
+        val spec =
+            KeyGenParameterSpec.Builder(
+                KEY_ALIAS,
+                KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
+            )
+                .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                .build()
+
+        return KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE)
+            .apply { init(spec) }
+            .generateKey()
+    }
+
+    /** Returns the IV prefixed to the ciphertext, Base64-encoded. */
+    fun encrypt(plain: String): String {
+        // A fresh Cipher every time: reusing one would repeat the IV, which breaks GCM.
+        val cipher = Cipher.getInstance(TRANSFORMATION).apply {
+            init(Cipher.ENCRYPT_MODE, getOrCreateKey())
+        }
+        val cipherText = cipher.doFinal(plain.toByteArray(Charsets.UTF_8))
+        return Base64.encodeToString(cipher.iv + cipherText, Base64.NO_WRAP)
+    }
+
+    fun decrypt(encoded: String): String {
+        val data = Base64.decode(encoded, Base64.NO_WRAP)
+        val iv = data.copyOfRange(0, IV_SIZE)
+        val cipherText = data.copyOfRange(IV_SIZE, data.size)
+        val cipher = Cipher.getInstance(TRANSFORMATION).apply {
+            init(Cipher.DECRYPT_MODE, getOrCreateKey(), GCMParameterSpec(TAG_SIZE_BITS, iv))
+        }
+        return String(cipher.doFinal(cipherText), Charsets.UTF_8)
     }
 }

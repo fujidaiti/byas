@@ -35,10 +35,11 @@ class _FlutterSecureStorage implements SecureStorage {
       _delegate.write(key: key, value: value);
 }
 
-/// On Android this is backed by a native `EncryptedSharedPreferences` store
-/// (via [_AndroidSecureStorage]) rather than `flutter_secure_storage`, so
-/// that `SaveWebClipActivity` — a native activity launched from the share
-/// sheet, outside the Flutter engine — can read the same token directly.
+/// On Android, storage is backed by a native DataStore holding values encrypted
+/// with an Android Keystore key (see `TokenStore.kt`) rather than by
+/// `flutter_secure_storage`, so that `SaveWebClipActivity` — a native activity
+/// launched from the share sheet, outside the Flutter engine — can read the
+/// same token directly.
 class _AndroidSecureStorage implements SecureStorage {
   const _AndroidSecureStorage();
 

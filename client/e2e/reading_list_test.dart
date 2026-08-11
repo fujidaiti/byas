@@ -143,10 +143,6 @@ void main() {
       const url = 'http://10.0.2.2:8081/clips/shared';
 
       await setUpServer(seederId: 'reading_list_share_sheet');
-      // Besides signing in, this writes the token through the real repository,
-      // which on Android lands in the same EncryptedSharedPreferences that
-      // SaveWebClipActivity reads directly. That is what authenticates the
-      // share below.
       await pumpAppWithAuth($);
       await $(AppDebugKey.todayScreen).waitUntilVisible();
 

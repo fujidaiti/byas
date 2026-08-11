@@ -201,7 +201,7 @@ private fun truncateTitle(title: String): String =
 /** Storage key shared with Dart's `authTokenStorageKey` (auth_repository_impl.dart). */
 private const val AUTH_TOKEN_KEY = "auth_token"
 
-fun postToReadingList(context: Context, url: String, title: String?) {
+suspend fun postToReadingList(context: Context, url: String, title: String?) {
     val token = TokenStore.read(context, AUTH_TOKEN_KEY) ?: throw UnauthenticatedException()
 
     val endpoint = URL(BuildConfig.API_BASE_URL + "/reading-list")
