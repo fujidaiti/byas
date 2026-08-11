@@ -32,9 +32,8 @@ dependencies {
     implementation("androidx.activity:activity-compose")
 
     // Key-value storage backing TokenStore, readable both from the Flutter engine
-    // (via MethodChannel) and from SaveWebClipActivity outside of it. Values in it
-    // are encrypted with an Android Keystore key; see TokenStore.
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    // (via MethodChannel) and from SaveWebClipActivity outside of it; see TokenStore.
+    implementation("androidx.datastore:datastore-preferences:1.2.1")
 }
 
 android {
