@@ -52,6 +52,9 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("androidx.activity:activity-compose")
+
+    // Key-value storage backing SecureStorage.
+    implementation("androidx.datastore:datastore-preferences:1.2.1")
 }
 
 android {

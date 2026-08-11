@@ -1,5 +1,6 @@
 package dev.norelease.paperdoll
 
+import android.content.Context
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,6 +19,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -26,6 +28,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.IOException
 import java.net.HttpURLConnection
@@ -51,25 +54,29 @@ enum class SaveErrorKind {
     /** The request never reached the server (no connectivity, timeout, etc.). */
     Network,
 
+    /** No auth token is stored locally, so the request was never sent. */
+    Unauthenticated,
+
     /** The server responded with an error, or anything else went wrong. */
     Unexpected,
 }
 
-private fun SaveErrorKind.message(): String =
-    when (this) {
-        SaveErrorKind.Network ->
-            "Couldn't reach the server. Check your connection and try again."
+private fun SaveErrorKind.message(): String = when (this) {
+    SaveErrorKind.Network -> "Couldn't reach the server. Check your connection and try again."
 
-        SaveErrorKind.Unexpected ->
-            "Couldn't add to your reading list. Please try again."
-    }
+    SaveErrorKind.Unauthenticated -> "Log in to Paperdoll first, then try sharing again."
 
-private fun SaveState.statusHeadline(): String =
-    when (this) {
-        SaveState.Loading -> "Adding to Reading List…"
-        SaveState.Success -> "Added to Reading List"
-        is SaveState.Error -> "Couldn't Save"
-    }
+    SaveErrorKind.Unexpected -> "Couldn't add to your reading list. Please try again."
+}
+
+/** Thrown by [postToReadingList] when no auth token is stored locally. */
+class UnauthenticatedException : Exception()
+
+private fun SaveState.statusHeadline(): String = when (this) {
+    SaveState.Loading -> "Adding to Reading List…"
+    SaveState.Success -> "Added to Reading List"
+    is SaveState.Error -> "Couldn't Save"
+}
 
 private val DIALOG_HEIGHT = 280.dp
 
@@ -79,20 +86,25 @@ fun SaveWebClipScreen(url: String, title: String?, onClose: () -> Unit) {
     // Only observes the request; the request itself runs in SaveScope so it outlives this
     // composition. When the dialog closes, only this observer is cancelled, not the POST.
     val observerScope = rememberCoroutineScope()
+    // Application context, not the activity: the request runs in the process-lifetime
+    // SaveScope and may still be in flight after this activity is destroyed.
+    val appContext = LocalContext.current.applicationContext
 
     LaunchedEffect(url) {
-        val deferred = SaveScope.scope.async { runCatching { postToReadingList(url, title) } }
+        val deferred =
+            SaveScope.scope.async { runCatching { postToReadingList(appContext, url, title) } }
         observerScope.launch {
-            state =
-                deferred.await().fold(
-                    onSuccess = { SaveState.Success },
-                    onFailure = {
-                        val kind =
-                            if (it is IOException) SaveErrorKind.Network
-                            else SaveErrorKind.Unexpected
-                        SaveState.Error(kind)
-                    },
-                )
+            state = deferred.await().fold(
+                onSuccess = { SaveState.Success },
+                onFailure = {
+                    val kind = when (it) {
+                        is UnauthenticatedException -> SaveErrorKind.Unauthenticated
+                        is IOException -> SaveErrorKind.Network
+                        else -> SaveErrorKind.Unexpected
+                    }
+                    SaveState.Error(kind)
+                },
+            )
         }
     }
 
@@ -173,37 +185,46 @@ private const val MAX_TITLE_LENGTH = 140
  * Caps [title] at [MAX_TITLE_LENGTH] characters, truncating and appending "..." (so the
  * result never exceeds the limit) when it is longer.
  */
-private fun truncateTitle(title: String): String =
-    if (title.length > MAX_TITLE_LENGTH) {
-        title.take(MAX_TITLE_LENGTH - 3) + "..."
-    } else {
-        title
-    }
+private fun truncateTitle(title: String): String = if (title.length > MAX_TITLE_LENGTH) {
+    title.take(MAX_TITLE_LENGTH - 3) + "..."
+} else {
+    title
+}
 
-fun postToReadingList(url: String, title: String?) {
-    val endpoint = URL(BuildConfig.API_BASE_URL + "/reading-list")
-    val connection = endpoint.openConnection() as HttpURLConnection
-    try {
-        connection.requestMethod = "POST"
-        connection.setRequestProperty("Content-Type", "application/json")
-        connection.setRequestProperty("Accept", "application/json")
-        connection.connectTimeout = 15_000
-        connection.readTimeout = 15_000
-        connection.doOutput = true
+/** Storage key shared with Dart's `authTokenStorageKey` (auth_repository_impl.dart). */
+private const val AUTH_TOKEN_KEY = "auth_token"
 
-        val json = JSONObject().put("url", url)
-        if (!title.isNullOrBlank()) {
-            json.put("title", truncateTitle(title))
+suspend fun postToReadingList(context: Context, url: String, title: String?) {
+    val token = SecureStorage.read(context, AUTH_TOKEN_KEY) ?: throw UnauthenticatedException()
+
+    withContext(Dispatchers.IO) {
+        val endpoint = URL(BuildConfig.API_BASE_URL + "/reading-list")
+        val connection = endpoint.openConnection() as HttpURLConnection
+        try {
+            connection.requestMethod = "POST"
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.setRequestProperty("Accept", "application/json")
+            connection.setRequestProperty("Authorization", "Bearer $token")
+            connection.connectTimeout = 15_000
+            connection.readTimeout = 15_000
+            connection.doOutput = true
+
+            val json = JSONObject().put("url", url)
+            if (!title.isNullOrBlank()) {
+                json.put("title", truncateTitle(title))
+            }
+            val body = json.toString()
+            connection.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
+
+            val code = connection.responseCode
+            if (code !in 200..299) {
+                val error = connection.errorStream?.bufferedReader()?.use { it.readText() }
+                throw RuntimeException(
+                    "HTTP $code" + if (!error.isNullOrBlank()) ": $error" else "",
+                )
+            }
+        } finally {
+            connection.disconnect()
         }
-        val body = json.toString()
-        connection.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
-
-        val code = connection.responseCode
-        if (code !in 200..299) {
-            val error = connection.errorStream?.bufferedReader()?.use { it.readText() }
-            throw RuntimeException("HTTP $code" + if (!error.isNullOrBlank()) ": $error" else "")
-        }
-    } finally {
-        connection.disconnect()
     }
 }

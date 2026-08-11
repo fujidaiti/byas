@@ -1,9 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- allowBackup="false" keeps the encrypted token store out of cloud backup and
+         device transfer. Its Keystore key never leaves the device, so a restored copy
+         would be undecryptable anyway. -->
     <application
         android:label="paperdoll"
         android:name="${applicationName}"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"

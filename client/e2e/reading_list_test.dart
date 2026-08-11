@@ -129,4 +129,63 @@ void main() {
     );
     await $(AppDebugKey.readingListRow(title)).waitUntilVisible();
   });
+
+  patrolTest(
+    'Save a web page shared from the Chrome app',
+    tags: 'reading-list-save-from-browser',
+    ($) async {
+      // Both the page's <title> and the title the server extracts from it, so
+      // the row reads the same before and after the background fetch lands.
+      const title = 'Shared from the browser';
+      // The stub server binds the host's loopback, which the emulator reaches
+      // at 10.0.2.2. Chrome loads this URL directly; the API server later
+      // fetches the very same one through the stub acting as its proxy.
+      const url = 'http://10.0.2.2:8081/clips/shared';
+
+      await setUpServer(seederId: 'reading_list_share_sheet');
+      await pumpAppWithAuth($);
+      await $(AppDebugKey.todayScreen).waitUntilVisible();
+
+      await $.platform.mobile.openUrl(url);
+      // Wait on the URL bar rather than the page text: Chrome only builds the
+      // accessibility tree for web contents lazily, so matching the article
+      // body races the renderer. The URL bar is an ordinary Android view and
+      // takes the new URL when the navigation commits.
+      await $.platform.mobile.waitUntilVisible(
+        Selector(
+          resourceId: 'com.android.chrome:id/url_bar',
+          text: '10.0.2.2:8081/clips/shared',
+        ),
+      );
+      await $.platform.mobile.tap(
+        Selector(resourceId: 'com.android.chrome:id/menu_button'),
+      );
+      // The menu item's label ends with an ellipsis ("Share…") and shares its
+      // resource id with every other item in the menu, so match on the prefix.
+      await $.platform.mobile.tap(
+        Selector(textStartsWith: 'Share', pkg: 'com.android.chrome'),
+      );
+      // The Sharesheet opens collapsed, showing only its usage-ranked top row,
+      // and patrol's tap does not scroll. Drag it up so the full app list is
+      // rendered; we sit in it under "paperdoll".
+      await $.platform.mobile.swipe(
+        from: const Offset(0.5, 0.55),
+        to: const Offset(0.5, 0.15),
+      );
+      // Our entry is SaveWebClipActivity's android:label, not the app name.
+      // The label renders truncated ("Save to Rea…") but the node keeps the
+      // full text.
+      await $.platform.mobile.tap(Selector(text: 'Save to Reading List'));
+      await $.platform.mobile.waitUntilVisible(
+        Selector(text: 'Added to Reading List'),
+      );
+
+      // SaveWebClipActivity is noHistory with its own task affinity, so it is
+      // already off the stack; this just brings the app back to the front.
+      await $.platform.mobile.openApp();
+      await $(AppDebugKey.readingListNavDestination).tap();
+      await $(AppDebugKey.readingListScreen).waitUntilVisible();
+      await $(AppDebugKey.readingListRow(title)).waitUntilVisible();
+    },
+  );
 }

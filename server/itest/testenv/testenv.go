@@ -157,7 +157,14 @@ func StubHTTP(host, path, fp string) {
 }
 
 func handleHTTPRequest(w http.ResponseWriter, r *http.Request) {
-	key := r.URL.Host + r.URL.Path
+	// Proxied requests carry an absolute URI, so the host is in r.URL.
+	// Direct ones like "http://10.0.2.2:8081/clips/shared" leave it empty
+	// and put the host in r.Host instead.
+	host := r.URL.Host
+	if host == "" {
+		host = r.Host
+	}
+	key := host + r.URL.Path
 	fp, ok := stubHTTPRules[key]
 	if !ok {
 		http.Error(w, fmt.Sprintf("no stub rule found for %q", key), http.StatusNotFound)

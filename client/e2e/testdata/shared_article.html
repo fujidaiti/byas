@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<!--
+  The page the share-sheet E2E test opens in Chrome and shares with
+  SaveWebClipActivity. It is fetched twice: once by Chrome as an ordinary page,
+  and once by the API server through the stub-as-proxy when it clips the URL.
+
+  The <title> is deliberately the same value in both roles. Chrome passes it as
+  EXTRA_SUBJECT, which the activity sends as the placeholder title, and the
+  server's readability pass later overwrites that placeholder with the title it
+  extracts from this same markup. Keeping them identical means the reading list
+  row reads the same before and after the background fetch lands, so the test
+  can assert on it without racing.
+-->
+<html>
+  <head>
+    <title>Shared from the browser</title>
+  </head>
+  <body>
+    <article>
+      <h1>Shared from the browser</h1>
+      <p>This is the first paragraph of the page used by the share-sheet end-to-end test. It runs to several sentences so the readability extractor considers the page substantial enough to extract rather than discarding it as boilerplate.</p>
+      <p>This is the second paragraph. It keeps discussing the same placeholder topic at some length, which raises the text density of the article body relative to the surrounding markup and keeps the extraction heuristics comfortably on the happy path.</p>
+      <p>A third paragraph rounds things out, so the extracted content is non-trivial and the fixture behaves the same way on every run instead of flaking whenever the extractor is near its threshold.</p>
+    </article>
+  </body>
+</html>

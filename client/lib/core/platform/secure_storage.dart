@@ -1,19 +1,52 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'secure_storage.g.dart';
 
 @riverpod
-SecureStorage secureStorage(Ref ref) => const SecureStorage();
+SecureStorage secureStorage(Ref ref) => SecureStorage();
 
 /// A driver for the device's secure local storage.
-class SecureStorage {
-  const SecureStorage();
+abstract class SecureStorage {
+  factory SecureStorage() {
+    return switch (defaultTargetPlatform) {
+      .android => const _AndroidSecureStorage(),
+      _ => const _FlutterSecureStorage(),
+    };
+  }
 
-  static const _impl = FlutterSecureStorage();
+  Future<String?> read(String key);
 
-  Future<String?> read(String key) => _impl.read(key: key);
+  Future<void> write(String key, String? value);
+}
 
+class _FlutterSecureStorage implements SecureStorage {
+  const _FlutterSecureStorage();
+
+  static const _delegate = FlutterSecureStorage();
+
+  @override
+  Future<String?> read(String key) => _delegate.read(key: key);
+
+  @override
   Future<void> write(String key, String? value) =>
-      _impl.write(key: key, value: value);
+      _delegate.write(key: key, value: value);
+}
+
+class _AndroidSecureStorage implements SecureStorage {
+  const _AndroidSecureStorage();
+
+  static const _channel = MethodChannel(
+    'dev.norelease.paperdoll/secure_storage',
+  );
+
+  @override
+  Future<String?> read(String key) =>
+      _channel.invokeMethod<String>('read', {'key': key});
+
+  @override
+  Future<void> write(String key, String? value) =>
+      _channel.invokeMethod<void>('write', {'key': key, 'value': value});
 }

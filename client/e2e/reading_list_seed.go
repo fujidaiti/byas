@@ -8,6 +8,7 @@ import (
 	"github.com/fujidaiti/paperdoll/server/feature/readinglist"
 	"github.com/fujidaiti/paperdoll/server/feature/scraper"
 	"github.com/fujidaiti/paperdoll/server/feature/user"
+	"github.com/fujidaiti/paperdoll/server/itest/testenv"
 )
 
 func seedReadingListSuit_Item(ctx context.Context, db *sql.DB) error {
@@ -142,6 +143,22 @@ func seedReadingListSuit_Archived(ctx context.Context, db *sql.DB) error {
 		return err
 	}
 	return rl.ArchiveItem(ctx, uid, clipItem.ID)
+}
+
+// seedReadingListSuit_ShareSheet leaves the reading list empty: the test itself
+// creates the only item, by opening the stubbed page in Chrome and sharing it
+// with SaveWebClipActivity.
+//
+// The rule is registered under the address the emulator reaches the host at,
+// because the page is fetched twice over that same URL — once by Chrome as an
+// ordinary origin request, and once by the API server through the stub-as-proxy
+// when it clips the shared URL.
+func seedReadingListSuit_ShareSheet(ctx context.Context, db *sql.DB) error {
+	if _, err := provisionTestAccount(ctx, db); err != nil {
+		return err
+	}
+	testenv.StubHTTP("10.0.2.2:8081", "/clips/shared", "./testdata/shared_article.html")
+	return nil
 }
 
 // insertWebClip inserts a clip that has already been fetched, and returns its
