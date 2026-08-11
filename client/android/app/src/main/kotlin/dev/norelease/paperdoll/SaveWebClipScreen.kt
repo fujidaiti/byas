@@ -28,6 +28,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.IOException
 import java.net.HttpURLConnection
@@ -204,30 +205,34 @@ private const val AUTH_TOKEN_KEY = "auth_token"
 suspend fun postToReadingList(context: Context, url: String, title: String?) {
     val token = TokenStore.read(context, AUTH_TOKEN_KEY) ?: throw UnauthenticatedException()
 
-    val endpoint = URL(BuildConfig.API_BASE_URL + "/reading-list")
-    val connection = endpoint.openConnection() as HttpURLConnection
-    try {
-        connection.requestMethod = "POST"
-        connection.setRequestProperty("Content-Type", "application/json")
-        connection.setRequestProperty("Accept", "application/json")
-        connection.setRequestProperty("Authorization", "Bearer $token")
-        connection.connectTimeout = 15_000
-        connection.readTimeout = 15_000
-        connection.doOutput = true
+    withContext(Dispatchers.IO) {
+        val endpoint = URL(BuildConfig.API_BASE_URL + "/reading-list")
+        val connection = endpoint.openConnection() as HttpURLConnection
+        try {
+            connection.requestMethod = "POST"
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.setRequestProperty("Accept", "application/json")
+            connection.setRequestProperty("Authorization", "Bearer $token")
+            connection.connectTimeout = 15_000
+            connection.readTimeout = 15_000
+            connection.doOutput = true
 
-        val json = JSONObject().put("url", url)
-        if (!title.isNullOrBlank()) {
-            json.put("title", truncateTitle(title))
-        }
-        val body = json.toString()
-        connection.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
+            val json = JSONObject().put("url", url)
+            if (!title.isNullOrBlank()) {
+                json.put("title", truncateTitle(title))
+            }
+            val body = json.toString()
+            connection.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
 
-        val code = connection.responseCode
-        if (code !in 200..299) {
-            val error = connection.errorStream?.bufferedReader()?.use { it.readText() }
-            throw RuntimeException("HTTP $code" + if (!error.isNullOrBlank()) ": $error" else "")
+            val code = connection.responseCode
+            if (code !in 200..299) {
+                val error = connection.errorStream?.bufferedReader()?.use { it.readText() }
+                throw RuntimeException(
+                    "HTTP $code" + if (!error.isNullOrBlank()) ": $error" else "",
+                )
+            }
+        } finally {
+            connection.disconnect()
         }
-    } finally {
-        connection.disconnect()
     }
 }

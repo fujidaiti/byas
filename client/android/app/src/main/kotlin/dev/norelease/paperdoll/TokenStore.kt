@@ -17,28 +17,20 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 /**
- * Must stay the only DataStore instance for this file: DataStore throws if a second one
- * opens the same file in the same process, and both [MainActivity] and
- * [SaveWebClipActivity] run in this process (neither declares `android:process`).
- */
-private val Context.secureKvStore: DataStore<Preferences> by
-    preferencesDataStore(name = "secure_kv_store")
-
-/**
  * Native-side backing store for the app's secure key-value storage (currently just the auth
  * token). Reachable both from the Flutter engine (via a MethodChannel in [MainActivity]) and
  * directly from [SaveWebClipActivity], which runs outside the Flutter engine and otherwise has
- * no way to read what Dart's [SecureStorage] wrote.
+ * no way to read what Dart's SecureStorage wrote.
  *
  * Values are encrypted with an Android Keystore key and stored as Base64 in a Preferences
  * DataStore. Key names are stored as-is: the only one is `auth_token`, which isn't secret.
  */
 object TokenStore {
+    private val Context.secureKvStore: DataStore<Preferences> by
+        preferencesDataStore(name = "secure_kv_store")
+
     suspend fun read(context: Context, key: String): String? =
         context.secureKvStore.data.first()[stringPreferencesKey(key)]?.let { encrypted ->
-            // A value we can't decrypt (key lost, restored onto another device, tampering)
-            // is deliberately indistinguishable from an absent one: the caller's only useful
-            // response either way is to ask the user to log in again.
             runCatching { Crypto.decrypt(encrypted) }.getOrNull()
         }
 
