@@ -19,6 +19,14 @@ Copy the template and adjust if needed:
 cp .env.example .env
 ```
 
+Release builds are signed with a keystore described by
+`android/signing.properties`. Debug builds don't need it; a release build fails
+without it.
+
+```sh
+cp android/signing.properties.example android/signing.properties
+```
+
 ## Running
 
 Find the target device's ID using `fvm flutter devices`, then:

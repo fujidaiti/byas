@@ -1,9 +1,13 @@
 {
   "permissions": {
     "deny": [
-      "Read(.env)",
-      "Read(*.env)",
-      "Read(.env.*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/*.env)",
+      "Read(**/signing.properties)",
+      "Read(**/*.keystore)",
+      "Read(**/*.jks)",
+
       "Bash(cat *.env*)",
       "Bash(head *.env*)",
       "Bash(tail *.env*)",
@@ -14,7 +18,25 @@
       "Bash(awk *.env*)",
       "Bash(vim *.env*)",
       "Bash(nano *.env*)",
-      "Bash(bat *.env*)"
+      "Bash(bat *.env*)",
+      "Bash(xxd *.env*)",
+      "Bash(od *.env*)",
+      "Bash(strings *.env*)",
+
+      "Bash(cat *signing.properties*)",
+      "Bash(head *signing.properties*)",
+      "Bash(tail *signing.properties*)",
+      "Bash(less *signing.properties*)",
+      "Bash(more *signing.properties*)",
+      "Bash(grep *signing.properties*)",
+      "Bash(sed *signing.properties*)",
+      "Bash(awk *signing.properties*)",
+      "Bash(vim *signing.properties*)",
+      "Bash(nano *signing.properties*)",
+      "Bash(bat *signing.properties*)",
+      "Bash(xxd *signing.properties*)",
+      "Bash(od *signing.properties*)",
+      "Bash(strings *signing.properties*)"
     ]
   }
 }

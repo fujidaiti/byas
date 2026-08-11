@@ -7,17 +7,39 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-val apiBaseUrl: String =
-    run {
-        val envFile = rootProject.file("../.env")
-        if (!envFile.exists()) {
-            throw GradleException(".env not found.")
-        }
-        val props = Properties()
-        envFile.inputStream().use { props.load(it) }
-        props.getProperty("API_BASE_URL")?.trim()?.takeIf { it.isNotEmpty() }
-            ?: throw GradleException("API_BASE_URL is missing or empty.")
+val apiBaseUrl: String = run {
+    val envFile = rootProject.file("../.env")
+    if (!envFile.exists()) {
+        throw GradleException(".env not found.")
     }
+    val props = Properties()
+    envFile.inputStream().use { props.load(it) }
+    props.getProperty("API_BASE_URL")?.trim()?.takeIf { it.isNotEmpty() }
+        ?: throw GradleException("API_BASE_URL is missing or empty.")
+}
+
+val signingPropertiesFile = rootProject.file("signing.properties")
+
+// Release builds require the credentials, so fail up front instead of building
+// for minutes first. Debug and profile builds never reach this task.
+tasks.matching { it.name == "preReleaseBuild" }.configureEach {
+    doFirst {
+        if (!signingPropertiesFile.exists()) {
+            throw GradleException("$signingPropertiesFile not found, which is required in release builds.")
+        }
+    }
+}
+
+val signingProperties = Properties().apply {
+    if (signingPropertiesFile.exists()) {
+        signingPropertiesFile.inputStream().use { load(it) }
+    }
+}
+
+fun resolveSigningProperty(key: String): String {
+    return signingProperties.getProperty(key)
+        ?: throw GradleException("Signing property '$key' is missing.")
+}
 
 dependencies {
     // Patrol: https://patrol.leancode.co/documentation
@@ -48,7 +70,6 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "dev.norelease.paperdoll"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
@@ -68,11 +89,21 @@ android {
         execution = "ANDROIDX_TEST_ORCHESTRATOR"
     }
 
+    signingConfigs {
+        create("release") {
+            // Left unconfigured when signing.properties is missing so that debug builds still configure.
+            if (signingPropertiesFile.exists()) {
+                storeFile = file(resolveSigningProperty("keystore.path"))
+                storePassword = resolveSigningProperty("keystore.storePassword")
+                keyAlias = resolveSigningProperty("keystore.keyAlias")
+                keyPassword = resolveSigningProperty("keystore.keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }
