@@ -49,6 +49,5 @@ app.*.map.json
 # https://patrol.leancode.co/documentation
 e2e/test_bundle.dart
 
-# Android signing config cedentials
+# Android signing config credentials
 android/signing.properties
-
