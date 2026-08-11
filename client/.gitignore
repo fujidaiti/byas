@@ -48,3 +48,6 @@ app.*.map.json
 # Patrol generates this file when running tests:
 # https://patrol.leancode.co/documentation
 e2e/test_bundle.dart
+
+# Android signing config credentials
+android/signing.properties
