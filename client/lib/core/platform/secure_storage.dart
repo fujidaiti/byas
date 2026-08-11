@@ -1,5 +1,4 @@
-import 'dart:io';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -7,35 +6,23 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'secure_storage.g.dart';
 
 @riverpod
-SecureStorage secureStorage(Ref ref) => const SecureStorage();
+SecureStorage secureStorage(Ref ref) => SecureStorage();
 
 /// A driver for the device's secure local storage.
-///
-/// On Android this is backed by a native `EncryptedSharedPreferences` store
-/// (via [_AndroidSecureStorage]) rather than `flutter_secure_storage`, so
-/// that `SaveWebClipActivity` — a native activity launched from the share
-/// sheet, outside the Flutter engine — can read the same token directly.
-/// iOS/macOS keep using `flutter_secure_storage`, which has no such native
-/// counterpart to share storage with.
-class SecureStorage {
-  const SecureStorage();
+abstract class SecureStorage {
+  factory SecureStorage() {
+    return switch (defaultTargetPlatform) {
+      .android => const _AndroidSecureStorage(),
+      _ => const _FlutterSecureStorage(),
+    };
+  }
 
-  static final _impl = Platform.isAndroid
-      ? const _AndroidSecureStorage()
-      : const _FlutterSecureStorage();
-
-  Future<String?> read(String key) => _impl.read(key);
-
-  Future<void> write(String key, String? value) => _impl.write(key, value);
-}
-
-abstract interface class _SecureStorageImpl {
   Future<String?> read(String key);
 
   Future<void> write(String key, String? value);
 }
 
-class _FlutterSecureStorage implements _SecureStorageImpl {
+class _FlutterSecureStorage implements SecureStorage {
   const _FlutterSecureStorage();
 
   static const _delegate = FlutterSecureStorage();
@@ -48,7 +35,11 @@ class _FlutterSecureStorage implements _SecureStorageImpl {
       _delegate.write(key: key, value: value);
 }
 
-class _AndroidSecureStorage implements _SecureStorageImpl {
+/// On Android this is backed by a native `EncryptedSharedPreferences` store
+/// (via [_AndroidSecureStorage]) rather than `flutter_secure_storage`, so
+/// that `SaveWebClipActivity` — a native activity launched from the share
+/// sheet, outside the Flutter engine — can read the same token directly.
+class _AndroidSecureStorage implements SecureStorage {
   const _AndroidSecureStorage();
 
   static const _channel = MethodChannel(
