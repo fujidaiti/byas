@@ -1,3 +1,4 @@
+import java.io.FileInputStream
 import java.util.Properties
 
 plugins {
@@ -18,6 +19,17 @@ val apiBaseUrl: String =
         props.getProperty("API_BASE_URL")?.trim()?.takeIf { it.isNotEmpty() }
             ?: throw GradleException("API_BASE_URL is missing or empty.")
     }
+
+val signingProperties = Properties()
+val signingPropertiesFile = rootProject.file("signing.properties")
+if (signingPropertiesFile.exists()) {
+    signingProperties.load(FileInputStream(signingPropertiesFile))
+}
+
+fun resolveSigningProperty(key: String): String {
+    return signingProperties.getProperty(key)
+        ?: throw GradleException("Signing property missing in signing.properties: '$key'")
+}
 
 dependencies {
     // Patrol: https://patrol.leancode.co/documentation
@@ -48,7 +60,6 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "dev.norelease.paperdoll"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
@@ -68,11 +79,17 @@ android {
         execution = "ANDROIDX_TEST_ORCHESTRATOR"
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file(resolveSigningProperty("keystore.path"))
+            storePassword = resolveSigningProperty("keystore.storePassword")
+            keyAlias = resolveSigningProperty("keystore.keyAlias")
+            keyPassword = resolveSigningProperty("keystore.keyPassword")
+        }
+    }
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }
