@@ -189,14 +189,6 @@ void main() {
       await $.platform.mobile.openApp();
       await $(AppDebugKey.readingListNavDestination).tap();
       await $(AppDebugKey.readingListScreen).waitUntilVisible();
-      // Refresh for the same reason as the save test above, plus one more: the
-      // server clips the page in a background goroutine, so the extracted title
-      // may not have landed when the list first loaded.
-      await $.tester.fling(
-        $(AppDebugKey.readingListScreen).finder,
-        const Offset(0, 300),
-        1000,
-      );
       await $(AppDebugKey.readingListRow(title)).waitUntilVisible();
     },
   );
