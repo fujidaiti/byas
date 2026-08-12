@@ -37,7 +37,7 @@ jobs:
       - name: Write .env
         env:
           CLIENT_ENV: ${{ secrets.CLIENT_ENV }}
-        run: printf '%s' "$CLIENT_ENV" > client/.env
+        run: echo "$CLIENT_ENV" | base64 -d > client/.env
 
       - name: Generate version.properties from versions.json
         run: |

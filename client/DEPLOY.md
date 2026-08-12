@@ -76,8 +76,8 @@ flutter build apk --release --dart-define-from-file=.env
 
 Same `.env` requirement as local dev — `API_BASE_URL` is read from it both by
 `--dart-define-from-file` (Dart side) and directly by Gradle
-(`BuildConfig.API_BASE_URL`). In CI, `.env` is written from the `CLIENT_ENV`
-secret rather than committed.
+(`BuildConfig.API_BASE_URL`). In CI, `.env` is decoded from the base64
+`CLIENT_ENV` secret rather than committed.
 
 Signing works exactly like local dev (see the main README): CI writes
 `android/signing.properties` from the `ANDROID_SIGNING_PROPERTIES` secret, then
@@ -90,7 +90,7 @@ file specifies, under `android/app/`.
 
 | Secret / variable                       | Purpose                                                                |
 | --------------------------------------- | ---------------------------------------------------------------------- |
-| `CLIENT_ENV`                            | Full contents of a working `client/.env`                               |
+| `CLIENT_ENV`                            | Base64-encoded contents of a working `client/.env`                     |
 | `ANDROID_SIGNING_PROPERTIES`            | Contents of `android/signing.properties`                               |
 | `ANDROID_KEYSTORE`                      | Base64-encoded release keystore                                        |
 | `FIREBASE_APP_DISTRIBUTION_CREDENTIALS` | Base64-encoded service account JSON (App Distribution Admin role only) |
