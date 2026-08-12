@@ -1,0 +1,91 @@
+name: Android Staging Deploy
+
+on:
+  push:
+    tags:
+      - "android-stg-*"
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Build and distribute to Firebase App Distribution
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Log triggering actor
+        run: echo "github.actor=${{ github.actor }}"
+
+      - name: Verify tag was created by the release bot
+        if: github.actor != 'norelease-bot[bot]'
+        run: |
+          echo "::error::Tag pushed by '${{ github.actor }}', not the release bot. Refusing to deploy."
+          exit 1
+
+      - uses: actions/checkout@v7
+
+      - name: Set up Flutter SDK
+        uses: ./.github/actions/setup-flutter
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Write .env
+        env:
+          CLIENT_ENV: ${{ secrets.CLIENT_ENV }}
+        run: printf '%s' "$CLIENT_ENV" > client/.env
+
+      - name: Generate version.properties from versions.json
+        run: |
+          set -euo pipefail
+          version_name=$(jq -r '.android.versionName // empty' versions.json)
+          build_number=$(jq -r '.android.buildNumber // empty' versions.json)
+          if [[ -z "$version_name" || -z "$build_number" ]]; then
+            echo "::error::versions.json is missing android.versionName or android.buildNumber."
+            exit 1
+          fi
+          {
+            echo "versionName=$version_name"
+            echo "versionCode=$build_number"
+          } > client/android/version.properties
+
+      - name: Write signing.properties
+        env:
+          ANDROID_SIGNING_PROPERTIES: ${{ secrets.ANDROID_SIGNING_PROPERTIES }}
+        run: printf '%s' "$ANDROID_SIGNING_PROPERTIES" > client/android/signing.properties
+
+      - name: Decode release keystore
+        env:
+          ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+        run: |
+          keystore_path=$(grep '^keystore.path=' client/android/signing.properties | cut -d= -f2-)
+          echo "$ANDROID_KEYSTORE" | base64 -d > "client/android/app/$keystore_path"
+
+      - name: Build release APK
+        working-directory: client
+        run: flutter build apk --release --dart-define-from-file=.env
+
+      - name: Decode Firebase service account
+        env:
+          FIREBASE_APP_DISTRIBUTION_CREDENTIALS: ${{ secrets.FIREBASE_APP_DISTRIBUTION_CREDENTIALS }}
+        run: echo "$FIREBASE_APP_DISTRIBUTION_CREDENTIALS" | base64 -d > "$RUNNER_TEMP/firebase-service-account.json"
+
+      - name: Install firebase-tools
+        run: npm install -g firebase-tools
+
+      - name: Distribute to Firebase App Distribution
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+          FIREBASE_TESTER_GROUP: ${{ vars.FIREBASE_TESTER_GROUP }}
+          RELEASE_NOTES: "Release ${{ github.ref_name }}"
+        run: |
+          firebase appdistribution:distribute \
+            client/build/app/outputs/flutter-apk/app-release.apk \
+            --app "$FIREBASE_APP_ID" \
+            --groups "$FIREBASE_TESTER_GROUP" \
+            --release-notes "$RELEASE_NOTES"

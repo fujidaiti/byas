@@ -1,0 +1,76 @@
+name: Version Tagging
+
+on:
+  push:
+    branches:
+      - main
+      - "deploy/**"
+    paths:
+      - versions.json
+
+concurrency:
+  group: version-tagging
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  tag:
+    name: Validate versions.json and tag Android release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.NORELEASE_BOT_APP_ID }}
+          private-key: ${{ secrets.NORELEASE_BOT_PRIVATE_KEY }}
+
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          fetch-depth: 0
+
+      - name: Validate and tag Android version
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          get_field() {
+            git show "$1:versions.json" 2>/dev/null | jq -r ".android.$2 // empty"
+          }
+
+          prev_version_name=$(get_field "$BEFORE_SHA" versionName || true)
+          prev_build_number=$(get_field "$BEFORE_SHA" buildNumber || true)
+          new_version_name=$(get_field "$AFTER_SHA" versionName)
+          new_build_number=$(get_field "$AFTER_SHA" buildNumber)
+
+          if [[ "$new_version_name" == "$prev_version_name" && "$new_build_number" == "$prev_build_number" ]]; then
+            echo "No Android version change; nothing to do."
+            exit 0
+          fi
+
+          if ! [[ "$new_version_name" =~ ^[0-9]+\.[0-9]{8}\.[0-9]{4}(\.beta[0-9]+)?$ ]]; then
+            echo "::error::versionName '$new_version_name' does not match the required format."
+            exit 1
+          fi
+
+          prev_build_number="${prev_build_number:-0}"
+          expected_build_number=$((prev_build_number + 1))
+          if [[ "$new_build_number" != "$expected_build_number" ]]; then
+            echo "::error::buildNumber $new_build_number is not previous+1 (expected $expected_build_number)."
+            exit 1
+          fi
+
+          if [[ "$new_version_name" == *.beta* ]]; then
+            tag_name="android-stg-$new_version_name"
+            echo "Creating tag $tag_name"
+            git tag "$tag_name" "$AFTER_SHA"
+            git push origin "$tag_name"
+          else
+            echo "prod channel not yet wired; skipping tag creation."
+          fi

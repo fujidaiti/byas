@@ -18,6 +18,10 @@ val apiBaseUrl: String = run {
         ?: throw GradleException("API_BASE_URL is missing or empty.")
 }
 
+val versionProperties = Properties().apply {
+    rootProject.file("version.properties").inputStream().use { load(it) }
+}
+
 val signingPropertiesFile = rootProject.file("signing.properties")
 
 // Release builds require the credentials, so fail up front instead of building
@@ -76,8 +80,8 @@ android {
         applicationId = "dev.norelease.paperdoll"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        versionCode = versionProperties.getProperty("versionCode").toInt()
+        versionName = versionProperties.getProperty("versionName")
 
         // Patrol: https://patrol.leancode.co/documentation
         testInstrumentationRunner = "pl.leancode.patrol.PatrolJUnitRunner"
