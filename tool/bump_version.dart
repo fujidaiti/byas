@@ -13,17 +13,12 @@ const supportedTargets = {'android'};
 final betaSuffixPattern = RegExp(r'^(.+)\.beta(\d+)$');
 
 void main(List<String> arguments) {
-  var beta = false;
-  final positional = <String>[];
-  for (final argument in arguments) {
-    if (argument == '--beta') {
-      beta = true;
-    } else {
-      positional.add(argument);
-    }
-  }
-
-  if (positional.length != 1) {
+  final usageError =
+      arguments.isEmpty ||
+      arguments.length > 2 ||
+      !supportedTargets.contains(arguments[0]) ||
+      (arguments.length == 2 && arguments[1] != '--beta');
+  if (usageError) {
     stderr.writeln(
       'Usage: fvm dart run tool/bump_version.dart <target> [--beta]',
     );
@@ -31,12 +26,8 @@ void main(List<String> arguments) {
     exit(1);
   }
 
-  final target = positional.single;
-  if (!supportedTargets.contains(target)) {
-    stderr.writeln('Unknown target "$target".');
-    stderr.writeln('Supported targets: ${supportedTargets.join(', ')}');
-    exit(1);
-  }
+  final target = arguments[0];
+  final beta = arguments.length == 2;
 
   final versionsFile = File('versions.json');
   final versions =
