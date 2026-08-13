@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 // Edit this to change the major version (see release-ci-design doc §4.1).
-const majorVersion = 1;
+const majorVersion = 0;
 
 const supportedTargets = {'android'};
 
