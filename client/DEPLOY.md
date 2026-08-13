@@ -25,7 +25,7 @@ sequenceDiagram
 ## How to cut a stg release
 
 ```sh
-./tool/bump_version.sh
+fvm dart run tool/bump_version.dart android --beta
 git add versions.json
 git commit -m "Bump android stg version to <versionName>"
 # open a PR, get it reviewed, squash-merge to main
@@ -65,10 +65,16 @@ Root-level, one entry per platform (only `android` exists so far):
   validated, not tagged or shipped.
 - `buildNumber` must increase by exactly 1 each time; the tagging workflow
   rejects anything else.
-- `tool/bump_version.sh` handles all of this for you: it hardcodes the major
-  version (edit the script to bump it), computes the date/time part from the
-  current UTC time, and always appends `.beta1` (it only produces stg versions
-  right now).
+- `tool/bump_version.dart` handles all of this for you:
+  `fvm dart run tool/bump_version.dart <target> --beta` (`android` is currently
+  the only target). It hardcodes the major version (edit the script to bump it)
+  and computes the date/time part from the current UTC time. With `--beta`, it
+  appends `.beta1` to a fresh (non-beta) version, or bumps `.betaN` to
+  `.betaN+1` if the current version is already a beta. Without `--beta`, it
+  produces a prod version with no suffix — but there's no prod deploy workflow
+  yet (see below).
+- Must be run from the project root; it assumes `versions.json` is at
+  `./versions.json`.
 
 ## Where the version actually lands in the app
 
