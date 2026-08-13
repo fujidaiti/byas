@@ -20,7 +20,9 @@ final betaSuffixPattern = RegExp(r'^(.+)\.beta(\d+)$');
 ///   unsuffixed (prod-channel) version is produced instead.
 ///
 /// Must be run from the project root, since `versions.json` is read from
-/// `./versions.json`.
+/// `./versions.json`. If that file (or the `target` entry in it) doesn't
+/// exist yet, it's created with `buildNumber` `1` and, if `--beta` is set,
+/// `versionName` suffixed `.beta1`.
 void main(List<String> arguments) {
   final usageError =
       arguments.isEmpty ||
@@ -39,12 +41,15 @@ void main(List<String> arguments) {
   final beta = arguments.length == 2;
 
   final versionsFile = File('versions.json');
-  final versions =
-      jsonDecode(versionsFile.readAsStringSync()) as Map<String, dynamic>;
-  final section = versions[target] as Map<String, dynamic>;
+  final versions = versionsFile.existsSync()
+      ? jsonDecode(versionsFile.readAsStringSync()) as Map<String, dynamic>
+      : <String, dynamic>{};
+  final section =
+      versions.putIfAbsent(target, () => <String, dynamic>{})
+          as Map<String, dynamic>;
 
-  final currentVersionName = section['versionName'] as String;
-  final currentBuildNumber = section['buildNumber'] as int;
+  final currentVersionName = section['versionName'] as String?;
+  final currentBuildNumber = section['buildNumber'] as int? ?? 0;
   final newBuildNumber = currentBuildNumber + 1;
   final newVersionName = nextVersionName(currentVersionName, beta: beta);
 
@@ -66,8 +71,10 @@ void main(List<String> arguments) {
   );
 }
 
-String nextVersionName(String currentVersionName, {required bool beta}) {
-  final currentBetaMatch = betaSuffixPattern.firstMatch(currentVersionName);
+String nextVersionName(String? currentVersionName, {required bool beta}) {
+  final currentBetaMatch = currentVersionName == null
+      ? null
+      : betaSuffixPattern.firstMatch(currentVersionName);
   if (beta && currentBetaMatch != null) {
     final base = currentBetaMatch.group(1);
     final nextBetaNumber = int.parse(currentBetaMatch.group(2)!) + 1;
