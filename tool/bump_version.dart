@@ -1,7 +1,3 @@
-// Bumps <target>.versionName/buildNumber in versions.json for a release.
-// Run this locally, review the diff, then commit and open a PR.
-//
-//   fvm dart run tool/bump_version.dart android [--beta]
 import 'dart:convert';
 import 'dart:io';
 
@@ -12,6 +8,19 @@ const supportedTargets = {'android'};
 
 final betaSuffixPattern = RegExp(r'^(.+)\.beta(\d+)$');
 
+/// Bumps `<target>`'s `versionName`/`buildNumber` in `versions.json` for a
+/// release. Run this locally, review the diff, then commit and open a PR.
+///
+/// Usage: `fvm dart run tool/bump_version.dart <target> [--beta]`
+///
+/// - `target`: the platform to bump. Currently only `android` is supported.
+/// - `--beta`: marks the release as a stg beta. If the current version is
+///   already a beta, its beta number is bumped (e.g. `.beta1` -> `.beta2`)
+///   instead of generating a new dated version. Without this flag, a fresh,
+///   unsuffixed (prod-channel) version is produced instead.
+///
+/// Must be run from the project root, since `versions.json` is read from
+/// `./versions.json`.
 void main(List<String> arguments) {
   final usageError =
       arguments.isEmpty ||
