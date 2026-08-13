@@ -3,6 +3,25 @@
 Based on the tag-driven release design in the release-CI doc. Currently only the
 Android **stg** path is implemented — Android prod and iOS aren't wired up yet.
 
+## Workflow overview
+
+```mermaid
+sequenceDiagram
+    actor Dev as Developer
+    participant Main as main branch
+    participant Tag as Version Tagging
+    participant Deploy as Android Staging Deploy
+    participant Firebase as Firebase App Distribution
+
+    Dev->>Main: Merge versions.json bump
+    Main->>Tag: Trigger on push
+    Tag->>Tag: Validate version
+    Tag->>Main: Create android-stg-* tag
+    Main->>Deploy: Trigger on tag push
+    Deploy->>Deploy: Build
+    Deploy->>Firebase: Deploy to Firebase App Distribution
+```
+
 ## How to cut a stg release
 
 ```sh
