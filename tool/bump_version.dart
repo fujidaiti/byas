@@ -1,23 +1,22 @@
 import 'dart:convert';
 import 'dart:io';
 
-// Edit this to change the major version (see release-ci-design doc §4.1).
 const majorVersion = 0;
 
 const supportedTargets = {'android'};
 
 final betaSuffixPattern = RegExp(r'^(.+)\.beta(\d+)$');
 
-/// Bumps `<target>`'s `versionName`/`buildNumber` in `versions.json` for a
-/// release. Run this locally, review the diff, then commit and open a PR.
+/// Bumps `<target>`'s version name and build number in `versions.json` for a
+/// release.
 ///
-/// Usage: `fvm dart run tool/bump_version.dart <target> [--beta]`
+/// Usage: `dart run tool/bump_version.dart <target> [--beta]`
 ///
 /// - `target`: the platform to bump. Currently only `android` is supported.
-/// - `--beta`: marks the release as a stg beta. If the current version is
-///   already a beta, its beta number is bumped (e.g. `.beta1` -> `.beta2`)
-///   instead of generating a new dated version. Without this flag, a fresh,
-///   unsuffixed (prod-channel) version is produced instead.
+/// - `--beta`: marks the release as a beta. If the current version is already
+///             a beta, its beta number is bumped (e.g. `.beta1` -> `.beta2`)
+///             instead of generating a new dated version. Without this flag,
+///             a fresh, unsuffixed (prod-channel) version is produced instead.
 ///
 /// Must be run from the project root, since `versions.json` is read from
 /// `./versions.json`. If that file (or the `target` entry in it) doesn't
