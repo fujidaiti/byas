@@ -6,6 +6,7 @@ on:
       - "android-stg-*"
 
 permissions:
+  # TODO: describe who needs this permision
   contents: read
 
 jobs:
@@ -14,9 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging
     steps:
-      - name: Log triggering actor
-        run: echo "github.actor=${{ github.actor }}"
-
       - name: Verify tag was created by the release bot
         if: github.actor != 'norelease-bot[bot]'
         run: |
@@ -34,11 +32,15 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      - name: Ensure Flutter uses the installed JDK to build the app
+        run: flutter config --jdk-dir="$JAVA_HOME"
+
       - name: Write .env
         env:
           CLIENT_ENV: ${{ secrets.CLIENT_ENV }}
         run: echo "$CLIENT_ENV" | base64 -d > client/.env
 
+        # TODO: split this step into two: extract version/build number , then write version.properties
       - name: Generate version.properties from versions.json
         run: |
           set -euo pipefail
@@ -53,12 +55,13 @@ jobs:
             echo "versionCode=$build_number"
           } > client/android/version.properties
 
+        # TODO: signing.properties is base64-ed. decode it
       - name: Write signing.properties
         env:
           ANDROID_SIGNING_PROPERTIES: ${{ secrets.ANDROID_SIGNING_PROPERTIES }}
         run: printf '%s' "$ANDROID_SIGNING_PROPERTIES" > client/android/signing.properties
 
-      - name: Decode release keystore
+      - name: Decode signing keystore
         env:
           ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
         run: |
