@@ -84,9 +84,10 @@ Same `.env` requirement as local dev — `API_BASE_URL` is read from it both by
 `CLIENT_ENV` secret rather than committed.
 
 Signing works exactly like local dev (see the main README): CI writes
-`client/android/signing.properties` from the `ANDROID_SIGNING_PROPERTIES`
-secret, then decodes `ANDROID_KEYSTORE` (base64) to whatever relative
-`keystore.path` that file specifies, under `client/android/app/`.
+`client/android/signing.properties` by decoding the base64
+`ANDROID_SIGNING_PROPERTIES` secret, then decodes `ANDROID_KEYSTORE` (base64) to
+whatever relative `keystore.path` that file specifies, under
+`client/android/app/`.
 
 ## GitHub configuration this depends on
 
@@ -95,7 +96,7 @@ secret, then decodes `ANDROID_KEYSTORE` (base64) to whatever relative
 | Secret / variable                       | Purpose                                                                |
 | --------------------------------------- | ---------------------------------------------------------------------- |
 | `CLIENT_ENV`                            | Base64-encoded contents of a working `client/.env`                     |
-| `ANDROID_SIGNING_PROPERTIES`            | Contents of `client/android/signing.properties`                        |
+| `ANDROID_SIGNING_PROPERTIES`            | Base64-encoded contents of `client/android/signing.properties`         |
 | `ANDROID_KEYSTORE`                      | Base64-encoded release keystore                                        |
 | `FIREBASE_APP_DISTRIBUTION_CREDENTIALS` | Base64-encoded service account JSON (App Distribution Admin role only) |
 | `FIREBASE_APP_ID`                       | Firebase App ID for `dev.norelease.paperdoll`                          |

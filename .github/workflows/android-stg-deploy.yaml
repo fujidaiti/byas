@@ -6,7 +6,7 @@ on:
       - "android-stg-*"
 
 permissions:
-  # TODO: describe who needs this permision
+  # actions/checkout needs this to read the repo at the pushed tag.
   contents: read
 
 jobs:
@@ -40,8 +40,8 @@ jobs:
           CLIENT_ENV: ${{ secrets.CLIENT_ENV }}
         run: echo "$CLIENT_ENV" | base64 -d > client/.env
 
-        # TODO: split this step into two: extract version/build number , then write version.properties
-      - name: Generate version.properties from versions.json
+      - name: Read version from versions.json
+        id: version
         run: |
           set -euo pipefail
           version_name=$(jq -r '.android.versionName // empty' versions.json)
@@ -50,16 +50,23 @@ jobs:
             echo "::error::versions.json is missing android.versionName or android.buildNumber."
             exit 1
           fi
+          echo "version_name=$version_name" >> "$GITHUB_OUTPUT"
+          echo "build_number=$build_number" >> "$GITHUB_OUTPUT"
+
+      - name: Write version.properties
+        env:
+          VERSION_NAME: ${{ steps.version.outputs.version_name }}
+          BUILD_NUMBER: ${{ steps.version.outputs.build_number }}
+        run: |
           {
-            echo "versionName=$version_name"
-            echo "versionCode=$build_number"
+            echo "versionName=$VERSION_NAME"
+            echo "versionCode=$BUILD_NUMBER"
           } > client/android/version.properties
 
-        # TODO: signing.properties is base64-ed. decode it
       - name: Write signing.properties
         env:
           ANDROID_SIGNING_PROPERTIES: ${{ secrets.ANDROID_SIGNING_PROPERTIES }}
-        run: printf '%s' "$ANDROID_SIGNING_PROPERTIES" > client/android/signing.properties
+        run: echo "$ANDROID_SIGNING_PROPERTIES" | base64 -d > client/android/signing.properties
 
       - name: Decode signing keystore
         env:
