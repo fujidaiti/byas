@@ -3,7 +3,11 @@ import 'dart:io';
 
 const majorVersion = 0;
 
-const supportedTargets = {'android'};
+enum Target {
+  android;
+
+  static Target? tryParse(String value) => values.asNameMap()[value];
+}
 
 final betaSuffixPattern = RegExp(r'^(.+)\.beta(\d+)$');
 
@@ -14,7 +18,7 @@ final betaSuffixPattern = RegExp(r'^(.+)\.beta(\d+)$');
 ///
 /// ```json
 /// {
-///   "android": {
+///   "android": { // The Android client app
 ///     "versionName": "1.20260813.0000.beta1",
 ///     "buildNumber": 1
 ///   }
@@ -42,17 +46,19 @@ void main(List<String> arguments) {
   final usageError =
       arguments.isEmpty ||
       arguments.length > 2 ||
-      !supportedTargets.contains(arguments[0]) ||
+      Target.tryParse(arguments[0]) == null ||
       (arguments.length == 2 && arguments[1] != '--beta');
   if (usageError) {
     stderr.writeln(
       'Usage: fvm dart run tool/bump_version.dart <target> [--beta]',
     );
-    stderr.writeln('  target: ${supportedTargets.join(', ')}');
+    stderr.writeln(
+      '  target: ${Target.values.map((target) => target.name).join(', ')}',
+    );
     exit(1);
   }
 
-  final target = arguments[0];
+  final target = Target.tryParse(arguments[0])!;
   final beta = arguments.length == 2;
 
   final versionsFile = File('versions.json');
@@ -60,7 +66,7 @@ void main(List<String> arguments) {
       ? jsonDecode(versionsFile.readAsStringSync()) as Map<String, dynamic>
       : <String, dynamic>{};
   final section =
-      versions.putIfAbsent(target, () => <String, dynamic>{})
+      versions.putIfAbsent(target.name, () => <String, dynamic>{})
           as Map<String, dynamic>;
 
   final currentVersionName = section['versionName'] as String?;
@@ -74,13 +80,15 @@ void main(List<String> arguments) {
   const encoder = JsonEncoder.withIndent('  ');
   versionsFile.writeAsStringSync('${encoder.convert(versions)}\n');
 
-  stdout.writeln('Bumped $target version:');
+  stdout.writeln('Bumped ${target.name} version:');
   stdout.writeln('  versionName = $newVersionName');
   stdout.writeln('  buildNumber = $newBuildNumber');
   stdout.writeln('');
   stdout.writeln('Next steps:');
   stdout.writeln('  git add versions.json');
-  stdout.writeln('  git commit -m "Bump $target version to $newVersionName"');
+  stdout.writeln(
+    '  git commit -m "Bump ${target.name} version to $newVersionName"',
+  );
   stdout.writeln(
     '  # open a PR and merge; the Version Tagging workflow will create the tag',
   );
