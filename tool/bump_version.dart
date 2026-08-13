@@ -10,6 +10,22 @@ final betaSuffixPattern = RegExp(r'^(.+)\.beta(\d+)$');
 /// Bumps `<target>`'s version name and build number in `versions.json` for a
 /// release.
 ///
+/// `versions.json` is a root-level file with one entry per platform, e.g.:
+///
+/// ```json
+/// {
+///   "android": {
+///     "versionName": "1.20260813.0000.beta1",
+///     "buildNumber": 1
+///   }
+/// }
+/// ```
+///
+/// `versionName` follows `<major>.<yyyymmdd>.<HHMM>[.betaN]` (UTC). The
+/// `.betaN` suffix marks a stg release; without it, the version is treated
+/// as prod. `buildNumber` must increase by exactly 1 each time. The Version
+/// Tagging workflow validates both rules; this script itself doesn't.
+///
 /// Usage: `dart run tool/bump_version.dart <target> [--beta]`
 ///
 /// - `target`: the platform to bump. Currently only `android` is supported.

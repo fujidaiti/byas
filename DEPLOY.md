@@ -48,33 +48,10 @@ No manual `git tag` and no manual workflow dispatch — pushing/merging
 
 ## `versions.json`
 
-Root-level, one entry per platform (only `android` exists so far):
-
-```json
-{
-  "android": {
-    "versionName": "1.20260813.0000.beta1",
-    "buildNumber": 1
-  }
-}
-```
-
-- `versionName` format: `<major>.<yyyymmdd>.<HHMM>[.betaN]` (UTC). The `.betaN`
-  suffix marks a stg release; without it, the version would be treated as prod —
-  but there's no prod deploy workflow yet, so a non-beta version only gets
-  validated, not tagged or shipped.
-- `buildNumber` must increase by exactly 1 each time; the tagging workflow
-  rejects anything else.
-- `tool/bump_version.dart` handles all of this for you:
-  `fvm dart run tool/bump_version.dart <target> --beta` (`android` is currently
-  the only target). It hardcodes the major version (edit the script to bump it)
-  and computes the date/time part from the current UTC time. With `--beta`, it
-  appends `.beta1` to a fresh (non-beta) version, or bumps `.betaN` to
-  `.betaN+1` if the current version is already a beta. Without `--beta`, it
-  produces a prod version with no suffix — but there's no prod deploy workflow
-  yet (see below).
-- Must be run from the project root; it assumes `versions.json` is at
-  `./versions.json`.
+Root-level file, one entry per platform (only `android` exists so far). Tracks
+the version each platform's next release should ship as; the tagging workflow
+validates it, and `tool/bump_version.dart` maintains it — see that script's doc
+comment for the file format, the `versionName` scheme, and CLI usage.
 
 ## Where the version actually lands in the app
 
@@ -93,9 +70,11 @@ it and never commits the result.
 
 ## The release build itself
 
-Same build as `make dev`, just release mode instead of debug:
+Same build as `make dev` (run from `client/`), just release mode instead of
+debug:
 
 ```sh
+cd client
 flutter build apk --release --dart-define-from-file=.env
 ```
 
@@ -105,9 +84,9 @@ Same `.env` requirement as local dev — `API_BASE_URL` is read from it both by
 `CLIENT_ENV` secret rather than committed.
 
 Signing works exactly like local dev (see the main README): CI writes
-`android/signing.properties` from the `ANDROID_SIGNING_PROPERTIES` secret, then
-decodes `ANDROID_KEYSTORE` (base64) to whatever relative `keystore.path` that
-file specifies, under `android/app/`.
+`client/android/signing.properties` from the `ANDROID_SIGNING_PROPERTIES`
+secret, then decodes `ANDROID_KEYSTORE` (base64) to whatever relative
+`keystore.path` that file specifies, under `client/android/app/`.
 
 ## GitHub configuration this depends on
 
@@ -116,7 +95,7 @@ file specifies, under `android/app/`.
 | Secret / variable                       | Purpose                                                                |
 | --------------------------------------- | ---------------------------------------------------------------------- |
 | `CLIENT_ENV`                            | Base64-encoded contents of a working `client/.env`                     |
-| `ANDROID_SIGNING_PROPERTIES`            | Contents of `android/signing.properties`                               |
+| `ANDROID_SIGNING_PROPERTIES`            | Contents of `client/android/signing.properties`                        |
 | `ANDROID_KEYSTORE`                      | Base64-encoded release keystore                                        |
 | `FIREBASE_APP_DISTRIBUTION_CREDENTIALS` | Base64-encoded service account JSON (App Distribution Admin role only) |
 | `FIREBASE_APP_ID`                       | Firebase App ID for `dev.norelease.paperdoll`                          |
