@@ -63,7 +63,7 @@ jobs:
             echo "versionCode=$BUILD_NUMBER"
           } > client/android/version.properties
 
-      - name: Write signing.properties
+      - name: Decode signing.properties
         env:
           ANDROID_SIGNING_PROPERTIES: ${{ secrets.ANDROID_SIGNING_PROPERTIES }}
         run: echo "$ANDROID_SIGNING_PROPERTIES" | base64 -d > client/android/signing.properties
