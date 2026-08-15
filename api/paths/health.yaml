@@ -5,7 +5,13 @@ get:
     "200":
       description: OK
       content:
-        text/plain:
+        application/json:
           schema:
-            type: string
-            example: Feeling good!
+            type: object
+            required:
+              - version
+            properties:
+              version:
+                type: string
+                description: The version name this server build ships as.
+                example: 1.20260815.133231
