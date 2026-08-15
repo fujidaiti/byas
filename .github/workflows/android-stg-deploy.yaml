@@ -17,11 +17,11 @@
 # commits the result.
 #
 # The build itself is the same as `make dev` (run from client/), just --release
-# instead of debug, and with the same .env requirement: API_BASE_URL is read
-# from it both by --dart-define-from-file (Dart side) and directly by Gradle
-# (BuildConfig.API_BASE_URL). Signing also works exactly like local dev (see the
-# main README), except that CI writes client/android/signing.properties and the
-# keystore it points at by decoding secrets instead of expecting them on disk.
+# instead of debug, and with the same .env requirement — the difference is that
+# CI decodes .env from a secret instead of expecting it on disk. Signing also
+# works exactly like local dev (see the main README), with the same difference:
+# client/android/signing.properties and the keystore it points at are decoded
+# from secrets.
 #
 # Everything secret comes from the protected `staging` environment:
 #
