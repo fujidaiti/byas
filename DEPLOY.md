@@ -1,7 +1,7 @@
-# Deploying the Android app (staging)
+# Deply
 
-Based on the tag-driven release design in the release-CI doc. Currently only the
-Android **stg** path is implemented — Android prod and iOS aren't wired up yet.
+This document describes the project's deployment workflow. Currently only the
+Android **stg** path is implemented — prod and iOS aren't wired up yet.
 
 ## Workflow overview
 
