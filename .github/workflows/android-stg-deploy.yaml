@@ -1,3 +1,39 @@
+# Builds the Android app in release mode and hands it to Firebase App
+# Distribution's tester group.
+#
+# Triggered by the android-stg-* tags that version-tagging.yaml pushes; there is
+# no manual dispatch. The tag name is only used as release notes — the version
+# the app ships as comes from client/android/version.json at the tagged commit.
+#
+# Gradle never reads version.json. Right before building, this workflow renders
+# it into client/android/version.properties:
+#
+#   versionName=1.20260813.123059.beta
+#   versionCode=1
+#
+# client/android/app/build.gradle.kts reads versionCode/versionName from that
+# file (not from pubspec.yaml). The copy committed to the repo is a placeholder
+# (0.0.0.dev / 1) for local debug/profile builds; CI overwrites it and never
+# commits the result.
+#
+# The build itself is the same as `make dev` (run from client/), just --release
+# instead of debug, and with the same .env requirement: API_BASE_URL is read
+# from it both by --dart-define-from-file (Dart side) and directly by Gradle
+# (BuildConfig.API_BASE_URL). Signing also works exactly like local dev (see the
+# main README), except that CI writes client/android/signing.properties and the
+# keystore it points at by decoding secrets instead of expecting them on disk.
+#
+# Everything secret comes from the protected `staging` environment:
+#
+#   secrets.CLIENT_ENV                             Base64 contents of a working client/.env
+#   secrets.ANDROID_SIGNING_PROPERTIES             Base64 contents of client/android/signing.properties
+#   secrets.ANDROID_KEYSTORE                       Base64 release keystore, decoded to the relative
+#                                                  keystore.path that signing.properties names, under
+#                                                  client/android/app/
+#   secrets.FIREBASE_APP_DISTRIBUTION_CREDENTIALS  Base64 service account JSON (App Distribution Admin only)
+#   secrets.FIREBASE_APP_ID                        Firebase App ID for dev.norelease.paperdoll
+#   vars.FIREBASE_TESTER_GROUP                     Tester group alias, currently `Dev`
+
 name: Android Staging Deploy
 
 on:
@@ -15,6 +51,11 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging
     steps:
+      # Defense in depth: nothing stops a human from pushing an android-stg-*
+      # tag by hand yet — there's no GitHub Ruleset restricting tag creation or
+      # direct pushes to deploy/** — so this is currently the only enforcement.
+      # It's a step rather than a job-level `if` so that a misconfigured check
+      # fails loudly instead of looking like a no-op success.
       - name: Verify tag was created by the release bot
         if: github.actor != 'norelease-bot[bot]'
         run: |
