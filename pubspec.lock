@@ -681,10 +681,10 @@ packages:
     dependency: transitive
     description:
       name: patrol
-      sha256: "1cb54197ba329a81cb0f7dca1ffae3b6425b4ea514a63b60dec9dbb9d662c866"
+      sha256: "743678f959a4878807efec59d19f8ebd65cc3d6953fdecce6562c987963f30a8"
       url: "https://pub.dev"
     source: hosted
-    version: "4.7.1"
+    version: "4.9.0"
   patrol_finders:
     dependency: transitive
     description:
@@ -697,10 +697,10 @@ packages:
     dependency: transitive
     description:
       name: patrol_log
-      sha256: "1f5b6f7e1d9feaab7a60eef31e34a83a6168d754e5c0336006a4f50fb5f27526"
+      sha256: "3d91c93e8d0ed19cb12d4b27aa24eca7294e0a48d9d8445505c9775feb5fde2d"
       url: "https://pub.dev"
     source: hosted
-    version: "0.10.0"
+    version: "0.10.1"
   platform:
     dependency: transitive
     description:
