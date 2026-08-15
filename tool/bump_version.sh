@@ -7,11 +7,11 @@
 # client/android/version.json:
 #
 #   {
-#     "versionName": "1.20260813.123059.beta1",
+#     "versionName": "1.20260813.123059.beta",
 #     "buildNumber": 1
 #   }
 #
-# versionName follows <major>.<yyyymmdd>.<HHMMSS>[.betaN] (UTC). The .betaN
+# versionName follows <major>.<yyyymmdd>.<HHMMSS>[.beta] (UTC). The .beta
 # suffix marks a stg release; without it, the version is treated as prod.
 # buildNumber must increase by exactly 1 each time. The Version Tagging
 # workflow validates both rules; this script itself doesn't.
@@ -19,12 +19,11 @@
 # Usage: tool/bump_version.sh -f <version.json> [--beta]
 #
 # -f      Path to the version file to bump. If it doesn't exist yet, it's
-#         created with buildNumber 1 and, if --beta is set, versionName
-#         suffixed .beta1.
-# --beta  Marks the release as a beta. If the current version is already a
-#         beta, its beta number is bumped (e.g. .beta1 -> .beta2) instead of
-#         generating a new dated version. Without this flag, a fresh,
-#         unsuffixed (prod-channel) version is produced instead.
+#         created with buildNumber 1.
+# --beta  Marks the release as a beta by suffixing the version name with
+#         .beta. Without this flag, an unsuffixed (prod-channel) version is
+#         produced instead. Either way, the timestamped part of the version
+#         name is regenerated from the current time.
 
 set -euo pipefail
 
@@ -60,19 +59,12 @@ if [[ -f "$path" ]]; then
 else
   current="{}"
 fi
-current_version_name=$(jq -r '.versionName // empty' <<< "$current")
 current_build_number=$(jq -r '.buildNumber // 0' <<< "$current")
 
 new_build_number=$((current_build_number + 1))
-
-if [[ "$beta" == true && "$current_version_name" =~ ^(.+)\.beta([0-9]+)$ ]]; then
-  # Keep the dated part and bump only the beta number.
-  new_version_name="${BASH_REMATCH[1]}.beta$((BASH_REMATCH[2] + 1))"
-else
-  new_version_name="$MAJOR_VERSION.$(date -u +%Y%m%d.%H%M%S)"
-  if [[ "$beta" == true ]]; then
-    new_version_name="$new_version_name.beta1"
-  fi
+new_version_name="$MAJOR_VERSION.$(date -u +%Y%m%d.%H%M%S)"
+if [[ "$beta" == true ]]; then
+  new_version_name="$new_version_name.beta"
 fi
 
 jq \

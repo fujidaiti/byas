@@ -36,7 +36,7 @@ That's it — merging is the trigger. Everything past this point is automatic:
 1. **Version Tagging** (`.github/workflows/version-tagging.yaml`) runs on the
    push to `main`, diffs `client/android/version.json` against the previous
    commit, and validates it (`versionName` format, `buildNumber` == previous +
-   1). If `versionName` ends in `.betaN`, it creates a tag
+   1). If `versionName` ends in `.beta`, it creates a tag
    `android-stg-<versionName>` using the release bot's GitHub App token (a plain
    `GITHUB_TOKEN`-created tag wouldn't trigger the next workflow, so this has to
    go through the App).
@@ -63,7 +63,7 @@ comment for the file format, the `versionName` scheme, and CLI usage.
 `client/android/version.properties`:
 
 ```properties
-versionName=1.20260813.123059.beta1
+versionName=1.20260813.123059.beta
 versionCode=1
 ```
 
