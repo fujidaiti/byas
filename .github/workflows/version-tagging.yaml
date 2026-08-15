@@ -30,8 +30,6 @@ on:
       - "deploy/**"
     paths:
       - client/android/version.json
-  # DEBUG ONLY - revert before merging: lets this run by hand from any branch.
-  workflow_dispatch:
 
 concurrency:
   group: version-tagging
@@ -61,9 +59,7 @@ jobs:
       - name: Export previous version.json
         id: previous-version
         env:
-          # DEBUG ONLY - revert before merging: github.event.before is empty on a
-          # manual run, so compare against the parent commit instead.
-          BEFORE_SHA: ${{ github.event.before || 'HEAD^' }}
+          BEFORE_SHA: ${{ github.event.before }}
         run: |
           set -euo pipefail
 
@@ -110,7 +106,4 @@ jobs:
 
           echo "Creating tag $TAG_NAME"
           git tag "$TAG_NAME" "$AFTER_SHA"
-
-          # DEBUG ONLY - revert before merging: the tag stays local, so no deploy
-          # is triggered and nothing is written to the remote.
-          echo "Would push: git push origin $TAG_NAME"
+          git push origin "$TAG_NAME"
