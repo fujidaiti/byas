@@ -1,22 +1,16 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:paperdoll/core/error/domain_error.dart';
 import 'package:paperdoll/core/ui/tokens/app_spacing.dart';
 
 /// Trailing footer for a paginated list: a spinner while the next page loads,
 /// an inline message with a retry when the last next-page fetch failed, and
 /// nothing otherwise.
-class LoadMoreFooter extends StatelessWidget {
-  const LoadMoreFooter({
-    required this.isLoading,
-    this.error,
-    this.onRetry,
-    super.key,
-  });
-
-  final bool isLoading;
-  final Object? error;
-  final VoidCallback? onRetry;
-
+class const LoadMoreFooter({
+  required final bool isLoading,
+  final Object? error,
+  final VoidCallback? onRetry,
+  super.key,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final error = this.error;

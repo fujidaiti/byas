@@ -5,11 +5,8 @@ import 'package:paperdoll/core/pagination/page_result.dart';
 import 'package:paperdoll/features/reading_list/domain/reading_list_item.dart';
 import 'package:paperdoll/features/reading_list/domain/reading_list_repository.dart';
 
-class ReadingListRepositoryImpl implements ReadingListRepository {
-  const ReadingListRepositoryImpl(this._dio);
-
-  final Dio _dio;
-
+class const ReadingListRepositoryImpl(final Dio _dio)
+    implements ReadingListRepository {
   @override
   Future<PageResult<ReadingListItem>> list({String? cursor}) {
     return runRequest(() async {
@@ -45,9 +42,8 @@ class ReadingListRepositoryImpl implements ReadingListRepository {
     return runRequest(() async {
       final res = await _dio.post<Map<String, dynamic>>(
         '/reading-list',
-        data: api.SaveToReadingListRequestOneOf1(
-          feedEntryId: feedEntryId,
-        ).toJson(),
+        data: api.SaveToReadingListRequestOneOf1(feedEntryId: feedEntryId)
+            .toJson(),
       );
       return _toItem(api.ReadingListItem.fromJson(res.data)!);
     });
@@ -81,9 +77,8 @@ class ReadingListRepositoryImpl implements ReadingListRepository {
     return runRequest(() async {
       await _dio.patch<void>(
         '/reading-list/$id',
-        data: api.SetReadingListItemArchivedStatusRequest(
-          archived: archived,
-        ).toJson(),
+        data: api.SetReadingListItemArchivedStatusRequest(archived: archived)
+            .toJson(),
       );
     });
   }

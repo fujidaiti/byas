@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:paperdoll/core/platform/app_version.dart';
 import 'package:paperdoll/debug_keys.dart';
 import 'package:paperdoll/features/auth/presentation/providers/auth_providers.dart';
@@ -9,9 +9,7 @@ import 'package:paperdoll/features/auth/presentation/providers/auth_providers.da
 /// Settings home: currently just sign-out. On success, the router reacts to
 /// the cleared [authSessionProvider] state and navigates to Sign-in on its
 /// own.
-class SettingsScreen extends ConsumerStatefulWidget {
-  const SettingsScreen({super.key});
-
+class const SettingsScreen({super.key}) extends ConsumerStatefulWidget {
   @override
   ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }

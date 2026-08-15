@@ -4,9 +4,7 @@ import 'package:paperdoll/core/error/domain_error.dart';
 
 /// Translates transport/HTTP failures into typed [DomainError]s, attached as
 /// the rejected [DioException.error] so repositories can rethrow them.
-class ErrorInterceptor extends Interceptor {
-  const ErrorInterceptor();
-
+class const ErrorInterceptor() extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     handler.reject(

@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:paperdoll/core/pagination/infinite_scroll.dart';
 import 'package:paperdoll/core/pagination/load_more_footer.dart';
 import 'package:paperdoll/core/pagination/paged_state.dart';
@@ -15,9 +15,7 @@ import 'package:paperdoll/features/feed/presentation/providers/feed_providers.da
 import 'package:paperdoll/features/feed/presentation/widgets/feed_row.dart';
 
 /// Feeds (Subscriptions) home: the list of subscribed feeds.
-class FeedsScreen extends ConsumerWidget {
-  const FeedsScreen({super.key});
-
+class const FeedsScreen({super.key}) extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final feedsAsync = ref.watch(feedsProvider);
@@ -54,12 +52,10 @@ class FeedsScreen extends ConsumerWidget {
   }
 }
 
-class _FeedsList extends StatelessWidget {
-  const _FeedsList({required this.state, required this.onLoadMore});
-
-  final PagedState<Feed> state;
-  final VoidCallback onLoadMore;
-
+class const _FeedsList({
+  required final PagedState<Feed> state,
+  required final VoidCallback onLoadMore,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final feeds = state.items;

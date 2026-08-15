@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:paperdoll/core/ui/tokens/app_spacing.dart';
 import 'package:paperdoll/core/ui/widgets/body_text.dart';
 import 'package:paperdoll/features/feed_entry/domain/feed_entry.dart';
@@ -6,11 +6,8 @@ import 'package:paperdoll/features/feed_entry/presentation/widgets/feed_entry_co
 
 /// Shared reading layout for both the Story Reader and the Feed Entry Reader: a
 /// header (title) above the rendered HTML content.
-class FeedEntryReaderView extends StatelessWidget {
-  const FeedEntryReaderView({required this.entry, super.key});
-
-  final FeedEntry entry;
-
+class const FeedEntryReaderView({required final FeedEntry entry, super.key})
+    extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final content = entry.content;

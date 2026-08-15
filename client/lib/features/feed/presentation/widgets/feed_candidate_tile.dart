@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:paperdoll/core/ui/tokens/app_spacing.dart';
 import 'package:paperdoll/core/ui/widgets/body_text.dart';
@@ -6,18 +6,12 @@ import 'package:paperdoll/core/ui/widgets/heading_text.dart';
 import 'package:paperdoll/features/feed/domain/feed_candidate.dart';
 
 /// A search result with a subscribe action.
-class FeedCandidateTile extends StatelessWidget {
-  const FeedCandidateTile({
-    required this.candidate,
-    required this.onSubscribe,
-    this.isSubscribing = false,
-    super.key,
-  });
-
-  final FeedCandidate candidate;
-  final VoidCallback onSubscribe;
-  final bool isSubscribing;
-
+class const FeedCandidateTile({
+  required final FeedCandidate candidate,
+  required final VoidCallback onSubscribe,
+  final bool isSubscribing = false,
+  super.key,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final description = candidate.description;

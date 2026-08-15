@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:paperdoll/core/ui/widgets/body_text.dart';
 import 'package:paperdoll/core/ui/widgets/heading_text.dart';
@@ -6,12 +6,11 @@ import 'package:paperdoll/features/feed/domain/feed.dart';
 import 'package:paperdoll/features/feed/presentation/widgets/feed_icon.dart';
 
 /// A subscribed feed in the Feeds list.
-class FeedRow extends StatelessWidget {
-  const FeedRow({required this.feed, this.onTap, super.key});
-
-  final Feed feed;
-  final VoidCallback? onTap;
-
+class const FeedRow({
+  required final Feed feed,
+  final VoidCallback? onTap,
+  super.key,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final description = feed.description;

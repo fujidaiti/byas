@@ -1,16 +1,15 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:paperdoll/core/ui/tokens/app_spacing.dart';
 import 'package:paperdoll/core/ui/widgets/body_text.dart';
 import 'package:paperdoll/core/ui/widgets/gap.dart';
 
 /// Inline placeholder for load failures: a message plus an optional retry.
-class ErrorPlaceholder extends StatelessWidget {
-  const ErrorPlaceholder({required this.message, this.onRetry, super.key});
-
-  final String message;
-  final VoidCallback? onRetry;
-
+class const ErrorPlaceholder({
+  required final String message,
+  final VoidCallback? onRetry,
+  super.key,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(

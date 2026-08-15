@@ -31,7 +31,7 @@ class _FakeWebViewPlatform extends WebViewPlatform {
 
 class _FakeWebViewController extends PlatformWebViewController
     with MockPlatformInterfaceMixin {
-  _FakeWebViewController(super.params) : super.implementation();
+  new(super.params) : super.implementation();
 
   @override
   Future<void> setJavaScriptMode(JavaScriptMode javaScriptMode) async {}
@@ -47,7 +47,7 @@ class _FakeWebViewController extends PlatformWebViewController
 
 class _FakeNavigationDelegate extends PlatformNavigationDelegate
     with MockPlatformInterfaceMixin {
-  _FakeNavigationDelegate(super.params) : super.implementation();
+  new(super.params) : super.implementation();
 
   @override
   Future<void> setOnNavigationRequest(
@@ -85,7 +85,7 @@ class _FakeNavigationDelegate extends PlatformNavigationDelegate
 
 class _FakeWebViewWidget extends PlatformWebViewWidget
     with MockPlatformInterfaceMixin {
-  _FakeWebViewWidget(super.params) : super.implementation();
+  new(super.params) : super.implementation();
 
   @override
   Widget build(BuildContext context) => const SizedBox.shrink();

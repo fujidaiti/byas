@@ -1,22 +1,16 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:paperdoll/core/ui/tokens/app_spacing.dart';
 import 'package:paperdoll/core/ui/widgets/body_text.dart';
 import 'package:paperdoll/core/ui/widgets/gap.dart';
 
 /// Inline placeholder for empty results, with an optional call to action.
-class EmptyPlaceholder extends StatelessWidget {
-  const EmptyPlaceholder({
-    required this.message,
-    this.actionLabel,
-    this.onAction,
-    super.key,
-  });
-
-  final String message;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-
+class const EmptyPlaceholder({
+  required final String message,
+  final String? actionLabel,
+  final VoidCallback? onAction,
+  super.key,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(

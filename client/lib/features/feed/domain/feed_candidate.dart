@@ -6,7 +6,7 @@ part 'feed_candidate.freezed.dart';
 /// subscribed to.
 @freezed
 abstract class FeedCandidate with _$FeedCandidate {
-  const factory FeedCandidate({
+  const factory({
     required String url,
     required String title,
     String? siteUrl,

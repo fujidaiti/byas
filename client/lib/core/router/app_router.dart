@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:paperdoll/core/router/routes.dart';
 import 'package:paperdoll/debug_keys.dart';
 import 'package:paperdoll/features/auth/presentation/providers/auth_providers.dart';
@@ -176,11 +176,9 @@ String? _authRedirect(AsyncValue<String?> sessionAsync, GoRouterState state) {
   };
 }
 
-class _ScaffoldWithNavBar extends StatelessWidget {
-  const _ScaffoldWithNavBar({required this.navigationShell});
-
-  final StatefulNavigationShell navigationShell;
-
+class const _ScaffoldWithNavBar({
+  required final StatefulNavigationShell navigationShell,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(

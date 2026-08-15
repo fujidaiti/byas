@@ -6,11 +6,8 @@ import 'package:paperdoll/features/newspaper/domain/newspaper.dart';
 import 'package:paperdoll/features/newspaper/domain/newspaper_repository.dart';
 import 'package:paperdoll/features/newspaper/domain/story.dart';
 
-class NewspaperRepositoryImpl implements NewspaperRepository {
-  const NewspaperRepositoryImpl(this._dio);
-
-  final Dio _dio;
-
+class const NewspaperRepositoryImpl(final Dio _dio)
+    implements NewspaperRepository {
   @override
   Future<Newspaper> getToday({String? cursor}) {
     return runRequest(() async {

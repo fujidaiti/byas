@@ -7,18 +7,12 @@ import 'package:flutter/widgets.dart';
 /// [onEndReached] may fire repeatedly while scrolling near the edge; callers
 /// are expected to guard against redundant loads (a paginating notifier's
 /// `loadMore()` no-ops when a fetch is in flight or there is nothing more).
-class InfiniteScrollList extends StatelessWidget {
-  const InfiniteScrollList({
-    required this.onEndReached,
-    required this.child,
-    this.threshold = 300,
-    super.key,
-  });
-
-  final VoidCallback onEndReached;
-  final double threshold;
-  final Widget child;
-
+class const InfiniteScrollList({
+  required final VoidCallback onEndReached,
+  required final Widget child,
+  final double threshold = 300,
+  super.key,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return NotificationListener<ScrollNotification>(

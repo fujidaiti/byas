@@ -11,12 +11,8 @@ import 'package:paperdoll/features/auth/domain/auth_repository.dart';
 /// (sign-in/sign-up/sign-out).
 const authTokenStorageKey = 'auth_token';
 
-class AuthRepositoryImpl implements AuthRepository {
-  const AuthRepositoryImpl(this._dio, this._storage);
-
-  final Dio _dio;
-  final SecureStorage _storage;
-
+class const AuthRepositoryImpl(final Dio _dio, final SecureStorage _storage)
+    implements AuthRepository {
   @override
   Future<String?> readAuthToken() => _storage.read(authTokenStorageKey);
 

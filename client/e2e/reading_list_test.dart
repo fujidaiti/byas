@@ -28,9 +28,8 @@ void main() {
     await $(AppDebugKey.readingListScreen).waitUntilVisible();
     await $(AppDebugKey.readingListRow('Building effective agents')).tap();
     await $(AppDebugKey.webClipReaderScreen).waitUntilVisible();
-    await $(
-      AppDebugKey.readerTitle('Building effective agents'),
-    ).waitUntilVisible();
+    await $(AppDebugKey.readerTitle('Building effective agents'))
+        .waitUntilVisible();
   });
 
   patrolTest(
@@ -77,9 +76,8 @@ void main() {
       await $(AppDebugKey.archivedReadingListScreen).waitUntilVisible();
       await $(AppDebugKey.readingListRow('Building effective agents')).tap();
       await $(AppDebugKey.webClipReaderScreen).waitUntilVisible();
-      await $(
-        AppDebugKey.readerTitle('Building effective agents'),
-      ).waitUntilVisible();
+      await $(AppDebugKey.readerTitle('Building effective agents'))
+          .waitUntilVisible();
     },
   );
 

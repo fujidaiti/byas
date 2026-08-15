@@ -10,7 +10,7 @@ enum StoryKind { webClip, feedEntry }
 /// A curated entry chosen to appear in a newspaper issue.
 @freezed
 abstract class Story with _$Story {
-  const factory Story({
+  const factory({
     required int id,
     required int resourceId,
     required StoryKind kind,

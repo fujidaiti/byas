@@ -5,9 +5,7 @@ import 'package:paperdoll/core/logging/app_logger.dart';
 /// Logs every provider failure so errors that never reach a widget (e.g. a
 /// provider that throws while nothing is listening, or a background refresh)
 /// are still recorded rather than silently swallowed.
-final class LoggingProviderObserver extends ProviderObserver {
-  const LoggingProviderObserver();
-
+final class const LoggingProviderObserver() extends ProviderObserver {
   @override
   void providerDidFail(
     ProviderObserverContext context,

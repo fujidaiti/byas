@@ -1,11 +1,9 @@
 /// Typed errors the data layer maps transport/HTTP failures into. The
 /// presentation layer pattern-matches on these to choose an error surface.
-sealed class DomainError implements Exception {
-  const DomainError([this.message]);
-
+sealed class const DomainError([
   /// Server-supplied message (`{ "message": ... }`), when available.
-  final String? message;
-
+  final String? message,
+]) implements Exception {
   /// Fallback shown when [message] is null.
   String get defaultMessage;
 
@@ -13,44 +11,32 @@ sealed class DomainError implements Exception {
   String toString() => 'DomainError(${message ?? defaultMessage})';
 }
 
-final class UnauthorizedError extends DomainError {
-  const UnauthorizedError([super.message]);
-
+final class const UnauthorizedError([super.message]) extends DomainError {
   @override
   String get defaultMessage => 'Session expired. Please sign in again.';
 }
 
-final class NotFoundError extends DomainError {
-  const NotFoundError([super.message]);
-
+final class const NotFoundError([super.message]) extends DomainError {
   @override
   String get defaultMessage => 'Not found.';
 }
 
-final class BadRequestError extends DomainError {
-  const BadRequestError([super.message]);
-
+final class const BadRequestError([super.message]) extends DomainError {
   @override
   String get defaultMessage => 'Invalid request.';
 }
 
-final class ServerError extends DomainError {
-  const ServerError([super.message]);
-
+final class const ServerError([super.message]) extends DomainError {
   @override
   String get defaultMessage => 'Server error. Please try again.';
 }
 
-final class NetworkError extends DomainError {
-  const NetworkError([super.message]);
-
+final class const NetworkError([super.message]) extends DomainError {
   @override
   String get defaultMessage => 'Network error. Check your connection.';
 }
 
-final class UnknownError extends DomainError {
-  const UnknownError([super.message]);
-
+final class const UnknownError([super.message]) extends DomainError {
   @override
   String get defaultMessage => 'Something went wrong.';
 }

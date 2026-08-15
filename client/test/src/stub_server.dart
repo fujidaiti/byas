@@ -9,22 +9,21 @@ import 'fixture.dart';
 /// Computes a `(status, responseBody)` for a matched request from its
 /// already-decoded request body. Evaluated at request time, so it may read or
 /// mutate state a test captured to answer differently across calls.
-typedef StubResponder =
-    (int status, Object? body) Function(Object? requestBody);
+typedef StubResponder = (int status, Object? body) Function(
+  Object? requestBody,
+);
 
 /// A Dio interceptor that answers registered routes with canned responses and
 /// records any request no route matched. When several routes match the same
 /// request, the last registered one wins.
-class StubServer extends Interceptor {
-  StubServer();
-
+class StubServer() extends Interceptor {
   /// A server pre-stubbed with the three shell tabs populated from [fixture]:
   /// enough for any test to boot and navigate without stubbing anything itself.
   /// Only the list endpoints the shell loads on boot are answered here; nested
   /// resources (a feed's timeline, a story's entry) are fetched on navigation,
   /// so a test that drills into a tab still stubs those itself — and overrides
   /// any tab it needs in a specific state (the last registration wins).
-  factory StubServer.withDefaultResponses() {
+  factory withDefaultResponses() {
     return StubServer()
       ..stubGet(
         '/newspapers/today',
@@ -149,13 +148,12 @@ class StubServer extends Interceptor {
 Object? _asTransportJson(Object? body) =>
     body == null ? null : jsonDecode(jsonEncode(body));
 
-class _Route {
-  _Route(this.method, this.path, this.bodyMatcher, this.responder);
-  final String method;
-  final String path;
-  final Object? bodyMatcher;
-  final StubResponder responder;
-
+class _Route(
+  final String method,
+  final String path,
+  final Object? bodyMatcher,
+  final StubResponder responder,
+) {
   /// Whether a request carrying [actual] as its body matches this route.
   /// A `null` [bodyMatcher] matches any body; a `Map` matches as a top-level
   /// subset (extra keys ignored); anything else is compared with deep equality.

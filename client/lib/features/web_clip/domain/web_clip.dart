@@ -13,7 +13,7 @@ part 'web_clip.freezed.dart';
 /// two diverge briefly during an in-flight save.
 @freezed
 abstract class WebClip with _$WebClip {
-  const factory WebClip({
+  const factory({
     required String url,
     String? title,
     String? description,

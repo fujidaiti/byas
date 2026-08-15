@@ -1,7 +1,5 @@
 /// Immutable build/runtime configuration, read from `--dart-define-from-file`.
-class AppConfig {
-  const AppConfig(this.apiBaseUrl);
-
+class const AppConfig(
   /// Base URL of the Paperdoll REST API.
-  final String apiBaseUrl;
-}
+  final String apiBaseUrl,
+);

@@ -35,9 +35,8 @@ void main() {
     await t(AppDebugKey.addFeedButton).tap();
     await t(AppDebugKey.feedSearchScreen).waitUntilVisible();
 
-    await t(
-      AppDebugKey.feedSearchTextField,
-    ).enterText('http://www.nasa.gov/news-release/feed/');
+    await t(AppDebugKey.feedSearchTextField)
+        .enterText('http://www.nasa.gov/news-release/feed/');
     await t(AppDebugKey.feedSearchButton).tap();
     await t(AppDebugKey.feedCandidateTile('NASA')).tap();
     await t(AppDebugKey.subscribeSuccessSnackBar).waitUntilVisible();

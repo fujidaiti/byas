@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:paperdoll/core/ui/tokens/app_colors.dart';
 import 'package:paperdoll/core/ui/tokens/app_spacing.dart';
@@ -11,12 +11,11 @@ import 'package:paperdoll/core/util/date_format.dart';
 import 'package:paperdoll/features/feed_entry/domain/feed_entry.dart';
 
 /// A single feed entry in a timeline list.
-class FeedEntryRow extends StatelessWidget {
-  const FeedEntryRow({required this.entry, this.onTap, super.key});
-
-  final FeedEntry entry;
-  final VoidCallback? onTap;
-
+class const FeedEntryRow({
+  required final FeedEntry entry,
+  final VoidCallback? onTap,
+  super.key,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final description = entry.description;

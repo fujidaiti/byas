@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:paperdoll/core/ui/tokens/app_colors.dart';
 import 'package:paperdoll/core/ui/tokens/app_spacing.dart';
@@ -10,12 +10,11 @@ import 'package:paperdoll/core/ui/widgets/heading_text.dart';
 import 'package:paperdoll/features/newspaper/domain/story.dart';
 
 /// A story in the Today list: title, snippet, and source.
-class StoryCard extends StatelessWidget {
-  const StoryCard({required this.story, this.onTap, super.key});
-
-  final Story story;
-  final VoidCallback? onTap;
-
+class const StoryCard({
+  required final Story story,
+  final VoidCallback? onTap,
+  super.key,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final description = story.description;
