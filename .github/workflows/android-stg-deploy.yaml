@@ -33,13 +33,16 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging
     steps:
-      # Defense in depth: nothing stops a human from pushing an android-stg-*
-      # tag by hand yet — there's no GitHub Ruleset restricting tag creation or
-      # direct pushes to deploy/** — so this is currently the only enforcement.
-      # It's a step rather than a job-level `if` so that a misconfigured check
-      # fails loudly instead of looking like a no-op success.
+      # Only needed to get the bot's slug
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ vars.NORELEASE_BOT_APP_ID }}
+          private-key: ${{ secrets.NORELEASE_BOT_PRIVATE_KEY }}
+
       - name: Verify tag was created by the release bot
-        if: github.actor != 'norelease-bot[bot]'
+        if: github.actor != ${{ steps.app-token.outputs.app-slug }}
         run: |
           echo "::error::Tag pushed by '${{ github.actor }}', not the release bot. Refusing to deploy."
           exit 1
