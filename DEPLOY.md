@@ -24,28 +24,27 @@ sequenceDiagram
 
 ## How to cut a stg release
 
+Update version file(s):
+
 ```sh
 tool/version.sh bump client/android/version.json --beta
 git add client/android/version.json
 git commit -m "Bump android stg version to <versionName>"
-# open a PR, get it reviewed, squash-merge to main
 ```
 
-That's it — merging is the trigger. No manual `git tag`, no manual workflow
-dispatch; pushing/merging `client/android/version.json` is the only action a
-developer takes. Everything past this point is automatic:
+Then push it, or create a PR and merge it to the `main` or a `deploy/*` branch.
+Pushing new version file(s) is the only action a developer takes. Everything
+past this point is automatic:
 
-1. **Version Tagging** (`.github/workflows/version-tagging.yaml`) runs on the
-   push to `main`, validates the bump, and tags the commit
-   `android-stg-<versionName>`.
-2. **Android Staging Deploy** (`.github/workflows/android-stg-deploy.yaml`) runs
-   on that tag push, builds a release APK, and uploads it to Firebase App
-   Distribution's `Dev` group.
+1. Version tagging (`.github/workflows/version-tagging.yaml`) runs on the push,
+   validates the bump, and tags the commit `android-stg-<versionName>`.
+2. Android Staging Deploy (`.github/workflows/android-stg-deploy.yaml`) runs on
+   that tag push, builds a release APK, and uploads it to Firebase App
+   Distribution.
 
-Each platform keeps its own version file next to its build files; only the
-Android one exists so far, and iOS would get its own (e.g.
-`client/ios/version.json`) rather than a key in a shared file. It tracks the
-version that platform's next release should ship as.
+Each build target keeps its own version file within its directory (e.g.
+`client/android/version.json`). It tracks the version that target's next release
+should ship as.
 
 ## Tag protection
 

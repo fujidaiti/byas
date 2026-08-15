@@ -1,5 +1,4 @@
-# Tags the commit that bumps a version file, which is what actually starts a
-# release build.
+# Tags the commit that bumps a version file to trigger a release build.
 #
 # Pushing a version bump to main or a deploy/** branch is the only action
 # a developer takes. This workflow diffs client/android/version.json against
