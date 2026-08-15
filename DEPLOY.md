@@ -47,12 +47,22 @@ Android one exists so far, and iOS would get its own (e.g.
 `client/ios/version.json`) rather than a key in a shared file. It tracks the
 version that platform's next release should ship as.
 
-## Where the details live
+## Tag protection
 
-Each piece documents its own responsibility in its header comment:
+A release tag is what actually starts a deploy, so the repo needs an active [tag
+ruleset] that restricts creations, updates and deletions, targeting one pattern
+per release-tag namespace (`android-stg-*`, and whatever prod and iOS use once
+they exist — an untargeted namespace is unprotected). The release bot's GitHub
+App is the only bypass actor, set to _Always allow_.
 
-| File                                        | Covers                                                                                      |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `tool/version.sh`                           | The `version.json` format, the `versionName` scheme, and how to bump and validate a version |
-| `.github/workflows/version-tagging.yaml`    | Bump validation, tag naming, and why tagging goes through the release bot's App token       |
-| `.github/workflows/android-stg-deploy.yaml` | The release build, signing, Firebase distribution, and the `staging` secrets it needs       |
+[ruleset]:
+  https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets#branch-and-tag-rulesets
+
+## See also
+
+- `tool/version.sh`, which is the tool that bumps a version file and validates a
+  bump
+- `.github/workflows/version-tagging.yaml`, which observes version files and
+  creates release tags when it bumps
+- `.github/workflows/android-stg-deploy.yaml`, which is triggered by an
+  `android-stg-*` tag and deploys the client app to Firebase App Distribution.
