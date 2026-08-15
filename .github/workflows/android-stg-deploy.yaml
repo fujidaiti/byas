@@ -20,6 +20,8 @@
 #   secrets.FIREBASE_APP_DISTRIBUTION_CREDENTIALS  Base64 service account JSON (App Distribution Admin only)
 #   secrets.FIREBASE_APP_ID                        Firebase App ID for dev.norelease.paperdoll
 #   vars.FIREBASE_TESTER_GROUP                     Tester group alias, currently `Dev`
+#
+# See DEPLOY.md for the overview of the entire deployment pipeline.
 name: Android Staging Deploy
 
 on:

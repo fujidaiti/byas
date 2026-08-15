@@ -31,6 +31,8 @@
 #         Otherwise prints what's wrong and exits 1. A missing old file means
 #         there is no previous version, in which case the new build number must
 #         be 1.
+#
+# See DEPLOY.md for the overview of the entire deployment pipeline.
 
 set -euo pipefail
 

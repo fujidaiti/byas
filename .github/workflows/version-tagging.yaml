@@ -19,6 +19,8 @@
 #
 #   vars.NORELEASE_BOT_APP_ID          The release bot's GitHub App ID
 #   secrets.NORELEASE_BOT_PRIVATE_KEY  The release bot's GitHub App private key
+#
+# See DEPLOY.md for the overview of the entire deployment pipeline.
 name: Version Tagging
 
 on:
