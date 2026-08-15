@@ -39,7 +39,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             onTap: () => unawaited(_signOut()),
           ),
           ListTile(
-            key: AppDebugKey.settingsVersionTile,
             leading: const Icon(Icons.info_outline),
             title: Text(switch (ref.watch(appVersionProvider)) {
               AsyncData(:final value) => 'Version $value',

@@ -44,7 +44,6 @@ abstract final class AppDebugKey {
   );
   static const settingsButton = Key('settingsButton');
   static const settingsScreen = Key('settingsScreen');
-  static const settingsVersionTile = Key('settingsVersionTile');
   static const signOutButton = Key('signOutButton');
   static const signInScreen = Key('signInScreen');
   static const signInEmailField = Key('signInEmailField');
