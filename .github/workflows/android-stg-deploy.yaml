@@ -15,6 +15,11 @@
 #   secrets.FIREBASE_APP_ID                        Firebase App ID for dev.norelease.paperdoll
 #   vars.FIREBASE_TESTER_GROUP                     Tester group alias, currently `Dev`
 #
+# One repo/org-level variable, not part of the `staging` environment:
+#
+#   vars.NORELEASE_BOT_SLUG  The release bot's actor login, e.g. norelease-bot[bot].
+#                            Used to confirm the tag was actually pushed by the bot.
+#
 # See DEPLOY.md for the overview of the entire deployment pipeline.
 name: Android Staging Deploy
 
@@ -33,16 +38,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging
     steps:
-      # Only needed to get the bot's slug
-      - name: Generate GitHub App token
-        id: app-token
-        uses: actions/create-github-app-token@v3
-        with:
-          app-id: ${{ vars.NORELEASE_BOT_APP_ID }}
-          private-key: ${{ secrets.NORELEASE_BOT_PRIVATE_KEY }}
-
       - name: Verify tag was created by the release bot
-        if: github.actor != ${{ steps.app-token.outputs.app-slug }}
+        if: github.actor != vars.NORELEASE_BOT_SLUG
         run: |
           echo "::error::Tag pushed by '${{ github.actor }}', not the release bot. Refusing to deploy."
           exit 1
