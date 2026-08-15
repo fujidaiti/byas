@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:paperdoll/core/platform/app_version.dart';
 import 'package:paperdoll/debug_keys.dart';
 import 'package:paperdoll/features/auth/presentation/providers/auth_providers.dart';
 
@@ -36,6 +37,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             title: const Text('Sign out'),
             enabled: !_submitting,
             onTap: () => unawaited(_signOut()),
+          ),
+          ListTile(
+            key: AppDebugKey.settingsVersionTile,
+            leading: const Icon(Icons.info_outline),
+            title: Text(switch (ref.watch(appVersionProvider)) {
+              AsyncData(:final value) => 'Version $value',
+              _ => '',
+            }),
           ),
         ],
       ),
