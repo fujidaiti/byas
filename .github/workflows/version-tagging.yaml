@@ -1,0 +1,105 @@
+# Tags the commit that bumps a version file to trigger a release build.
+#
+# Pushing a version bump to main or a deploy/** branch is the only action
+# a developer takes. This workflow diffs client/android/version.json against
+# the previous commit, validates the bump with `tool/version.sh comp`, and
+# if the new versionName ends in .beta, pushes the tag android-stg-<versionName>,
+# which triggers android-stg-deploy.yaml. Unsuffixed (prod-channel) versions are
+# validated but not tagged: the prod pipeline isn't wired up yet.
+#
+# See tool/version.sh for the version file format and the versionName scheme.
+#
+# The tag has to be pushed with the release bot's GitHub App token rather than
+# the default GITHUB_TOKEN: GitHub suppresses workflow triggers for events
+# created with GITHUB_TOKEN, so a tag pushed that way would never start the
+# deploy workflow.
+#
+# The token generation requires these repo/org-level variables:
+#
+#   vars.NORELEASE_BOT_APP_ID          The release bot's GitHub App ID
+#   secrets.NORELEASE_BOT_PRIVATE_KEY  The release bot's GitHub App private key
+#
+# See DEPLOY.md for the overview of the entire deployment pipeline.
+name: Version Tagging
+
+on:
+  push:
+    branches:
+      - main
+      - "deploy/**"
+    paths:
+      - client/android/version.json
+
+concurrency:
+  group: version-tagging
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    name: Validate version.json and tag Android release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ vars.NORELEASE_BOT_APP_ID }}
+          private-key: ${{ secrets.NORELEASE_BOT_PRIVATE_KEY }}
+
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          fetch-depth: 0
+
+      - name: Export previous version.json
+        id: previous-version
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+
+          # Leaving the file absent is how the next step is told there is no
+          # previous version (the very first bump, or a new branch).
+          path="$RUNNER_TEMP/prev-version.json"
+          git show "$BEFORE_SHA:client/android/version.json" > "$path" 2>/dev/null || rm -f "$path"
+          echo "path=$path" >> "$GITHUB_OUTPUT"
+
+      - name: Validate version bump
+        env:
+          PREVIOUS_VERSION: ${{ steps.previous-version.outputs.path }}
+        run: tool/version.sh comp "$PREVIOUS_VERSION" client/android/version.json
+
+      - name: Resolve tag to create
+        id: tag
+        run: |
+          set -euo pipefail
+
+          version_name=$(jq -r '.versionName' client/android/version.json)
+          if [[ "$version_name" != *.beta* ]]; then
+            echo "prod channel not yet wired; skipping tag creation."
+            exit 0
+          fi
+
+          # The version may be unchanged (a push that only reformatted the file,
+          # or a re-run of this workflow), in which case the tag is already
+          # there and creating it again would fail.
+          tag_name="android-stg-$version_name"
+          if git rev-parse -q --verify "refs/tags/$tag_name" > /dev/null; then
+            echo "Tag $tag_name already exists; nothing to do."
+            exit 0
+          fi
+
+          echo "name=$tag_name" >> "$GITHUB_OUTPUT"
+
+      - name: Create tag
+        if: steps.tag.outputs.name != ''
+        env:
+          TAG_NAME: ${{ steps.tag.outputs.name }}
+          AFTER_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          echo "Creating tag $TAG_NAME"
+          git tag "$TAG_NAME" "$AFTER_SHA"
+          git push origin "$TAG_NAME"

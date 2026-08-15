@@ -1,0 +1,101 @@
+# Builds the Android app in release mode and hands it to Firebase App
+# Distribution's tester group.
+#
+# Triggered by the android-stg-* tags that version-tagging.yaml pushes.
+# The version the app ships as comes from client/android/version.json at the tagged commit.
+#
+# Everything secret comes from the protected `staging` environment:
+#
+#   secrets.CLIENT_ENV                             Base64 contents of a working client/.env
+#   secrets.ANDROID_SIGNING_PROPERTIES             Base64 contents of client/android/signing.properties
+#   secrets.ANDROID_KEYSTORE                       Base64 release keystore, decoded to the relative
+#                                                  keystore.path that signing.properties names, under
+#                                                  client/android/app/
+#   secrets.FIREBASE_APP_DISTRIBUTION_CREDENTIALS  Base64 service account JSON (App Distribution Admin only)
+#   secrets.FIREBASE_APP_ID                        Firebase App ID for dev.norelease.paperdoll
+#   vars.FIREBASE_TESTER_GROUP                     Tester group alias, currently `Dev`
+#
+# One repo/org-level variable, not part of the `staging` environment:
+#
+#   vars.NORELEASE_BOT_SLUG  The release bot's actor login, e.g. norelease-bot[bot].
+#                            Used to confirm the tag was actually pushed by the bot.
+#
+# See DEPLOY.md for the overview of the entire deployment pipeline.
+name: Android Staging Deploy
+
+on:
+  push:
+    tags:
+      - "android-stg-*"
+
+permissions:
+  # actions/checkout needs this to read the repo at the pushed tag.
+  contents: read
+
+jobs:
+  deploy:
+    name: Build and distribute to Firebase App Distribution
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Verify tag was created by the release bot
+        if: github.actor != vars.NORELEASE_BOT_SLUG
+        run: |
+          echo "::error::Tag pushed by '${{ github.actor }}', not the release bot. Refusing to deploy."
+          exit 1
+
+      - uses: actions/checkout@v7
+
+      - name: Set up Flutter SDK
+        uses: ./.github/actions/setup-flutter
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Ensure Flutter uses the installed JDK to build the app
+        run: flutter config --jdk-dir="$JAVA_HOME"
+
+      - name: Write .env
+        env:
+          CLIENT_ENV: ${{ secrets.CLIENT_ENV }}
+        run: echo "$CLIENT_ENV" | base64 -d > client/.env
+
+      - name: Decode signing.properties
+        env:
+          ANDROID_SIGNING_PROPERTIES: ${{ secrets.ANDROID_SIGNING_PROPERTIES }}
+        run: echo "$ANDROID_SIGNING_PROPERTIES" | base64 -d > client/android/signing.properties
+
+      - name: Decode signing keystore
+        env:
+          ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+        run: |
+          keystore_path=$(grep '^keystore.path=' client/android/signing.properties | cut -d= -f2-)
+          echo "$ANDROID_KEYSTORE" | base64 -d > "client/android/app/$keystore_path"
+
+      - name: Build release APK
+        working-directory: client
+        run: flutter build apk --release --dart-define-from-file=.env
+
+      - name: Decode Firebase service account
+        env:
+          FIREBASE_APP_DISTRIBUTION_CREDENTIALS: ${{ secrets.FIREBASE_APP_DISTRIBUTION_CREDENTIALS }}
+        run: echo "$FIREBASE_APP_DISTRIBUTION_CREDENTIALS" | base64 -d > "$RUNNER_TEMP/firebase-service-account.json"
+
+      - name: Install firebase-tools
+        run: npm install -g firebase-tools
+
+      - name: Distribute to Firebase App Distribution
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+          FIREBASE_TESTER_GROUP: ${{ vars.FIREBASE_TESTER_GROUP }}
+          RELEASE_NOTES: "Release ${{ github.ref_name }}"
+        run: |
+          firebase appdistribution:distribute \
+            client/build/app/outputs/flutter-apk/app-release.apk \
+            --app "$FIREBASE_APP_ID" \
+            --groups "$FIREBASE_TESTER_GROUP" \
+            --release-notes "$RELEASE_NOTES"
