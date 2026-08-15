@@ -22,6 +22,8 @@ on:
   push:
     tags:
       - "android-stg-*"
+  # DEBUG ONLY - revert before merging: lets this run by hand from any ref.
+  workflow_dispatch:
 
 permissions:
   # actions/checkout needs this to read the repo at the pushed tag.
@@ -38,8 +40,10 @@ jobs:
       # direct pushes to deploy/** — so this is currently the only enforcement.
       # It's a step rather than a job-level `if` so that a misconfigured check
       # fails loudly instead of looking like a no-op success.
+      # DEBUG ONLY - revert before merging: a manual run is never the bot, so the
+      # check would fail every debugging run.
       - name: Verify tag was created by the release bot
-        if: github.actor != 'norelease-bot[bot]'
+        if: github.event_name != 'workflow_dispatch' && github.actor != 'norelease-bot[bot]'
         run: |
           echo "::error::Tag pushed by '${{ github.actor }}', not the release bot. Refusing to deploy."
           exit 1
@@ -94,8 +98,9 @@ jobs:
           FIREBASE_TESTER_GROUP: ${{ vars.FIREBASE_TESTER_GROUP }}
           RELEASE_NOTES: "Release ${{ github.ref_name }}"
         run: |
-          firebase appdistribution:distribute \
-            client/build/app/outputs/flutter-apk/app-release.apk \
-            --app "$FIREBASE_APP_ID" \
-            --groups "$FIREBASE_TESTER_GROUP" \
-            --release-notes "$RELEASE_NOTES"
+          # DEBUG ONLY - revert before merging: nothing is uploaded, so no build
+          # reaches real testers. Everything above still runs, including decoding
+          # the credentials, so a broken secret still shows up here.
+          ls -l client/build/app/outputs/flutter-apk/app-release.apk
+          test -s "$GOOGLE_APPLICATION_CREDENTIALS"
+          echo "Would distribute the APK above to group '$FIREBASE_TESTER_GROUP' with notes: $RELEASE_NOTES"
