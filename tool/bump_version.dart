@@ -3,25 +3,20 @@ import 'dart:io';
 
 const majorVersion = 0;
 
-enum Target {
-  android;
-
-  static Target? tryParse(String value) => values.asNameMap()[value];
-}
+const indent = '\u0020\u0020';
 
 final betaSuffixPattern = RegExp(r'^(.+)\.beta(\d+)$');
 
-/// Bumps `<target>`'s version name and build number in `versions.json` for a
+/// Bumps the version name and build number in the given version file for a
 /// release.
 ///
-/// `versions.json` is a root-level file with one entry per platform, e.g.:
+/// Each platform keeps its own version file next to its build files, e.g.
+/// `client/android/version.json`:
 ///
 /// ```json
 /// {
-///   "android": { // The Android client app
-///     "versionName": "1.20260813.0000.beta1",
-///     "buildNumber": 1
-///   }
+///   "versionName": "1.20260813.0000.beta1",
+///   "buildNumber": 1
 /// }
 /// ```
 ///
@@ -30,68 +25,56 @@ final betaSuffixPattern = RegExp(r'^(.+)\.beta(\d+)$');
 /// as prod. `buildNumber` must increase by exactly 1 each time. The Version
 /// Tagging workflow validates both rules; this script itself doesn't.
 ///
-/// Usage: `dart run tool/bump_version.dart <target> [--beta]`
+/// Usage: `dart run tool/bump_version.dart -f <version.json> [--beta]`
 ///
-/// - `target`: the platform to bump. Currently only `android` is supported.
+/// - `-f`: path to the version file to bump. If it doesn't exist yet, it's
+///         created with `buildNumber` `1` and, if `--beta` is set,
+///         `versionName` suffixed `.beta1`.
 /// - `--beta`: marks the release as a beta. If the current version is already
 ///             a beta, its beta number is bumped (e.g. `.beta1` -> `.beta2`)
 ///             instead of generating a new dated version. Without this flag,
 ///             a fresh, unsuffixed (prod-channel) version is produced instead.
-///
-/// Must be run from the project root, since `versions.json` is read from
-/// `./versions.json`. If that file (or the `target` entry in it) doesn't
-/// exist yet, it's created with `buildNumber` `1` and, if `--beta` is set,
-/// `versionName` suffixed `.beta1`.
 void main(List<String> arguments) {
-  final usageError =
-      arguments.isEmpty ||
-      arguments.length > 2 ||
-      Target.tryParse(arguments[0]) == null ||
-      (arguments.length == 2 && arguments[1] != '--beta');
-  if (usageError) {
+  String? path;
+  var beta = false;
+  var usageError = false;
+  for (var i = 0; i < arguments.length; i++) {
+    switch (arguments[i]) {
+      case '-f' when i + 1 < arguments.length:
+        path = arguments[++i];
+      case '--beta':
+        beta = true;
+      default:
+        usageError = true;
+    }
+  }
+
+  if (usageError || path == null) {
     stderr.writeln(
-      'Usage: fvm dart run tool/bump_version.dart <target> [--beta]',
-    );
-    stderr.writeln(
-      '  target: ${Target.values.map((target) => target.name).join(', ')}',
+      'Usage: fvm dart run tool/bump_version.dart -f <version.json> [--beta]',
     );
     exit(1);
   }
 
-  final target = Target.tryParse(arguments[0])!;
-  final beta = arguments.length == 2;
-
-  final versionsFile = File('versions.json');
-  final versions = versionsFile.existsSync()
-      ? jsonDecode(versionsFile.readAsStringSync()) as Map<String, dynamic>
+  final versionFile = File(path);
+  final version = versionFile.existsSync()
+      ? jsonDecode(versionFile.readAsStringSync()) as Map<String, dynamic>
       : <String, dynamic>{};
-  final section =
-      versions.putIfAbsent(target.name, () => <String, dynamic>{})
-          as Map<String, dynamic>;
 
-  final currentVersionName = section['versionName'] as String?;
-  final currentBuildNumber = section['buildNumber'] as int? ?? 0;
+  final currentVersionName = version['versionName'] as String?;
+  final currentBuildNumber = version['buildNumber'] as int? ?? 0;
   final newBuildNumber = currentBuildNumber + 1;
   final newVersionName = nextVersionName(currentVersionName, beta: beta);
 
-  section['versionName'] = newVersionName;
-  section['buildNumber'] = newBuildNumber;
+  version['versionName'] = newVersionName;
+  version['buildNumber'] = newBuildNumber;
 
-  const encoder = JsonEncoder.withIndent('  ');
-  versionsFile.writeAsStringSync('${encoder.convert(versions)}\n');
+  const encoder = JsonEncoder.withIndent(indent);
+  versionFile.writeAsStringSync('${encoder.convert(version)}\n');
 
-  stdout.writeln('Bumped ${target.name} version:');
-  stdout.writeln('  versionName = $newVersionName');
-  stdout.writeln('  buildNumber = $newBuildNumber');
-  stdout.writeln('');
-  stdout.writeln('Next steps:');
-  stdout.writeln('  git add versions.json');
-  stdout.writeln(
-    '  git commit -m "Bump ${target.name} version to $newVersionName"',
-  );
-  stdout.writeln(
-    '  # open a PR and merge; the Version Tagging workflow will create the tag',
-  );
+  stdout.writeln('Bumped $path:');
+  stdout.writeln('${indent}version = $newVersionName');
+  stdout.writeln('${indent}build = $newBuildNumber');
 }
 
 String nextVersionName(String? currentVersionName, {required bool beta}) {

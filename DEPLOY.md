@@ -13,7 +13,7 @@ sequenceDiagram
     participant Deploy as Android Staging Deploy
     participant Firebase as Firebase App Distribution
 
-    Dev->>Main: Merge versions.json bump
+    Dev->>Main: Merge version.json bump
     Main->>Tag: Trigger on push
     Tag->>Tag: Validate version
     Tag->>Main: Create android-stg-* tag
@@ -25,8 +25,8 @@ sequenceDiagram
 ## How to cut a stg release
 
 ```sh
-fvm dart run tool/bump_version.dart android --beta
-git add versions.json
+fvm dart run tool/bump_version.dart -f client/android/version.json --beta
+git add client/android/version.json
 git commit -m "Bump android stg version to <versionName>"
 # open a PR, get it reviewed, squash-merge to main
 ```
@@ -34,29 +34,33 @@ git commit -m "Bump android stg version to <versionName>"
 That's it — merging is the trigger. Everything past this point is automatic:
 
 1. **Version Tagging** (`.github/workflows/version-tagging.yaml`) runs on the
-   push to `main`, diffs `versions.json` against the previous commit, and
-   validates it (`versionName` format, `buildNumber` == previous + 1). If
-   `versionName` ends in `.betaN`, it creates a tag `android-stg-<versionName>`
-   using the release bot's GitHub App token (a plain `GITHUB_TOKEN`-created tag
-   wouldn't trigger the next workflow, so this has to go through the App).
+   push to `main`, diffs `client/android/version.json` against the previous
+   commit, and validates it (`versionName` format, `buildNumber` == previous +
+   1). If `versionName` ends in `.betaN`, it creates a tag
+   `android-stg-<versionName>` using the release bot's GitHub App token (a plain
+   `GITHUB_TOKEN`-created tag wouldn't trigger the next workflow, so this has to
+   go through the App).
 2. **Android Staging Deploy** (`.github/workflows/android-stg-deploy.yaml`) runs
    on that tag push, builds a release APK, and uploads it to Firebase App
    Distribution's `Dev` group.
 
 No manual `git tag` and no manual workflow dispatch — pushing/merging
-`versions.json` is the only action a developer takes.
+`client/android/version.json` is the only action a developer takes.
 
-## `versions.json`
+## `client/android/version.json`
 
-Root-level file, one entry per platform (only `android` exists so far). Tracks
-the version each platform's next release should ship as; the tagging workflow
+Each platform keeps its own version file next to its build files; only the
+Android one exists so far, and iOS would get its own (e.g.
+`client/ios/version.json`) rather than a key in a shared file. It tracks the
+version that platform's next release should ship as; the tagging workflow
 validates it, and `tool/bump_version.dart` maintains it — see that script's doc
 comment for the file format, the `versionName` scheme, and CLI usage.
 
 ## Where the version actually lands in the app
 
-`versions.json` isn't read directly by Gradle. Right before building,
-`android-stg-deploy.yaml` renders it into `client/android/version.properties`:
+`version.json` isn't read directly by Gradle. Right before building,
+`android-stg-deploy.yaml` renders `client/android/version.json` into
+`client/android/version.properties`:
 
 ```properties
 versionName=1.20260813.0000.beta1

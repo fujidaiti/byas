@@ -6,7 +6,7 @@ on:
       - main
       - "deploy/**"
     paths:
-      - versions.json
+      - client/android/version.json
 
 concurrency:
   group: version-tagging
@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   tag:
-    name: Validate versions.json and tag Android release
+    name: Validate version.json and tag Android release
     runs-on: ubuntu-latest
     steps:
       - name: Generate GitHub App token
@@ -41,7 +41,7 @@ jobs:
           set -euo pipefail
 
           get_field() {
-            git show "$1:versions.json" 2>/dev/null | jq -r ".android.$2 // empty"
+            git show "$1:client/android/version.json" 2>/dev/null | jq -r ".$2 // empty"
           }
 
           prev_version_name=$(get_field "$BEFORE_SHA" versionName || true)

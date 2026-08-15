@@ -40,14 +40,14 @@ jobs:
           CLIENT_ENV: ${{ secrets.CLIENT_ENV }}
         run: echo "$CLIENT_ENV" | base64 -d > client/.env
 
-      - name: Read version from versions.json
+      - name: Read version from version.json
         id: version
         run: |
           set -euo pipefail
-          version_name=$(jq -r '.android.versionName // empty' versions.json)
-          build_number=$(jq -r '.android.buildNumber // empty' versions.json)
+          version_name=$(jq -r '.versionName // empty' client/android/version.json)
+          build_number=$(jq -r '.buildNumber // empty' client/android/version.json)
           if [[ -z "$version_name" || -z "$build_number" ]]; then
-            echo "::error::versions.json is missing android.versionName or android.buildNumber."
+            echo "::error::client/android/version.json is missing versionName or buildNumber."
             exit 1
           fi
           echo "version_name=$version_name" >> "$GITHUB_OUTPUT"
