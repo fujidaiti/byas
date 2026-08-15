@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:paperdoll/core/error/domain_error.dart';
 import 'package:paperdoll/core/pagination/infinite_scroll.dart';
 import 'package:paperdoll/core/pagination/load_more_footer.dart';
@@ -27,9 +27,7 @@ import 'package:paperdoll/features/newspaper/presentation/widgets/story_card.dar
 /// reachable (e.g. to sign out) even while the newspaper is loading or failed
 /// to load — mirroring how Feeds/Reading List keep settings in a persistent
 /// Scaffold.appBar.
-class TodayScreen extends ConsumerWidget {
-  const TodayScreen({super.key});
-
+class const TodayScreen({super.key}) extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final newspaperAsync = ref.watch(todayNewspaperProvider);
@@ -70,11 +68,8 @@ class TodayScreen extends ConsumerWidget {
   }
 }
 
-class _TodayAppBar extends StatelessWidget {
-  const _TodayAppBar({required this.publishedAt});
-
-  final DateTime? publishedAt;
-
+class const _TodayAppBar({required final DateTime? publishedAt})
+    extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SliverAppBar(

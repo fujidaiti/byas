@@ -11,7 +11,7 @@ part 'feed_entry.freezed.dart';
 /// two diverge briefly during an in-flight save.
 @freezed
 abstract class FeedEntry with _$FeedEntry {
-  const factory FeedEntry({
+  const factory({
     required int id,
     required int feedId,
     required String url,

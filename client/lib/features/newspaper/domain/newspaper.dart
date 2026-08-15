@@ -9,7 +9,7 @@ part 'newspaper.freezed.dart';
 /// last page).
 @freezed
 abstract class Newspaper with _$Newspaper {
-  const factory Newspaper({
+  const factory({
     required int id,
     required DateTime publishedAt,
     required List<Story> stories,

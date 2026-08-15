@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:paperdoll/core/error/domain_error.dart';
 import 'package:paperdoll/core/pagination/infinite_scroll.dart';
 import 'package:paperdoll/core/pagination/load_more_footer.dart';
@@ -24,11 +24,8 @@ import 'package:paperdoll/features/feed_entry/domain/feed_entry.dart';
 import 'package:paperdoll/features/feed_entry/presentation/widgets/feed_entry_row.dart';
 
 /// Feed Detail (Timeline): a feed's header and its full stream of entries.
-class FeedDetailScreen extends ConsumerWidget {
-  const FeedDetailScreen({required this.id, super.key});
-
-  final int id;
-
+class const FeedDetailScreen({required final int id, super.key})
+    extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final feedAsync = ref.watch(feedDetailProvider(id: id));
@@ -63,21 +60,13 @@ class FeedDetailScreen extends ConsumerWidget {
   }
 }
 
-class _FeedDetailBody extends StatelessWidget {
-  const _FeedDetailBody({
-    required this.feed,
-    required this.timeline,
-    required this.onRetryTimeline,
-    required this.onLoadMore,
-    required this.onOpenEntry,
-  });
-
-  final Feed feed;
-  final AsyncValue<PagedState<FeedEntry>> timeline;
-  final VoidCallback onRetryTimeline;
-  final VoidCallback onLoadMore;
-  final void Function(int entryId) onOpenEntry;
-
+class const _FeedDetailBody({
+  required final Feed feed,
+  required final AsyncValue<PagedState<FeedEntry>> timeline,
+  required final VoidCallback onRetryTimeline,
+  required final VoidCallback onLoadMore,
+  required final void Function(int entryId) onOpenEntry,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InfiniteScrollList(
@@ -151,11 +140,7 @@ class _FeedDetailBody extends StatelessWidget {
 }
 
 /// The feed's description and a link to its site, shown below the app bar.
-class _FeedDetails extends StatelessWidget {
-  const _FeedDetails({required this.feed});
-
-  final Feed feed;
-
+class const _FeedDetails({required final Feed feed}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final description = feed.description;

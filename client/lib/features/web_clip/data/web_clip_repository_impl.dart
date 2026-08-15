@@ -4,11 +4,7 @@ import 'package:paperdoll/core/network/request_runner.dart';
 import 'package:paperdoll/features/web_clip/domain/web_clip.dart';
 import 'package:paperdoll/features/web_clip/domain/web_clip_repository.dart';
 
-class WebClipRepositoryImpl implements WebClipRepository {
-  const WebClipRepositoryImpl(this._dio);
-
-  final Dio _dio;
-
+class const WebClipRepositoryImpl(final Dio _dio) implements WebClipRepository {
   @override
   Future<WebClip> getWebClip(int id) {
     return runRequest(() async {

@@ -6,11 +6,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 /// Attaches the session token to every outgoing request and ends the session
 /// when a response comes back 401.
-class AuthInterceptor extends Interceptor {
-  AuthInterceptor(this._ref);
-
-  final Ref _ref;
-
+class AuthInterceptor(final Ref _ref) extends Interceptor {
   /// Reads the token straight from secure storage rather than through
   /// `authSessionProvider`: `authSessionProvider` depends on this same `dio`
   /// provider (transitively, via the auth repository), so reading it back

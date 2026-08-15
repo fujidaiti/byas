@@ -1,8 +1,7 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-
+import 'package:material_ui/material_ui.dart';
 import 'package:paperdoll/core/router/routes.dart';
 import 'package:paperdoll/core/ui/tokens/app_spacing.dart';
 import 'package:paperdoll/core/ui/widgets/body_text.dart';
@@ -15,11 +14,8 @@ import 'package:paperdoll/features/reading_list/domain/reading_list_item.dart';
 
 /// A saved article in the reading list: title, optional description, and the
 /// date it was saved. Tapping opens the reader for the item's kind.
-class ReadingListRow extends StatelessWidget {
-  const ReadingListRow({required this.item, super.key});
-
-  final ReadingListItem item;
-
+class const ReadingListRow({required final ReadingListItem item, super.key})
+    extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final description = item.description;

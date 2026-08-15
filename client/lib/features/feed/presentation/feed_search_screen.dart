@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:paperdoll/core/error/domain_error.dart';
 import 'package:paperdoll/core/ui/tokens/app_spacing.dart';
 import 'package:paperdoll/core/ui/widgets/app_divider.dart';
@@ -15,9 +15,7 @@ import 'package:paperdoll/features/feed/presentation/providers/feed_providers.da
 import 'package:paperdoll/features/feed/presentation/widgets/feed_candidate_tile.dart';
 
 /// Feed Search / Subscribe: find a feed by URL and subscribe to it.
-class FeedSearchScreen extends ConsumerStatefulWidget {
-  const FeedSearchScreen({super.key});
-
+class const FeedSearchScreen({super.key}) extends ConsumerStatefulWidget {
   @override
   ConsumerState<FeedSearchScreen> createState() => _FeedSearchScreenState();
 }

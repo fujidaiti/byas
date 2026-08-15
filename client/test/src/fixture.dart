@@ -43,8 +43,7 @@ class _Feeds {
 
   final wikipedia = api.Feed(
     id: 4,
-    url:
-        'http://en.wikipedia.org/w/api.php?limit=50&action=feedrecentchanges&feedformat=rss',
+    url: 'http://en.wikipedia.org/w/api.php?limit=50&action=feedrecentchanges&feedformat=rss',
     siteUrl: 'https://en.wikipedia.org/wiki/Special:RecentChanges',
     title: 'Wikipedia  - Recent changes [en]',
     description: 'Track the most recent changes to the wiki in this feed.',

@@ -1,16 +1,13 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:paperdoll/core/util/link_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 /// Renders an entry's HTML `content` in a WebView. The controller is built
 /// once in initState (not in createState) so it survives rebuilds.
-class FeedEntryContentWebView extends StatefulWidget {
-  const FeedEntryContentWebView({required this.html, super.key});
-
-  final String html;
-
+class const FeedEntryContentWebView({required final String html, super.key})
+    extends StatefulWidget {
   @override
   State<FeedEntryContentWebView> createState() =>
       _FeedEntryContentWebViewState();

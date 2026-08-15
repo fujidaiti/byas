@@ -8,7 +8,7 @@ enum ReadingListItemKind { webClip, feedEntry }
 /// A saved article in the reading list.
 @freezed
 abstract class ReadingListItem with _$ReadingListItem {
-  const factory ReadingListItem({
+  const factory({
     required int id,
     required int resourceId,
     required ReadingListItemKind kind,

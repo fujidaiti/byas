@@ -10,7 +10,7 @@ SecureStorage secureStorage(Ref ref) => SecureStorage();
 
 /// A driver for the device's secure local storage.
 abstract class SecureStorage {
-  factory SecureStorage() {
+  factory() {
     return switch (defaultTargetPlatform) {
       .android => const _AndroidSecureStorage(),
       _ => const _FlutterSecureStorage(),
@@ -22,9 +22,7 @@ abstract class SecureStorage {
   Future<void> write(String key, String? value);
 }
 
-class _FlutterSecureStorage implements SecureStorage {
-  const _FlutterSecureStorage();
-
+class const _FlutterSecureStorage() implements SecureStorage {
   static const _delegate = FlutterSecureStorage();
 
   @override
@@ -35,9 +33,7 @@ class _FlutterSecureStorage implements SecureStorage {
       _delegate.write(key: key, value: value);
 }
 
-class _AndroidSecureStorage implements SecureStorage {
-  const _AndroidSecureStorage();
-
+class const _AndroidSecureStorage() implements SecureStorage {
   static const _channel = MethodChannel(
     'dev.norelease.paperdoll/secure_storage',
   );

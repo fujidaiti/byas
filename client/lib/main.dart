@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:paperdoll/app.dart';
 import 'package:paperdoll/core/logging/app_logger.dart';
 import 'package:paperdoll/core/logging/logging_provider_observer.dart';

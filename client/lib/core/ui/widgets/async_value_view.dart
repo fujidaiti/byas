@@ -7,22 +7,14 @@ import 'package:paperdoll/core/ui/widgets/loading_indicator.dart';
 
 /// Renders an [AsyncValue] uniformly: loading → spinner, error → inline
 /// placeholder with retry, data → [data] builder.
-class AsyncValueView<T> extends StatelessWidget {
-  const AsyncValueView({
-    required this.value,
-    required this.data,
-    this.onRetry,
-    super.key,
-  });
-
-  final AsyncValue<T> value;
-
+class const AsyncValueView<T>({
+  required final AsyncValue<T> value,
   // A builder that consumes T in a parameter position; the contravariance is
   // intentional and mirrors AsyncValue.when.
-  // ignore: unsafe_variance
-  final Widget Function(T value) data;
-  final VoidCallback? onRetry;
-
+  required final Widget Function(T value) data,
+  final VoidCallback? onRetry,
+  super.key,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return value.when(

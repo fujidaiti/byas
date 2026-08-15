@@ -1,11 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:paperdoll/core/router/app_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart' show Override;
 
-class PaperdollApp extends ConsumerWidget {
-  const PaperdollApp({super.key});
-
+class const PaperdollApp({super.key}) extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(

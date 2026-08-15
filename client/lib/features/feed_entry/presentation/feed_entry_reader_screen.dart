@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:paperdoll/core/ui/widgets/archived_banner.dart';
 import 'package:paperdoll/core/ui/widgets/async_value_view.dart';
 import 'package:paperdoll/core/ui/widgets/heading_text.dart';
@@ -11,11 +11,8 @@ import 'package:paperdoll/features/feed_entry/domain/feed_entry.dart';
 import 'package:paperdoll/features/feed_entry/presentation/providers/feed_entry_providers.dart';
 import 'package:paperdoll/features/feed_entry/presentation/widgets/feed_entry_reader_view.dart';
 
-class FeedEntryReaderScreen extends ConsumerWidget {
-  const FeedEntryReaderScreen({required this.id, super.key});
-
-  final int id;
-
+class const FeedEntryReaderScreen({required final int id, super.key})
+    extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final entryAsync = ref.watch(feedEntryControllerProvider(id: id));
@@ -70,12 +67,10 @@ class FeedEntryReaderScreen extends ConsumerWidget {
 /// it. The archive button appears the instant a save is tapped (gated on
 /// `entry.saved`) but stays disabled until the created item id arrives, since
 /// archiving needs it.
-class _ReadingListActions extends ConsumerStatefulWidget {
-  const _ReadingListActions({required this.id, required this.entry});
-
-  final int id;
-  final FeedEntry entry;
-
+class const _ReadingListActions({
+  required final int id,
+  required final FeedEntry entry,
+}) extends ConsumerStatefulWidget {
   @override
   ConsumerState<_ReadingListActions> createState() =>
       _ReadingListActionsState();

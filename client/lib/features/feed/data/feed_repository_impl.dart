@@ -7,11 +7,7 @@ import 'package:paperdoll/features/feed/domain/feed_candidate.dart';
 import 'package:paperdoll/features/feed/domain/feed_repository.dart';
 import 'package:paperdoll/features/feed_entry/domain/feed_entry.dart';
 
-class FeedRepositoryImpl implements FeedRepository {
-  const FeedRepositoryImpl(this._dio);
-
-  final Dio _dio;
-
+class const FeedRepositoryImpl(final Dio _dio) implements FeedRepository {
   @override
   Future<PageResult<Feed>> listFeeds({String? cursor}) {
     return runRequest(() async {

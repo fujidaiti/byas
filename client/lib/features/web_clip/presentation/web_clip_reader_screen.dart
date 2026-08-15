@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:paperdoll/core/ui/widgets/archived_banner.dart';
 import 'package:paperdoll/core/ui/widgets/async_value_view.dart';
 import 'package:paperdoll/core/ui/widgets/heading_text.dart';
@@ -13,15 +13,14 @@ import 'package:paperdoll/features/web_clip/presentation/widgets/web_clip_reader
 
 /// Reader for a web clip: fetches the clip's details by its id and
 /// renders its content, falling back to a placeholder when there is none.
-class WebClipReaderScreen extends ConsumerWidget {
-  const WebClipReaderScreen({required this.id, this.initialTitle, super.key});
-
-  final int id;
+class const WebClipReaderScreen({
+  required final int id,
 
   /// The title already known from the reading list row, shown while the
   /// clip details are still loading so the app bar isn't blank.
-  final String? initialTitle;
-
+  final String? initialTitle,
+  super.key,
+}) extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final clipAsync = ref.watch(webClipControllerProvider(id: id));
@@ -80,12 +79,10 @@ class WebClipReaderScreen extends ConsumerWidget {
 /// archive button appears the instant a save is tapped (gated on `clip.saved`)
 /// but stays disabled until the created item id arrives, since archiving needs
 /// it.
-class _ReadingListActions extends ConsumerStatefulWidget {
-  const _ReadingListActions({required this.id, required this.clip});
-
-  final int id;
-  final WebClip clip;
-
+class const _ReadingListActions({
+  required final int id,
+  required final WebClip clip,
+}) extends ConsumerStatefulWidget {
   @override
   ConsumerState<_ReadingListActions> createState() =>
       _ReadingListActionsState();

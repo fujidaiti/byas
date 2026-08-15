@@ -5,7 +5,7 @@ part 'feed.freezed.dart';
 /// A subscribed RSS source.
 @freezed
 abstract class Feed with _$Feed {
-  const factory Feed({
+  const factory({
     required int id,
     required String url,
     required String title,

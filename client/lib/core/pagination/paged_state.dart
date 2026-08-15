@@ -11,7 +11,7 @@ import 'package:paperdoll/core/pagination/page_result.dart';
 /// loading/error surfaces through the enclosing [AsyncValue].
 @immutable
 class PagedState<T> {
-  const PagedState({
+  const new({
     required this.items,
     this.nextCursor,
     this.isLoadingMore = false,
@@ -19,7 +19,7 @@ class PagedState<T> {
   });
 
   /// Seeds accumulated state from the first [page].
-  PagedState.first(PageResult<T> page)
+  new first(PageResult<T> page)
     : items = page.items,
       nextCursor = page.nextCursor,
       isLoadingMore = false,

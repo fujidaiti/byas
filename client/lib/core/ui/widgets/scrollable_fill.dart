@@ -20,11 +20,8 @@ import 'package:flutter/widgets.dart';
 ///   },
 /// )
 /// ```
-class ScrollableFill extends StatelessWidget {
-  const ScrollableFill({required this.child, super.key});
-
-  final Widget child;
-
+class const ScrollableFill({required final Widget child, super.key})
+    extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(

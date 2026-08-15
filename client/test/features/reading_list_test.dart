@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:openapi/api.dart' as api;
 import 'package:paperdoll/debug_keys.dart';
 import 'package:patrol_finders/patrol_finders.dart';
@@ -56,9 +56,8 @@ void main() {
         '/reading-list/${item.id}',
         status: 204,
         body: <String, dynamic>{},
-        bodyMatcher: api.SetReadingListItemArchivedStatusRequest(
-          archived: true,
-        ).toJson(),
+        bodyMatcher: api.SetReadingListItemArchivedStatusRequest(archived: true)
+            .toJson(),
       );
     await pumpAppWithAuth(t, server);
 
@@ -147,9 +146,8 @@ void main() {
           title: entry.title,
           savedAt: DateTime.utc(2026, 7, 1),
         ).toJson(),
-        bodyMatcher: api.SaveToReadingListRequestOneOf1(
-          feedEntryId: entry.id,
-        ).toJson(),
+        bodyMatcher: api.SaveToReadingListRequestOneOf1(feedEntryId: entry.id)
+            .toJson(),
       );
     await pumpAppWithAuth(t, server);
 

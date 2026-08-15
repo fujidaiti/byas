@@ -16,9 +16,8 @@ void main() {
 
     await t(AppDebugKey.signInGoToSignUpButton).tap();
     await t(AppDebugKey.signUpEmailField).enterText('newuser@example.com');
-    await t(
-      AppDebugKey.signUpPasswordField,
-    ).enterText('New-User-Account-Password');
+    await t(AppDebugKey.signUpPasswordField)
+        .enterText('New-User-Account-Password');
     await t(AppDebugKey.signUpSubmitButton).tap();
     await t(AppDebugKey.todayScreen).waitUntilVisible();
   });
@@ -29,9 +28,8 @@ void main() {
 
     await t(AppDebugKey.signInScreen).waitUntilVisible();
     await t(AppDebugKey.signInEmailField).enterText('alice@example.com');
-    await t(
-      AppDebugKey.signInPasswordField,
-    ).enterText('Police-Repurpose-Atypical-Gravel');
+    await t(AppDebugKey.signInPasswordField)
+        .enterText('Police-Repurpose-Atypical-Gravel');
     await t(AppDebugKey.signInSubmitButton).tap();
     await t(AppDebugKey.todayScreen).waitUntilVisible();
   });

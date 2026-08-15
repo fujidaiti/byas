@@ -4,11 +4,8 @@ import 'package:paperdoll/core/network/request_runner.dart';
 import 'package:paperdoll/features/feed_entry/domain/feed_entry.dart';
 import 'package:paperdoll/features/feed_entry/domain/feed_entry_repository.dart';
 
-class FeedEntryRepositoryImpl implements FeedEntryRepository {
-  const FeedEntryRepositoryImpl(this._dio);
-
-  final Dio _dio;
-
+class const FeedEntryRepositoryImpl(final Dio _dio)
+    implements FeedEntryRepository {
   @override
   Future<FeedEntry> getFeedEntry(int id) {
     return runRequest(() async {

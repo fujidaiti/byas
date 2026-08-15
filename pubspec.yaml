@@ -1,7 +1,7 @@
 name: workspace
 publish_to: none
 environment:
-  sdk: ^3.12.2
+  sdk: ^3.13.0
 workspace:
   - client
   - api/dart_binding

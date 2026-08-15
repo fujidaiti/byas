@@ -17,17 +17,11 @@ NewspaperRepository newspaperRepository(Ref ref) =>
 /// Today's issue: the header (from the first page) plus its stories accumulated
 /// across pages.
 @immutable
-class TodayState {
-  const TodayState({
-    required this.id,
-    required this.publishedAt,
-    required this.stories,
-  });
-
-  final int id;
-  final DateTime publishedAt;
-  final PagedState<Story> stories;
-
+class const TodayState({
+  required final int id,
+  required final DateTime publishedAt,
+  required final PagedState<Story> stories,
+}) {
   /// Same issue header with a different accumulated [stories] state.
   TodayState withStories(PagedState<Story> stories) =>
       TodayState(id: id, publishedAt: publishedAt, stories: stories);

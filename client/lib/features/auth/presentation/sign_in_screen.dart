@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:paperdoll/core/error/domain_error.dart';
 import 'package:paperdoll/core/router/routes.dart';
 import 'package:paperdoll/core/ui/tokens/app_spacing.dart';
@@ -12,9 +12,7 @@ import 'package:paperdoll/features/auth/presentation/providers/auth_providers.da
 
 /// Sign in with email + password. On success, the router reacts to the
 /// updated [authSessionProvider] state and navigates to Today on its own.
-class SignInScreen extends ConsumerStatefulWidget {
-  const SignInScreen({super.key});
-
+class const SignInScreen({super.key}) extends ConsumerStatefulWidget {
   @override
   ConsumerState<SignInScreen> createState() => _SignInScreenState();
 }

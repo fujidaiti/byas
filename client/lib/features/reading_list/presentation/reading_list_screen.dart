@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:paperdoll/core/pagination/infinite_scroll.dart';
 import 'package:paperdoll/core/pagination/load_more_footer.dart';
 import 'package:paperdoll/core/pagination/paged_state.dart';
@@ -20,9 +20,7 @@ import 'package:paperdoll/features/reading_list/presentation/providers/reading_l
 import 'package:paperdoll/features/reading_list/presentation/widgets/reading_list_row.dart';
 
 /// Reading list home: the saved, unarchived articles, newest first.
-class ReadingListScreen extends ConsumerWidget {
-  const ReadingListScreen({super.key});
-
+class const ReadingListScreen({super.key}) extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final itemsAsync = ref.watch(readingListProvider);
@@ -56,11 +54,8 @@ class ReadingListScreen extends ConsumerWidget {
   }
 }
 
-class _ReadingList extends ConsumerStatefulWidget {
-  const _ReadingList({required this.state});
-
-  final PagedState<ReadingListItem> state;
-
+class const _ReadingList({required final PagedState<ReadingListItem> state})
+    extends ConsumerStatefulWidget {
   @override
   ConsumerState<_ReadingList> createState() => _ReadingListState();
 }

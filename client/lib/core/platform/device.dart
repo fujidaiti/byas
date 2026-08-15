@@ -8,9 +8,7 @@ part 'device.g.dart';
 Device device(Ref ref) => const Device();
 
 /// Provides device's information on which the app is running.
-class Device {
-  const Device();
-
+class const Device() {
   static final _plugin = DeviceInfoPlugin();
 
   /// A human-readable string representing the device kind that isn't associated

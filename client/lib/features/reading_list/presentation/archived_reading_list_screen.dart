@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:paperdoll/core/pagination/infinite_scroll.dart';
 import 'package:paperdoll/core/pagination/load_more_footer.dart';
 import 'package:paperdoll/core/pagination/paged_state.dart';
@@ -14,9 +14,7 @@ import 'package:paperdoll/features/reading_list/presentation/widgets/reading_lis
 
 /// The archived reading list: previously archived items, newest first. Unlike
 /// the reading list, rows have no swipe actions; tapping opens the reader.
-class ArchivedReadingListScreen extends ConsumerWidget {
-  const ArchivedReadingListScreen({super.key});
-
+class const ArchivedReadingListScreen({super.key}) extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final itemsAsync = ref.watch(archivedReadingListProvider);
@@ -35,11 +33,8 @@ class ArchivedReadingListScreen extends ConsumerWidget {
   }
 }
 
-class _ArchivedList extends ConsumerWidget {
-  const _ArchivedList({required this.state});
-
-  final PagedState<ReadingListItem> state;
-
+class const _ArchivedList({required final PagedState<ReadingListItem> state})
+    extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final items = state.items;
