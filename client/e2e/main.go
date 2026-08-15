@@ -113,7 +113,7 @@ func runTests(ctx context.Context, extraArgs []string) error {
 		"test",
 		"--flutter-command",
 		// TODO: make flutter command path configurable
-		"../.fvm/versions/stable/bin/flutter",
+		"../.fvm/flutter_sdk/bin/flutter",
 		"-d",
 		// TODO: make the target device configurable
 		"emulator-5554",

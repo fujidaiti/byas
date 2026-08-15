@@ -1,5 +1,3 @@
-export PATROL_FLUTTER_COMMAND = ../.fvm/versions/stable/bin/flutter
-
 # Run the widget tests. No device needed: they run the whole app on the
 # Flutter test framework, with stubbed HTTP and in-memory platform storage.
 .PHONY: test
