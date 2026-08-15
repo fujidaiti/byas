@@ -12,9 +12,9 @@
 # The tag has to be pushed with the release bot's GitHub App token rather than
 # the default GITHUB_TOKEN: GitHub suppresses workflow triggers for events
 # created with GITHUB_TOKEN, so a tag pushed that way would never start the
-# deploy workflow. The token comes from these repo/org-level settings (not the
-# `staging` environment), and the bot's installation needs contents: write on
-# this repo to push tags:
+# deploy workflow.
+#
+# The token generation requires these repo/org-level variables:
 #
 #   vars.NORELEASE_BOT_APP_ID          The release bot's GitHub App ID
 #   secrets.NORELEASE_BOT_PRIVATE_KEY  The release bot's GitHub App private key
@@ -33,9 +33,6 @@ on:
 concurrency:
   group: version-tagging
   cancel-in-progress: false
-
-permissions:
-  contents: read
 
 jobs:
   tag:
