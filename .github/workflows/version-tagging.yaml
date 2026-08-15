@@ -1,14 +1,12 @@
 # Tags the commit that bumps a version file, which is what actually starts a
 # release build.
 #
-# Merging a version bump to main (or pushing one to a deploy/** branch) is the
-# only action a developer takes. This workflow diffs client/android/version.json
-# against the previous commit, validates the bump with `tool/version.sh comp`
-# (versionName format, versionName newer than before, buildNumber == previous +
-# 1), and — when the new versionName ends in .beta — pushes the tag
-# android-stg-<versionName>, which triggers android-stg-deploy.yaml. Unsuffixed
-# (prod-channel) versions are validated but not tagged: the prod pipeline isn't
-# wired up yet.
+# Pushing a version bump to main or a deploy/** branch is the only action
+# a developer takes. This workflow diffs client/android/version.json against
+# the previous commit, validates the bump with `tool/version.sh comp`, and
+# if the new versionName ends in .beta, pushes the tag android-stg-<versionName>,
+# which triggers android-stg-deploy.yaml. Unsuffixed (prod-channel) versions are
+# validated but not tagged: the prod pipeline isn't wired up yet.
 #
 # See tool/version.sh for the version file format and the versionName scheme.
 #
@@ -21,7 +19,6 @@
 #
 #   vars.NORELEASE_BOT_APP_ID          The release bot's GitHub App ID
 #   secrets.NORELEASE_BOT_PRIVATE_KEY  The release bot's GitHub App private key
-
 name: Version Tagging
 
 on:
@@ -52,9 +49,6 @@ jobs:
           private-key: ${{ secrets.NORELEASE_BOT_PRIVATE_KEY }}
 
       - name: Checkout
-        # The app token belongs here rather than on the step that pushes the
-        # tag: checkout persists it into .git/config, which is where the later
-        # `git push origin` picks it up from.
         uses: actions/checkout@v7
         with:
           token: ${{ steps.app-token.outputs.token }}
