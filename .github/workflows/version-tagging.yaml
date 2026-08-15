@@ -54,7 +54,7 @@ jobs:
             exit 0
           fi
 
-          if ! [[ "$new_version_name" =~ ^[0-9]+\.[0-9]{8}\.[0-9]{4}(\.beta[0-9]+)?$ ]]; then
+          if ! [[ "$new_version_name" =~ ^[0-9]+\.[0-9]{8}\.[0-9]{6}(\.beta[0-9]+)?$ ]]; then
             echo "::error::versionName '$new_version_name' does not match the required format."
             exit 1
           fi

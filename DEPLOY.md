@@ -25,7 +25,7 @@ sequenceDiagram
 ## How to cut a stg release
 
 ```sh
-fvm dart run tool/bump_version.dart -f client/android/version.json --beta
+tool/bump_version.sh -f client/android/version.json --beta
 git add client/android/version.json
 git commit -m "Bump android stg version to <versionName>"
 # open a PR, get it reviewed, squash-merge to main
@@ -53,7 +53,7 @@ Each platform keeps its own version file next to its build files; only the
 Android one exists so far, and iOS would get its own (e.g.
 `client/ios/version.json`) rather than a key in a shared file. It tracks the
 version that platform's next release should ship as; the tagging workflow
-validates it, and `tool/bump_version.dart` maintains it — see that script's doc
+validates it, and `tool/bump_version.sh` maintains it — see that script's header
 comment for the file format, the `versionName` scheme, and CLI usage.
 
 ## Where the version actually lands in the app
@@ -63,7 +63,7 @@ comment for the file format, the `versionName` scheme, and CLI usage.
 `client/android/version.properties`:
 
 ```properties
-versionName=1.20260813.0000.beta1
+versionName=1.20260813.123059.beta1
 versionCode=1
 ```
 
