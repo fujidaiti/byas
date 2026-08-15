@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fujidaiti/paperdoll/server"
 	"github.com/fujidaiti/paperdoll/server/feature/feed"
 	"github.com/fujidaiti/paperdoll/server/feature/readinglist"
 	"github.com/fujidaiti/paperdoll/server/feature/scraper"
@@ -121,8 +122,20 @@ type Handler struct {
 	ScraperService     *scraper.Service
 }
 
+type getHealthResponse struct {
+	Version string `json:"version"`
+}
+
 func (h *Handler) getHealth(w http.ResponseWriter, _ *http.Request) {
-	_, _ = w.Write([]byte("Feeling good!"))
+	jres, err := json.Marshal(getHealthResponse{Version: server.Version})
+	if err != nil {
+		serverError(w, http.StatusInternalServerError, "Failed to construct a JSON response.")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(jres)
 }
 
 type getTodaysNewspaperResponse struct {
