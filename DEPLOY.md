@@ -55,7 +55,7 @@ per release-tag namespace (`android-stg-*`, and whatever prod and iOS use once
 they exist — an untargeted namespace is unprotected). The release bot's GitHub
 App is the only bypass actor, set to _Always allow_.
 
-[ruleset]:
+[tag ruleset]:
   https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets#branch-and-tag-rulesets
 
 ## See also
