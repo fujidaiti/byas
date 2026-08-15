@@ -2,18 +2,26 @@
 
 set -e
 
-# The default execution directory of this script is the ci_scripts directory.
-cd $CI_PRIMARY_REPOSITORY_PATH # change working directory to the root of your cloned repo.
+cd "$CI_PRIMARY_REPOSITORY_PATH"
 
-# Install Flutter using git.
-git clone https://github.com/flutter/flutter.git --depth 1 -b stable $HOME/flutter
+FLUTTER_VERSION=$(grep "flutter" .fvmrc | cut -d '"' -f 4)
+if [ -z "$FLUTTER_VERSION" ]; then
+  echo ".fvmrc or flutter version is missing." >&2
+  exit 1
+fi
+
+git clone https://github.com/flutter/flutter.git --depth 1 -b "$FLUTTER_VERSION" "$HOME/flutter"
 export PATH="$PATH:$HOME/flutter/bin"
 
-# Install Flutter artifacts for iOS (--ios), or macOS (--macos) platforms.
-flutter precache --ios
+INSTALLED_VERSION=$(flutter --no-version-check --suppress-analytics --version --machine | grep "flutterVersion" | cut -d '"' -f 4)
+if [ "$INSTALLED_VERSION" != "$FLUTTER_VERSION" ]; then
+  echo "Installed Flutter version ($INSTALLED_VERSION) does not match expected version ($FLUTTER_VERSION)." >&2
+  exit 1
+fi
 
-# Install Flutter dependencies.
+# Install Flutter artifacts for iOS
+flutter precache --ios
+# Install Flutter dependencies
 flutter pub get
 
 exit 0
-
