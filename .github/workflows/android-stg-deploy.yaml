@@ -4,12 +4,6 @@
 # Triggered by the android-stg-* tags that version-tagging.yaml pushes.
 # The version the app ships as comes from client/android/version.json at the tagged commit.
 #
-# Gradle never reads version.json. Right before building, this workflow renders
-# it into client/android/version.properties:
-#
-#   versionName=1.20260813.123059.beta
-#   versionCode=1
-#
 # Everything secret comes from the protected `staging` environment:
 #
 #   secrets.CLIENT_ENV                             Base64 contents of a working client/.env
@@ -68,29 +62,6 @@ jobs:
         env:
           CLIENT_ENV: ${{ secrets.CLIENT_ENV }}
         run: echo "$CLIENT_ENV" | base64 -d > client/.env
-
-      - name: Read version from version.json
-        id: version
-        run: |
-          set -euo pipefail
-          version_name=$(jq -r '.versionName // empty' client/android/version.json)
-          build_number=$(jq -r '.buildNumber // empty' client/android/version.json)
-          if [[ -z "$version_name" || -z "$build_number" ]]; then
-            echo "::error::client/android/version.json is missing versionName or buildNumber."
-            exit 1
-          fi
-          echo "version_name=$version_name" >> "$GITHUB_OUTPUT"
-          echo "build_number=$build_number" >> "$GITHUB_OUTPUT"
-
-      - name: Write version.properties
-        env:
-          VERSION_NAME: ${{ steps.version.outputs.version_name }}
-          BUILD_NUMBER: ${{ steps.version.outputs.build_number }}
-        run: |
-          {
-            echo "versionName=$VERSION_NAME"
-            echo "versionCode=$BUILD_NUMBER"
-          } > client/android/version.properties
 
       - name: Decode signing.properties
         env:
