@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 #
-# Maintains and validates the version file of a release.
+# Maintains and validates the version file of a build target.
 #
-# Each platform keeps its own version file next to its build files, e.g.
-# client/android/version.json:
+# Each target keeps its own version file within its codebase,
+# e.g., client/android/version.json:
 #
 #   {
 #     "versionName": "1.20260813.123059.beta",
@@ -31,9 +31,6 @@
 #         Otherwise prints what's wrong and exits 1. A missing old file means
 #         there is no previous version, in which case the new build number must
 #         be 1.
-#
-# Note this is a bash script, not a POSIX sh one; run it directly (or with
-# bash), not with sh.
 
 set -euo pipefail
 

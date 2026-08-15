@@ -124,10 +124,3 @@ so a misconfigured check fails loudly instead of looking like a no-op success.
 There's no GitHub Ruleset yet restricting who can create `android-stg-*` tags or
 push to `deploy/*` branches directly — this check is currently the only
 enforcement, until Rulesets are configured.
-
-## Known gaps
-
-- **Android prod** and **iOS** (stg + prod) aren't implemented — only Android
-  stg.
-- No GitHub Ruleset restricts tag creation or `deploy/*` pushes yet.
-- Failures aren't retried automatically; re-run the failed workflow.
