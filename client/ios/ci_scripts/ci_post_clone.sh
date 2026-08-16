@@ -26,7 +26,7 @@ tool/version.sh vet "$VERSION_FILE"
 # Extract version name dropping the 'beta' suffix.
 VERSION_NAME=$(jq -r '.versionName // empty' "$VERSION_FILE" | sed 's/\.beta$//')
 
-# Flutter/Deubg.xcconfig and Release.xcconfig will load this xcconfig,
+# Flutter/Debug.xcconfig and Release.xcconfig will load this xcconfig,
 # which overrides the default version values from pubspec.yaml.
 #
 # We ignore the build number in the version file here,
@@ -81,11 +81,12 @@ cd "$FLUTTER_PROJECT_DIR"
 flutter precache --ios
 # Configure the Xcode project without archiving.
 # Xcode Cloud runs the actual build afterwards.
+# TODO: upload the symbol file to Firebase crashlytics.
 flutter build ios \
     --release \
     --config-only \
     --obfuscate \
-    --split-debug-info \
+    --split-debug-info="${TMPDIR%/}/ios-symbols" \
     --dart-define-from-file="$DOT_ENV"
 
 exit 0
