@@ -41,6 +41,12 @@ fi
 git clone https://github.com/flutter/flutter.git --depth 1 -b "$FLUTTER_VERSION" "$HOME/flutter"
 export PATH="$PATH:$HOME/flutter/bin"
 
+# On a fresh clone, the first `flutter` invocation downloads the Dart SDK and
+# writes curl's progress meter to stdout, which would corrupt the JSON below.
+# Run a throwaway command first so that download happens before we capture
+# machine-readable output.
+flutter --no-version-check --suppress-analytics --version > /dev/null
+
 FLUTTER_VERSION_OUT="${TMPDIR%/}/flutter-version.json"
 flutter --no-version-check --suppress-analytics --version --machine > "$FLUTTER_VERSION_OUT"
 echo "flutter --version:"
