@@ -77,7 +77,15 @@ jobs:
 
       - name: Build release APK
         working-directory: client
-        run: flutter build apk --release --dart-define-from-file=.env
+        run: |
+          set -euo pipefail
+
+          build_name=$(jq -r '.versionName' android/version.json)
+          build_number=$(jq -r '.buildNumber' android/version.json)
+          flutter build apk --release \
+            --dart-define-from-file=.env \
+            --build-name="$build_name" \
+            --build-number="$build_number"
 
       - name: Decode Firebase service account
         env:
