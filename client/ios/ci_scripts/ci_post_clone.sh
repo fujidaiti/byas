@@ -23,9 +23,8 @@ if [ "$INSTALLED_VERSION" != "$FLUTTER_VERSION" ]; then
     exit 1
 fi
 
-# Install Flutter artifacts for iOS
+# See https://docs.flutter.dev/deployment/cd#xcode-cloud for more info.
 flutter precache --ios
-# Install Flutter dependencies
 flutter pub get
 
 # TODO: copy version name in version.json to xconfig
