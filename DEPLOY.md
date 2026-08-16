@@ -59,14 +59,8 @@ outside this repo, in an Xcode Cloud workflow configured to trigger on
 ### Server
 
 Same flow, driven by the `server-` tag prefix. Step 2 differs in what it
-deploys: `.github/workflows/server-deploy.yaml` builds the OpenAPI documentation
-(from `api/api.yaml`, stamped with the tagged commit's `server/version.json`
-versionName) and publishes it to GitHub Pages. There's no Go build/compile step
-in this pipeline.
-
-Because docs now publish only on `server-*` tags, an `api/api.yaml` edit merged
-to `main` without a `server/version.json` bump won't republish until the next
-server version bump.
+deploys: `server-deploy.yaml` builds the OpenAPI documentation and publishes it
+to GitHub Pages. There's no Go build/compile step in this pipeline.
 
 ## Tag protection
 
@@ -89,5 +83,7 @@ release bot's GitHub App is the only bypass actor, set to _Always allow_.
   `android-stg-*` tag and deploys the client app to Firebase App Distribution.
 - `client/ios/ci_scripts/ci_post_clone.sh`, which prepares the Xcode Cloud build
   machine for the workflow triggered by an `ios-stg-*` tag.
-- `.github/workflows/server-deploy.yaml`, which is triggered by a `server-*` tag
-  and publishes the OpenAPI documentation to GitHub Pages.
+- [server-deploy.yaml], which is triggered by a `server-*` tag and publishes the
+  OpenAPI documentation to GitHub Pages.
+
+[server-deploy.yaml]: .github/workflows/server-deploy.yaml

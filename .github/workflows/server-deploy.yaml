@@ -3,7 +3,7 @@
 # Triggered by the server-* tags that version-tagging.yaml pushes. The OAS
 # version comes from server/version.json's versionName at the tagged commit.
 #
-# One repo/org-level variable is required, not part of any environment:
+# One repo/org-level variable is required:
 #
 #   vars.NORELEASE_BOT_SLUG  The release bot's actor login, e.g. norelease-bot[bot].
 #                            Used to confirm the tag was actually pushed by the bot.
@@ -36,7 +36,7 @@ jobs:
           echo "::error::Tag pushed by '${{ github.actor }}', not the release bot. Refusing to deploy."
           exit 1
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Validate version file
         run: tool/version.sh vet server/version.json
