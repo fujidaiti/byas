@@ -46,11 +46,6 @@ Each build target keeps its own version file within its directory (e.g.
 `client/android/version.json`). It tracks the version that target's next release
 should ship as.
 
-A version file is only read by the deploy workflow, which passes its values to
-the build command (`flutter build apk --build-name=... --build-number=...`). The
-build itself has no knowledge of the file, so local builds keep using the
-version declared in `client/pubspec.yaml`.
-
 ## Tag protection
 
 A release tag is what actually starts a deploy, so the repo needs an active [tag

@@ -76,9 +76,6 @@ android {
         applicationId = "dev.norelease.paperdoll"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        // Release builds get these from `flutter build --build-name/--build-number`
-        // (see .github/workflows/android-stg-deploy.yaml); otherwise they fall back
-        // to the version declared in pubspec.yaml.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 
