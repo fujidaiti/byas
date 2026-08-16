@@ -75,17 +75,24 @@ jobs:
           keystore_path=$(grep '^keystore.path=' client/android/signing.properties | cut -d= -f2-)
           echo "$ANDROID_KEYSTORE" | base64 -d > "client/android/app/$keystore_path"
 
-      - name: Build release APK
-        working-directory: client
+      - name: Resolve version to build
+        id: version
         run: |
           set -euo pipefail
 
-          build_name=$(jq -r '.versionName' android/version.json)
-          build_number=$(jq -r '.buildNumber' android/version.json)
+          jq -r '"name=\(.versionName)", "number=\(.buildNumber)"' \
+            client/android/version.json >> "$GITHUB_OUTPUT"
+
+      - name: Build release APK
+        working-directory: client
+        env:
+          BUILD_NAME: ${{ steps.version.outputs.name }}
+          BUILD_NUMBER: ${{ steps.version.outputs.number }}
+        run: |
           flutter build apk --release \
             --dart-define-from-file=.env \
-            --build-name="$build_name" \
-            --build-number="$build_number"
+            --build-name="$BUILD_NAME" \
+            --build-number="$BUILD_NUMBER"
 
       - name: Decode Firebase service account
         env:
