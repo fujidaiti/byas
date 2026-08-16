@@ -10,7 +10,6 @@ cd "$CI_PRIMARY_REPOSITORY_PATH"
 
 VERSION_FILE="$FLUTTER_PROJECT_DIR/ios/version.json"
 tool/version.sh vet "$VERSION_FILE"
-
 # Extract version name and build number dropping the 'beta' suffix.
 VERSION_NAME=$(jq -r '.versionName // empty' "$VERSION_FILE" | sed 's/\.beta$//')
 BUILD_NUMBER=$(jq -r '.buildNumber // empty' "$VERSION_FILE")
@@ -63,6 +62,11 @@ fi
 cd "$FLUTTER_PROJECT_DIR"
 # See https://docs.flutter.dev/deployment/cd#xcode-cloud
 flutter precache --ios
-flutter build ios --config-only --obfuscate --release --dart-define-from-file="$DOT_ENV"
+flutter build ios \
+    --release \
+    --config-only \
+    --obfuscate \
+    --split-debug-info \
+    --dart-define-from-file="$DOT_ENV"
 
 exit 0
