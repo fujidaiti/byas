@@ -1,9 +1,31 @@
 #!/bin/sh
 
+FLUTTER_PROJECT_DIR="$CI_PROJECT_FILE_PATH/../.."
+
 set -e
+brew install jq
 cd "$CI_PRIMARY_REPOSITORY_PATH"
 
-FLUTTER_VERSION=$(grep "flutter" .fvmrc | cut -d '"' -f 4)
+VERSION_FILE="$FLUTTER_PROJECT_DIR/ios/version.json"
+tool/version.sh vet "$VERSION_FILE"
+# Extract version name and build number dropping the 'beta' suffix.
+VERSION_NAME=$(jq -r '.versionName // empty' "$VERSION_FILE" | sed 's/\.beta$//')
+BUILD_NUMBER=$(jq -r '.buildNumber // empty' "$VERSION_FILE")
+
+cat > "$FLUTTER_PROJECT_DIR/ios/Flutter/Version.xcconfig" <<EOF
+FLUTTER_BUILD_NAME=$VERSION_NAME
+FLUTTER_BUILD_NUMBER=$BUILD_NUMBER
+EOF
+
+if [ -z "$DART_DEFINES_BASE64" ]; then
+  echo "DART_DEFINES_BASE64 is not defined." >&2
+  exit 1
+fi
+
+DOT_ENV="${TMPDIR%/}/.env"
+echo "$DART_DEFINES_BASE64" | base64 -d > "$DOT_ENV"
+
+FLUTTER_VERSION=$(jq -r '.flutter // empty' .fvmrc)
 if [ -z "$FLUTTER_VERSION" ]; then
   echo ".fvmrc or flutter version is missing." >&2
   exit 1
@@ -14,20 +36,18 @@ export PATH="$PATH:$HOME/flutter/bin"
 
 FLUTTER_VERSION_OUT="${TMPDIR%/}/flutter-version.json"
 flutter --no-version-check --suppress-analytics --version --machine > "$FLUTTER_VERSION_OUT"
-INSTALLED_VERSION=$(grep "flutterVersion" "$FLUTTER_VERSION_OUT" | cut -d '"' -f 4)
 echo "flutter --version:"
 cat "$FLUTTER_VERSION_OUT"
 
+INSTALLED_VERSION=$(jq -r '.flutterVersion // empty' "$FLUTTER_VERSION_OUT")
 if [ "$INSTALLED_VERSION" != "$FLUTTER_VERSION" ]; then
     echo "Flutter version mismatch: got $INSTALLED_VERSION, want $FLUTTER_VERSION" >&2
     exit 1
 fi
 
-# See https://docs.flutter.dev/deployment/cd#xcode-cloud for more info.
+cd "$FLUTTER_PROJECT_DIR"
+# See https://docs.flutter.dev/deployment/cd#xcode-cloud
 flutter precache --ios
-flutter pub get
-
-# TODO: copy version name in version.json to xconfig
-# TODO: decode and apply .env
+flutter build ios --config-only --obfuscate --release --dart-define-from-file="$DOT_ENV"
 
 exit 0
