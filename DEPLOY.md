@@ -1,4 +1,4 @@
-# Deply
+# Deploy
 
 This document describes the project's deployment workflow. Currently only the
 **stg** path is implemented — prod isn't wired up yet.
@@ -58,14 +58,11 @@ outside this repo, in an Xcode Cloud workflow configured to trigger on
 
 ### Server
 
-Same flow, but with no stg/prod distinction: the server has a single `server-`
-tag prefix, and every valid `server/version.json` bump gets tagged regardless of
-whether `versionName` carries the `.beta` suffix — for the server, `.beta` is
-just a human-readable label, not a different deploy channel. Step 2 differs in
-what it deploys: `.github/workflows/server-deploy.yaml` builds the OpenAPI
-documentation (from `api/api.yaml`, stamped with the tagged commit's
-`server/version.json` versionName) and publishes it to GitHub Pages. There's no
-Go build/compile step in this pipeline.
+Same flow, driven by the `server-` tag prefix. Step 2 differs in what it
+deploys: `.github/workflows/server-deploy.yaml` builds the OpenAPI documentation
+(from `api/api.yaml`, stamped with the tagged commit's `server/version.json`
+versionName) and publishes it to GitHub Pages. There's no Go build/compile step
+in this pipeline.
 
 Because docs now publish only on `server-*` tags, an `api/api.yaml` edit merged
 to `main` without a `server/version.json` bump won't republish until the next

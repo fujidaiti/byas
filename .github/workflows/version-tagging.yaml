@@ -3,17 +3,10 @@
 # Pushing a version bump to main or a deploy/** branch is the only action
 # a developer takes. For each build target in the matrix below, this workflow
 # diffs that target's version.json against the previous commit, validates the
-# bump, then pushes a <tag_prefix>-<versionName> tag, which is what starts
-# that target's deploy.
+# bump. If the new versionName ends in .beta, it pushes a
+# <tag_prefix>-<versionName> tag, which is what starts that target's deploy.
 #
-# Whether every valid bump gets tagged or only .beta ones depends on the
-# target's require_beta flag:
-#
-#   - Android and iOS have distinct stg/prod channels, and prod isn't wired
-#     up yet, so only .beta (stg-channel) versions are tagged there.
-#   - The server has no stg/prod distinction — .beta is just a
-#     human-readable label, not a different deploy channel — so every valid
-#     bump is tagged regardless of suffix.
+# Unsuffixed (prod-channel) versions are validated but not tagged.
 #
 # See tool/version.sh for the version file format and the versionName scheme.
 #
@@ -54,15 +47,12 @@ jobs:
           - name: Android
             version_file: client/android/version.json
             tag_prefix: android-stg
-            require_beta: true
           - name: iOS
             version_file: client/ios/version.json
             tag_prefix: ios-stg
-            require_beta: true
           - name: Server
             version_file: server/version.json
             tag_prefix: server
-            require_beta: false
     steps:
       - name: Generate GitHub App token
         id: app-token
@@ -102,13 +92,12 @@ jobs:
         env:
           VERSION_FILE: ${{ matrix.version_file }}
           TAG_PREFIX: ${{ matrix.tag_prefix }}
-          REQUIRE_BETA: ${{ matrix.require_beta }}
         run: |
           set -euo pipefail
 
           version_name=$(jq -r '.versionName' "$VERSION_FILE")
-          if [[ "$REQUIRE_BETA" == "true" && "$version_name" != *.beta* ]]; then
-            echo "prod channel not yet wired; skipping tag creation."
+          if [[ "$version_name" != *.beta* ]]; then
+            echo "$version_name is not a beta version; skipping tag creation."
             exit 0
           fi
 
