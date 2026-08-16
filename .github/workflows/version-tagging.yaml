@@ -2,10 +2,11 @@
 #
 # Pushing a version bump to main or a deploy/** branch is the only action
 # a developer takes. For each build target in the matrix below, this workflow
-# diffs that target's version.json against the previous commit, validates the
-# bump with `tool/version.sh comp`, and if the new versionName ends in .beta,
-# pushes a <tag_prefix>-<versionName> tag, which is what starts that target's
-# deploy. Unsuffixed (prod-channel) versions are validated but not tagged: the
+# diffs that target's version.json against the previous commit, validates the bump.
+# If the new versionName ends in .beta, it pushes a <tag_prefix>-<versionName> tag,
+# which is what starts that target's deploy.
+#
+# Unsuffixed (prod-channel) versions are validated but not tagged: the
 # prod pipeline isn't wired up yet.
 #
 # See tool/version.sh for the version file format and the versionName scheme.

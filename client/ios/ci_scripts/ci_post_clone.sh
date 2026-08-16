@@ -2,26 +2,14 @@
 #
 # Prepares the Xcode Cloud build machine to build the iOS app.
 #
-# Xcode Cloud runs this after cloning the repo and before the build, purely
-# because of where it lives (ci_scripts/ next to the project). It installs the
-# Flutter SDK, which isn't on the build machine, and generates the two inputs
-# the build needs that aren't checked in: Flutter/Version.xcconfig and the
-# dotenv file backing --dart-define-from-file. The final `flutter build ios` is
-# --config-only: it configures the Xcode project without archiving, and Xcode
-# Cloud runs the actual build afterwards.
+# An Xcode Cloud workflow for the TestFlight deployment runs this script after
+# cloning the repo and before the build. The workflow triggers on ios-stg-* tags,
+# which version-tagging.yaml pushes when client/ios/version.json is bumped.
 #
-# The workflow that runs this script is configured in App Store Connect rather
-# than in this repo. It triggers on ios-stg-* tags, which version-tagging.yaml
-# pushes when client/ios/version.json is bumped, and uploads the resulting
-# build to TestFlight.
-#
-# That workflow has to define this environment variable, as a secret:
+# That workflow has to define this environment variable:
 #
 #   DART_DEFINES_BASE64   base64-encoded dotenv file holding the app's
 #                         --dart-define values
-#
-# Nothing else is needed here: signing and the TestFlight upload are Xcode
-# Cloud's own, configured alongside the workflow.
 #
 # See DEPLOY.md for the overview of the entire deployment pipeline.
 
@@ -39,6 +27,8 @@ tool/version.sh vet "$VERSION_FILE"
 VERSION_NAME=$(jq -r '.versionName // empty' "$VERSION_FILE" | sed 's/\.beta$//')
 BUILD_NUMBER=$(jq -r '.buildNumber // empty' "$VERSION_FILE")
 
+# Flutter/Deubg.xcconfig and Release.xcconfig will load this xcconfig,
+# which overrides the default version values from pubspec.yaml.
 cat > "$FLUTTER_PROJECT_DIR/ios/Flutter/Version.xcconfig" <<EOF
 FLUTTER_BUILD_NAME=$VERSION_NAME
 FLUTTER_BUILD_NUMBER=$BUILD_NUMBER
@@ -87,6 +77,8 @@ fi
 cd "$FLUTTER_PROJECT_DIR"
 # See https://docs.flutter.dev/deployment/cd#xcode-cloud
 flutter precache --ios
+# Configure the Xcode project without archiving.
+# Xcode Cloud runs the actual build afterwards.
 flutter build ios \
     --release \
     --config-only \

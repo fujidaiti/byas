@@ -52,10 +52,9 @@ should ship as.
 
 ### iOS
 
-Same flow, driven by `client/ios/version.json` and the `ios-stg-` tag prefix.
-Only step 2 differs: it runs outside this repo, in an Xcode Cloud workflow
-configured in App Store Connect to trigger on `ios-stg-*` tags, which builds the
-app via `client/ios/ci_scripts/ci_post_clone.sh`.
+Same flow, driven by the `ios-stg-` tag prefix. Only step 2 differs: it runs
+outside this repo, in an Xcode Cloud workflow configured to trigger on
+`ios-stg-*` tags, which builds the app and uploads to TestFlight.
 
 ## Tag protection
 
@@ -76,3 +75,5 @@ GitHub App is the only bypass actor, set to _Always allow_.
   creates release tags when it bumps
 - `.github/workflows/android-stg-deploy.yaml`, which is triggered by an
   `android-stg-*` tag and deploys the client app to Firebase App Distribution.
+- `client/ios/ci_scripts/ci_post_clone.sh`, which prepares the Xcode Cloud build
+  machine for the workflow triggered by an `ios-stg-*` tag.
