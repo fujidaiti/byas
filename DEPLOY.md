@@ -56,13 +56,28 @@ Same flow, driven by the `ios-stg-` tag prefix. Only step 2 differs: it runs
 outside this repo, in an Xcode Cloud workflow configured to trigger on
 `ios-stg-*` tags, which builds the app and uploads to TestFlight.
 
+### Server
+
+Same flow, but with no stg/prod distinction: the server has a single `server-`
+tag prefix, and every valid `server/version.json` bump gets tagged regardless of
+whether `versionName` carries the `.beta` suffix — for the server, `.beta` is
+just a human-readable label, not a different deploy channel. Step 2 differs in
+what it deploys: `.github/workflows/server-deploy.yaml` builds the OpenAPI
+documentation (from `api/api.yaml`, stamped with the tagged commit's
+`server/version.json` versionName) and publishes it to GitHub Pages. There's no
+Go build/compile step in this pipeline.
+
+Because docs now publish only on `server-*` tags, an `api/api.yaml` edit merged
+to `main` without a `server/version.json` bump won't republish until the next
+server version bump.
+
 ## Tag protection
 
 A release tag is what actually starts a deploy, so the repo needs an active [tag
 ruleset] that restricts creations, updates and deletions, targeting one pattern
-per release-tag namespace (`android-stg-*`, `ios-stg-*`, and whatever prod uses
-once it exists — an untargeted namespace is unprotected). The release bot's
-GitHub App is the only bypass actor, set to _Always allow_.
+per release-tag namespace (`android-stg-*`, `ios-stg-*`, `server-*`, and
+whatever prod uses once it exists — an untargeted namespace is unprotected). The
+release bot's GitHub App is the only bypass actor, set to _Always allow_.
 
 [tag ruleset]:
   https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets#branch-and-tag-rulesets
@@ -77,3 +92,5 @@ GitHub App is the only bypass actor, set to _Always allow_.
   `android-stg-*` tag and deploys the client app to Firebase App Distribution.
 - `client/ios/ci_scripts/ci_post_clone.sh`, which prepares the Xcode Cloud build
   machine for the workflow triggered by an `ios-stg-*` tag.
+- `.github/workflows/server-deploy.yaml`, which is triggered by a `server-*` tag
+  and publishes the OpenAPI documentation to GitHub Pages.

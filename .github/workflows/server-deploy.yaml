@@ -1,0 +1,76 @@
+# Builds the OpenAPI documentation and publishes it to GitHub Pages.
+#
+# Triggered by the server-* tags that version-tagging.yaml pushes. The OAS
+# version comes from server/version.json's versionName at the tagged commit.
+#
+# One repo/org-level variable is required, not part of any environment:
+#
+#   vars.NORELEASE_BOT_SLUG  The release bot's actor login, e.g. norelease-bot[bot].
+#                            Used to confirm the tag was actually pushed by the bot.
+#
+# See DEPLOY.md for the overview of the entire deployment pipeline.
+name: Server Deploy
+
+on:
+  push:
+    tags:
+      - "server-*"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: server-deploy
+  cancel-in-progress: false
+
+jobs:
+  build-docs:
+    name: Build documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify tag was created by the release bot
+        if: github.actor != vars.NORELEASE_BOT_SLUG
+        run: |
+          echo "::error::Tag pushed by '${{ github.actor }}', not the release bot. Refusing to deploy."
+          exit 1
+
+      - uses: actions/checkout@v4
+
+      - name: Validate version file
+        run: tool/version.sh vet server/version.json
+
+      - name: Set up Node.js tooling
+        uses: ./.github/actions/setup-node-tools
+
+      - name: Set OAS version from server/version.json
+        run: |
+          set -euo pipefail
+
+          version_name=$(jq -r '.versionName' server/version.json)
+          sed -i "s/^  version: \".*\"/  version: \"$version_name\"/" api/api.yaml
+          grep -q "version: \"$version_name\"" api/api.yaml || {
+            echo "::error::OAS version substitution did not match api/api.yaml"
+            exit 1
+          }
+
+      - name: Build
+        run: npx redocly build-docs api/api.yaml -o dist/index.html
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/
+
+  deploy-docs:
+    name: Deploy documentation
+    needs: build-docs
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
