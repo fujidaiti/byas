@@ -32,6 +32,10 @@
 #         there is no previous version, in which case the new build number must
 #         be 1.
 #
+#   vet <version.json>
+#         Exits normally if the file has a valid format and values.
+#         Otherwise prints what's wrong and exits 1.
+#
 # See DEPLOY.md for the overview of the entire deployment pipeline.
 
 set -euo pipefail
@@ -44,8 +48,31 @@ usage() {
   {
     echo "Usage: tool/version.sh bump <version.json> [--beta]"
     echo "       tool/version.sh comp <old-version.json> <new-version.json>"
+    echo "       tool/version.sh vet <version.json>"
   } >&2
   exit 1
+}
+
+# Prints "<major> <yyyymmddHHMMSS> <buildNumber> <versionName>" for a
+# well-formed version file, or explains what's wrong with it and exits 1.
+parse() {
+  local path="$1" version_name build_number
+  [[ -f "$path" ]] || { echo "$path does not exist." >&2; exit 1; }
+  jq -e . "$path" > /dev/null 2>&1 || { echo "$path is not valid JSON." >&2; exit 1; }
+  # `strings` / `numbers` drop values of the wrong JSON type, so a quoted
+  # buildNumber fails the check below rather than sneaking through.
+  version_name=$(jq -r '.versionName | strings' "$path")
+  build_number=$(jq -r '.buildNumber | numbers' "$path")
+  if ! [[ "$version_name" =~ $VERSION_NAME_RE ]]; then
+    echo "$path: versionName '$version_name' is not a string matching <major>.<yyyymmdd>.<HHMMSS>[.beta]." >&2
+    exit 1
+  fi
+  local major="${BASH_REMATCH[1]}" date="${BASH_REMATCH[2]}" time="${BASH_REMATCH[3]}"
+  if ! [[ "$build_number" =~ ^[0-9]+$ ]]; then
+    echo "$path: buildNumber '$build_number' is not a non-negative integer." >&2
+    exit 1
+  fi
+  echo "$major $date$time $build_number $version_name"
 }
 
 cmd_bump() {
@@ -98,28 +125,6 @@ cmd_comp() {
   [[ $# -eq 2 ]] || usage
   local old_path="$1" new_path="$2"
 
-  # Prints "<major> <yyyymmddHHMMSS> <buildNumber> <versionName>" for a
-  # well-formed version file, or explains what's wrong with it and exits 1.
-  parse() {
-    local path="$1" version_name build_number
-    [[ -f "$path" ]] || { echo "$path does not exist." >&2; exit 1; }
-    jq -e . "$path" > /dev/null 2>&1 || { echo "$path is not valid JSON." >&2; exit 1; }
-    # `strings` / `numbers` drop values of the wrong JSON type, so a quoted
-    # buildNumber fails the check below rather than sneaking through.
-    version_name=$(jq -r '.versionName | strings' "$path")
-    build_number=$(jq -r '.buildNumber | numbers' "$path")
-    if ! [[ "$version_name" =~ $VERSION_NAME_RE ]]; then
-      echo "$path: versionName '$version_name' is not a string matching <major>.<yyyymmdd>.<HHMMSS>[.beta]." >&2
-      exit 1
-    fi
-    local major="${BASH_REMATCH[1]}" date="${BASH_REMATCH[2]}" time="${BASH_REMATCH[3]}"
-    if ! [[ "$build_number" =~ ^[0-9]+$ ]]; then
-      echo "$path: buildNumber '$build_number' is not a non-negative integer." >&2
-      exit 1
-    fi
-    echo "$major $date$time $build_number $version_name"
-  }
-
   local new_parsed new_major new_stamp new_build new_name
   new_parsed=$(parse "$new_path")
   read -r new_major new_stamp new_build new_name <<< "$new_parsed"
@@ -158,6 +163,12 @@ cmd_comp() {
   echo "$new_path is a valid bump of $old_path."
 }
 
+cmd_vet() {
+  [[ $# -eq 1 ]] || usage
+  local path="$1"
+  parse "$path" > /dev/null
+}
+
 case "${1:-}" in
   bump)
     shift
@@ -166,6 +177,10 @@ case "${1:-}" in
   comp)
     shift
     cmd_comp "$@"
+    ;;
+  vet)
+    shift
+    cmd_vet "$@"
     ;;
   *)
     usage

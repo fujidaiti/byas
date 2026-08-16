@@ -1,9 +1,13 @@
 # Deply
 
 This document describes the project's deployment workflow. Currently only the
-Android **stg** path is implemented — prod and iOS aren't wired up yet.
+**stg** path is implemented — prod isn't wired up yet.
 
 ## Workflow overview
+
+The diagram below traces the Android stg release as an example. Every other
+channel follows the same shape, differing only in which version file it watches,
+which tag prefix it pushes, and what that tag hands off to.
 
 ```mermaid
 sequenceDiagram
@@ -46,13 +50,19 @@ Each build target keeps its own version file within its directory (e.g.
 `client/android/version.json`). It tracks the version that target's next release
 should ship as.
 
+### iOS
+
+Same flow, driven by the `ios-stg-` tag prefix. Only step 2 differs: it runs
+outside this repo, in an Xcode Cloud workflow configured to trigger on
+`ios-stg-*` tags, which builds the app and uploads to TestFlight.
+
 ## Tag protection
 
 A release tag is what actually starts a deploy, so the repo needs an active [tag
 ruleset] that restricts creations, updates and deletions, targeting one pattern
-per release-tag namespace (`android-stg-*`, and whatever prod and iOS use once
-they exist — an untargeted namespace is unprotected). The release bot's GitHub
-App is the only bypass actor, set to _Always allow_.
+per release-tag namespace (`android-stg-*`, `ios-stg-*`, and whatever prod uses
+once it exists — an untargeted namespace is unprotected). The release bot's
+GitHub App is the only bypass actor, set to _Always allow_.
 
 [tag ruleset]:
   https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets#branch-and-tag-rulesets
@@ -65,3 +75,5 @@ App is the only bypass actor, set to _Always allow_.
   creates release tags when it bumps
 - `.github/workflows/android-stg-deploy.yaml`, which is triggered by an
   `android-stg-*` tag and deploys the client app to Firebase App Distribution.
+- `client/ios/ci_scripts/ci_post_clone.sh`, which prepares the Xcode Cloud build
+  machine for the workflow triggered by an `ios-stg-*` tag.

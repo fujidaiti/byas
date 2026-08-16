@@ -1,11 +1,13 @@
 # Tags the commit that bumps a version file to trigger a release build.
 #
 # Pushing a version bump to main or a deploy/** branch is the only action
-# a developer takes. This workflow diffs client/android/version.json against
-# the previous commit, validates the bump with `tool/version.sh comp`, and
-# if the new versionName ends in .beta, pushes the tag android-stg-<versionName>,
-# which triggers android-stg-deploy.yaml. Unsuffixed (prod-channel) versions are
-# validated but not tagged: the prod pipeline isn't wired up yet.
+# a developer takes. For each build target in the matrix below, this workflow
+# diffs that target's version.json against the previous commit, validates the bump.
+# If the new versionName ends in .beta, it pushes a <tag_prefix>-<versionName> tag,
+# which is what starts that target's deploy.
+#
+# Unsuffixed (prod-channel) versions are validated but not tagged: the
+# prod pipeline isn't wired up yet.
 #
 # See tool/version.sh for the version file format and the versionName scheme.
 #
@@ -29,6 +31,7 @@ on:
       - "deploy/**"
     paths:
       - client/android/version.json
+      - client/ios/version.json
 
 concurrency:
   group: version-tagging
@@ -36,8 +39,17 @@ concurrency:
 
 jobs:
   tag:
-    name: Validate version.json and tag Android release
+    name: Validate version.json and tag ${{ matrix.name }} release
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: Android
+            version_file: client/android/version.json
+            tag_prefix: android-stg
+          - name: iOS
+            version_file: client/ios/version.json
+            tag_prefix: ios-stg
     steps:
       - name: Generate GitHub App token
         id: app-token
@@ -56,26 +68,31 @@ jobs:
         id: previous-version
         env:
           BEFORE_SHA: ${{ github.event.before }}
+          VERSION_FILE: ${{ matrix.version_file }}
         run: |
           set -euo pipefail
 
           # Leaving the file absent is how the next step is told there is no
           # previous version (the very first bump, or a new branch).
           path="$RUNNER_TEMP/prev-version.json"
-          git show "$BEFORE_SHA:client/android/version.json" > "$path" 2>/dev/null || rm -f "$path"
+          git show "$BEFORE_SHA:$VERSION_FILE" > "$path" 2>/dev/null || rm -f "$path"
           echo "path=$path" >> "$GITHUB_OUTPUT"
 
       - name: Validate version bump
         env:
           PREVIOUS_VERSION: ${{ steps.previous-version.outputs.path }}
-        run: tool/version.sh comp "$PREVIOUS_VERSION" client/android/version.json
+          VERSION_FILE: ${{ matrix.version_file }}
+        run: tool/version.sh comp "$PREVIOUS_VERSION" "$VERSION_FILE"
 
       - name: Resolve tag to create
         id: tag
+        env:
+          VERSION_FILE: ${{ matrix.version_file }}
+          TAG_PREFIX: ${{ matrix.tag_prefix }}
         run: |
           set -euo pipefail
 
-          version_name=$(jq -r '.versionName' client/android/version.json)
+          version_name=$(jq -r '.versionName' "$VERSION_FILE")
           if [[ "$version_name" != *.beta* ]]; then
             echo "prod channel not yet wired; skipping tag creation."
             exit 0
@@ -84,7 +101,7 @@ jobs:
           # The version may be unchanged (a push that only reformatted the file,
           # or a re-run of this workflow), in which case the tag is already
           # there and creating it again would fail.
-          tag_name="android-stg-$version_name"
+          tag_name="$TAG_PREFIX-$version_name"
           if git rev-parse -q --verify "refs/tags/$tag_name" > /dev/null; then
             echo "Tag $tag_name already exists; nothing to do."
             exit 0
