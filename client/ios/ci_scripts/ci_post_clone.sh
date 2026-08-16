@@ -1,4 +1,29 @@
 #!/bin/sh
+#
+# Prepares the Xcode Cloud build machine to build the iOS app.
+#
+# Xcode Cloud runs this after cloning the repo and before the build, purely
+# because of where it lives (ci_scripts/ next to the project). It installs the
+# Flutter SDK, which isn't on the build machine, and generates the two inputs
+# the build needs that aren't checked in: Flutter/Version.xcconfig and the
+# dotenv file backing --dart-define-from-file. The final `flutter build ios` is
+# --config-only: it configures the Xcode project without archiving, and Xcode
+# Cloud runs the actual build afterwards.
+#
+# The workflow that runs this script is configured in App Store Connect rather
+# than in this repo. It triggers on ios-stg-* tags, which version-tagging.yaml
+# pushes when client/ios/version.json is bumped, and uploads the resulting
+# build to TestFlight.
+#
+# That workflow has to define this environment variable, as a secret:
+#
+#   DART_DEFINES_BASE64   base64-encoded dotenv file holding the app's
+#                         --dart-define values
+#
+# Nothing else is needed here: signing and the TestFlight upload are Xcode
+# Cloud's own, configured alongside the workflow.
+#
+# See DEPLOY.md for the overview of the entire deployment pipeline.
 
 FLUTTER_PROJECT_DIR="$CI_PROJECT_FILE_PATH/../.."
 
