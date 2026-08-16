@@ -6,8 +6,11 @@ set -e
 brew install jq
 cd "$CI_PRIMARY_REPOSITORY_PATH"
 
+##### Create Version.xcconfig #####
+
 VERSION_FILE="$FLUTTER_PROJECT_DIR/ios/version.json"
 tool/version.sh vet "$VERSION_FILE"
+
 # Extract version name and build number dropping the 'beta' suffix.
 VERSION_NAME=$(jq -r '.versionName // empty' "$VERSION_FILE" | sed 's/\.beta$//')
 BUILD_NUMBER=$(jq -r '.buildNumber // empty' "$VERSION_FILE")
@@ -17,6 +20,8 @@ FLUTTER_BUILD_NAME=$VERSION_NAME
 FLUTTER_BUILD_NUMBER=$BUILD_NUMBER
 EOF
 
+##### Prepare Dart defines #####
+
 if [ -z "$DART_DEFINES_BASE64" ]; then
   echo "DART_DEFINES_BASE64 is not defined." >&2
   exit 1
@@ -24,6 +29,8 @@ fi
 
 DOT_ENV="${TMPDIR%/}/.env"
 echo "$DART_DEFINES_BASE64" | base64 -d > "$DOT_ENV"
+
+##### Install Flutter SDK #####
 
 FLUTTER_VERSION=$(jq -r '.flutter // empty' .fvmrc)
 if [ -z "$FLUTTER_VERSION" ]; then
@@ -44,6 +51,8 @@ if [ "$INSTALLED_VERSION" != "$FLUTTER_VERSION" ]; then
     echo "Flutter version mismatch: got $INSTALLED_VERSION, want $FLUTTER_VERSION" >&2
     exit 1
 fi
+
+##### Build #####
 
 cd "$FLUTTER_PROJECT_DIR"
 # See https://docs.flutter.dev/deployment/cd#xcode-cloud
