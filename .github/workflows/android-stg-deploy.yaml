@@ -78,8 +78,6 @@ jobs:
       - name: Resolve version to build
         id: version
         run: |
-          set -euo pipefail
-
           jq -r '"name=\(.versionName)", "number=\(.buildNumber)"' \
             client/android/version.json >> "$GITHUB_OUTPUT"
 
