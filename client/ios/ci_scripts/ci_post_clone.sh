@@ -23,15 +23,17 @@ cd "$CI_PRIMARY_REPOSITORY_PATH"
 
 VERSION_FILE="$FLUTTER_PROJECT_DIR/ios/version.json"
 tool/version.sh vet "$VERSION_FILE"
-# Extract version name and build number dropping the 'beta' suffix.
+# Extract version name dropping the 'beta' suffix.
 VERSION_NAME=$(jq -r '.versionName // empty' "$VERSION_FILE" | sed 's/\.beta$//')
-BUILD_NUMBER=$(jq -r '.buildNumber // empty' "$VERSION_FILE")
 
 # Flutter/Deubg.xcconfig and Release.xcconfig will load this xcconfig,
 # which overrides the default version values from pubspec.yaml.
+#
+# We ignore the build number in the version file here,
+# and use the built-in incremental counter instead.
 cat > "$FLUTTER_PROJECT_DIR/ios/Flutter/Version.xcconfig" <<EOF
 FLUTTER_BUILD_NAME=$VERSION_NAME
-FLUTTER_BUILD_NUMBER=$BUILD_NUMBER
+FLUTTER_BUILD_NUMBER=$CI_BUILD_NUMBER
 EOF
 
 ##### Prepare Dart defines #####
