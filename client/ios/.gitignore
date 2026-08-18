@@ -32,3 +32,6 @@ Runner/GeneratedPluginRegistrant.*
 !default.mode2v3
 !default.pbxuser
 !default.perspectivev3
+
+# Local API endpoint for the share extension; see Config/APIConfig.example.xcconfig.
+Config/APIConfig.xcconfig

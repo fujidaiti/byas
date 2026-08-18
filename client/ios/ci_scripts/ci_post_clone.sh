@@ -46,6 +46,34 @@ fi
 DOT_ENV="${TMPDIR%/}/.env"
 echo "$DART_DEFINES_BASE64" | base64 -d > "$DOT_ENV"
 
+##### Create APIConfig.xcconfig #####
+
+# The share extension is native code with no access to --dart-define, so the API
+# endpoint has to reach it as a build setting instead. Locally that file is
+# hand-written (see ios/Config/APIConfig.example.xcconfig); here it comes from the
+# same dotenv Flutter gets.
+#
+# This runs before the build on purpose: Xcode resolves xcconfig files when it
+# builds the build plan, before any Run Script phase executes, so generating one
+# from a build phase would only ever affect the *next* build.
+
+API_BASE_URL=$(sed -n 's/^API_BASE_URL=//p' "$DOT_ENV" | tr -d '\r' | head -n 1)
+if [ -z "$API_BASE_URL" ]; then
+  echo "API_BASE_URL is missing or empty in DART_DEFINES_BASE64." >&2
+  exit 1
+fi
+
+# xcconfig treats // as a comment delimiter anywhere on a line, including inside a
+# value, so the URL's slashes have to arrive through a variable or the value would
+# be truncated to "https:".
+ESCAPED_API_BASE_URL=$(printf '%s' "$API_BASE_URL" |
+  sed 's|//|$(PAPERDOLL_URL_SLASH)$(PAPERDOLL_URL_SLASH)|g')
+
+cat > "$FLUTTER_PROJECT_DIR/ios/Config/APIConfig.xcconfig" <<EOF
+PAPERDOLL_URL_SLASH = /
+PAPERDOLL_API_BASE_URL = $ESCAPED_API_BASE_URL
+EOF
+
 ##### Install Flutter SDK #####
 
 FLUTTER_VERSION=$(jq -r '.flutter // empty' .fvmrc)

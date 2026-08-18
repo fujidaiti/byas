@@ -1,0 +1,15 @@
+// Copy to APIConfig.xcconfig and adjust. Consumed by ShareExtension.xcconfig,
+// surfaced into ShareExtension/Info.plist as APIBaseURL, and read at runtime by
+// APIConfig.swift.
+//
+// This is the iOS counterpart of client/.env, deliberately kept separate: .env
+// points at 10.0.2.2, the Android emulator's alias for the host machine, which
+// means nothing to an iPhone or the iOS simulator.
+
+// xcconfig treats // as a comment delimiter anywhere on a line, including inside
+// a value, so a URL's slashes have to arrive through a variable. Without this,
+// "http://localhost:8080" silently becomes "http:".
+PAPERDOLL_URL_SLASH = /
+
+// Base URL of the Paperdoll REST API.
+PAPERDOLL_API_BASE_URL = http:$(PAPERDOLL_URL_SLASH)$(PAPERDOLL_URL_SLASH)localhost:8080
