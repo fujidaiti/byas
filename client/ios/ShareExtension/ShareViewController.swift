@@ -68,17 +68,15 @@ class ShareViewController: UIViewController {
   /// read "Page Title https://example.com/x". Those are the same two shapes extractUrl()
   /// handles in SaveWebClipActivity.kt, for the same reason.
   ///
-  /// The title is best effort. It matters more than "the server backfills it anyway"
-  /// suggests: SaveWebClip only overwrites the placeholder when the scrape actually
-  /// extracts a title, so on a paywalled or JS-rendered page whatever we send here is the
-  /// title forever. attributedTitle is the closest thing to Android's EXTRA_SUBJECT;
-  /// attributedContentText is the shared text itself, so it is a fallback, not a peer.
+  /// The title comes from attributedTitle only — the closest thing to Android's
+  /// EXTRA_SUBJECT — and stays nil when there is none. Deriving one from the shared text
+  /// would be worse than sending nothing: SaveWebClip only overwrites the placeholder when
+  /// the scrape actually extracts a title, so a fabricated one sticks to a paywalled page
+  /// forever, and an empty title is what tells the reading list it has none to show.
   private func extractSharedLink(completion: @escaping ((url: String, title: String?)?) -> Void) {
     let items = (extensionContext?.inputItems as? [NSExtensionItem]) ?? []
     let providers = items.flatMap { $0.attachments ?? [] }
-    let title =
-      items.compactMap { $0.attributedTitle?.string }.first
-      ?? items.compactMap { $0.attributedContentText?.string }.first
+    let title = items.compactMap { $0.attributedTitle?.string }.first
 
     func finish(_ url: String?) {
       DispatchQueue.main.async { completion(url.map { ($0, title) }) }
