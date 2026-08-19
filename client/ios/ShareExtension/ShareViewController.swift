@@ -68,24 +68,27 @@ class ShareViewController: UIViewController {
   /// read "Page Title https://example.com/x". Those are the same two shapes extractUrl()
   /// handles in SaveWebClipActivity.kt, for the same reason.
   ///
-  /// The title comes from attributedTitle only — the closest thing to Android's
-  /// EXTRA_SUBJECT — and stays nil when there is none. Deriving one from the shared text
-  /// would be worse than sending nothing: SaveWebClip only overwrites the placeholder when
-  /// the scrape actually extracts a title, so a fabricated one sticks to a paywalled page
-  /// forever, and an empty title is what tells the reading list it has none to show.
+  /// The placeholder title rides on attributedContentText, which is where Safari puts the
+  /// page title for a public.url share (attributedTitle is nil there, despite the name).
+  /// It is Android's EXTRA_SUBJECT equivalent, so it is only trusted on that path: on the
+  /// plain-text fallback the same field is the shared text, which is not a title. Better
+  /// to send nothing than to invent one — SaveWebClip only overwrites the placeholder when
+  /// the scrape extracts a real title, so a fabricated one would stick to a page the
+  /// scraper cannot read forever, and an empty title is what tells the reading list it has
+  /// none to show.
   private func extractSharedLink(completion: @escaping ((url: String, title: String?)?) -> Void) {
     let items = (extensionContext?.inputItems as? [NSExtensionItem]) ?? []
     let providers = items.flatMap { $0.attachments ?? [] }
-    let title = items.compactMap { $0.attributedTitle?.string }.first
+    let webTitle = items.compactMap { $0.attributedContentText?.string }.first
 
-    func finish(_ url: String?) {
+    func finish(_ url: String?, _ title: String?) {
       DispatchQueue.main.async { completion(url.map { ($0, title) }) }
     }
 
     let urlType = UTType.url.identifier
     if let provider = providers.first(where: { $0.hasItemConformingToTypeIdentifier(urlType) }) {
       provider.loadItem(forTypeIdentifier: urlType) { item, _ in
-        finish((item as? URL).map(\.absoluteString).flatMap(Self.httpURL))
+        finish((item as? URL).map(\.absoluteString).flatMap(Self.httpURL), webTitle)
       }
       return
     }
@@ -93,12 +96,12 @@ class ShareViewController: UIViewController {
     let textType = UTType.plainText.identifier
     if let provider = providers.first(where: { $0.hasItemConformingToTypeIdentifier(textType) }) {
       provider.loadItem(forTypeIdentifier: textType) { item, _ in
-        finish((item as? String).flatMap(Self.firstLink))
+        finish((item as? String).flatMap(Self.firstLink), nil)
       }
       return
     }
 
-    finish(nil)
+    finish(nil, nil)
   }
 
   private static func firstLink(in text: String) -> String? {
