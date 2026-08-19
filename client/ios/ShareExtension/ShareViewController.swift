@@ -104,7 +104,7 @@ class ShareViewController: UIViewController {
     finish(nil, nil)
   }
 
-  private static func firstLink(in text: String) -> String? {
+  private nonisolated static func firstLink(in text: String) -> String? {
     let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
     guard
       let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
@@ -121,7 +121,7 @@ class ShareViewController: UIViewController {
     return nil
   }
 
-  private static func httpURL(_ candidate: String) -> String? {
+  private nonisolated static func httpURL(_ candidate: String) -> String? {
     let scheme = URL(string: candidate)?.scheme?.lowercased()
     return scheme == "http" || scheme == "https" ? candidate : nil
   }
