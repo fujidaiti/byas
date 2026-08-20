@@ -6,10 +6,12 @@
 # cloning the repo and before the build. The workflow triggers on ios-stg-* tags,
 # which version-tagging.yaml pushes when client/ios/version.json is bumped.
 #
-# That workflow has to define this environment variable:
+# That workflow has to define these environment variables:
 #
-#   DART_DEFINES_BASE64   base64-encoded dotenv file holding the app's
-#                         --dart-define values
+#   DART_DEFINES_BASE64          base64-encoded dotenv file holding the app's
+#                                --dart-define values
+#   API_CONFIG_XCCONFIG_BASE64   base64-encoded Config/APIConfig.xcconfig
+#                                (see ios/Config/APIConfig.example.xcconfig)
 #
 # See DEPLOY.md for the overview of the entire deployment pipeline.
 
@@ -50,29 +52,28 @@ echo "$DART_DEFINES_BASE64" | base64 -d > "$DOT_ENV"
 
 # The share extension is native code with no access to --dart-define, so the API
 # endpoint has to reach it as a build setting instead. Locally that file is
-# hand-written (see ios/Config/APIConfig.example.xcconfig); here it comes from the
-# same dotenv Flutter gets.
+# hand-written (see ios/Config/APIConfig.example.xcconfig); here it arrives
+# verbatim in an environment variable, the same way the dotenv above does.
+#
+# The file is taken as-is rather than assembled from API_BASE_URL, so the
+# xcconfig quirks — chiefly that // starts a comment anywhere on a line, even
+# inside a value — are the example file's business and not this script's.
 #
 # This runs before the build on purpose: Xcode resolves xcconfig files when it
-# builds the build plan, before any Run Script phase executes, so generating one
+# builds the build plan, before any Run Script phase executes, so writing one
 # from a build phase would only ever affect the *next* build.
 
-API_BASE_URL=$(sed -n 's/^API_BASE_URL=//p' "$DOT_ENV" | tr -d '\r' | head -n 1)
-if [ -z "$API_BASE_URL" ]; then
-  echo "API_BASE_URL is missing or empty in DART_DEFINES_BASE64." >&2
+if [ -z "$API_CONFIG_XCCONFIG_BASE64" ]; then
+  echo "API_CONFIG_XCCONFIG_BASE64 is not defined." >&2
   exit 1
 fi
 
-# xcconfig treats // as a comment delimiter anywhere on a line, including inside a
-# value, so the URL's slashes have to arrive through a variable or the value would
-# be truncated to "https:".
-ESCAPED_API_BASE_URL=$(printf '%s' "$API_BASE_URL" |
-  sed 's|//|$(PAPERDOLL_URL_SLASH)$(PAPERDOLL_URL_SLASH)|g')
+echo "$API_CONFIG_XCCONFIG_BASE64" | base64 -d \
+  > "$FLUTTER_PROJECT_DIR/ios/Config/APIConfig.xcconfig"
 
-cat > "$FLUTTER_PROJECT_DIR/ios/Config/APIConfig.xcconfig" <<EOF
-PAPERDOLL_URL_SLASH = /
-PAPERDOLL_API_BASE_URL = $ESCAPED_API_BASE_URL
-EOF
+# Whether that file yields the right endpoint is checked after the build, by
+# ci_post_xcodebuild.sh, which compares the value that reached the archive
+# against the API_BASE_URL in the dotenv above.
 
 ##### Install Flutter SDK #####
 

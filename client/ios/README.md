@@ -136,9 +136,10 @@ APIConfig.swift                ← Bundle.main
 
 **Setup:** copy `Config/APIConfig.example.xcconfig` to
 `Config/APIConfig.xcconfig` and point it at your dev server. It is gitignored,
-on the same pattern as `.env`/`.env.example`. In CI,
-`ci_scripts/ci_post_clone.sh` generates it from the decoded
-`DART_DEFINES_BASE64` dotenv.
+on the same pattern as `.env`/`.env.example`. In CI it is the same file,
+base64-encoded into the Xcode Cloud environment variable
+`API_CONFIG_XCCONFIG_BASE64` and written back out verbatim by
+`ci_scripts/ci_post_clone.sh`.
 
 **It is deliberately independent of `.env`.** iOS does not read `client/.env`,
 and the two files routinely hold different hosts — `.env` points at `10.0.2.2`,
@@ -192,7 +193,12 @@ extension target; they were deleted, not overridden, and should stay deleted.
 The same applies to `IPHONEOS_DEPLOYMENT_TARGET`, which the extension inherits
 from the project so it tracks the app's floor.
 
-To check the two agree, build and compare:
+In CI this is enforced: `ci_scripts/ci_post_xcodebuild.sh` compares both
+versions in the archive and fails the build before the upload, along with
+checking that the extension's compiled-in `APIBaseURL` is byte-identical to the
+`API_BASE_URL` the app itself was built with — the failures neither a green
+build nor the runtime guard in `APIConfig.swift` catches. Locally, build and
+compare:
 
 ```sh
 plutil -p "$BUILT/Runner.app/Info.plist" | grep -i CFBundleVersion
