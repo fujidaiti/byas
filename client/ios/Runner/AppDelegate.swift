@@ -5,7 +5,11 @@ private let secureStorageChannel = "dev.norelease.paperdoll/secure_storage"
 
 /// App group container shared with the share extension, which writes upload bodies into
 /// it. Declared there too — see `ShareExtension/ReadingListUploader.swift`.
-private let appGroupIdentifier = "group.dev.norelease.paperdoll"
+///
+/// It doubles as the Keychain access group holding the auth token, which is why
+/// `SecureStorage.swift` reaches for this: an app group name is a valid access group, and
+/// carries no team-id prefix that would have to be resolved at signing time.
+let appGroupIdentifier = "group.dev.norelease.paperdoll"
 private let uploadBodyDirectory = "ShareUploads"
 
 /// Upload bodies older than this are assumed orphaned and swept on launch.

@@ -58,15 +58,12 @@ doesn't, matching Android exactly.
 Background sessions created from an app extension need a _unique_ identifier per
 session, so the extension uses `<its bundle id>.<UUID>`.
 
-**Capabilities.** Both targets carry the same two entitlements
-(`Config/Runner.entitlements`, `Config/ShareExtension.entitlements`):
-
-- **App Groups** — `group.dev.norelease.paperdoll`, the container the upload
-  body is written to.
-- **Keychain Sharing** — `$(AppIdentifierPrefix)dev.norelease.paperdoll.shared`,
-  so both targets see one physical auth-token item.
-
-Both must be registered on both App IDs in the Apple Developer portal before an
+**Capabilities.** Both targets carry the same single entitlement
+(`Config/Runner.entitlements`, `Config/ShareExtension.entitlements`): the **App
+Group** `group.dev.norelease.paperdoll`, which the upload body is written to and
+which also holds the shared auth token — an app group name is a valid Keychain
+access group, so no separate Keychain Sharing entitlement is needed. The app
+group must be registered on both App IDs in the Apple Developer portal before an
 archive will sign.
 
 ## Shared storage, and why the keys are duplicated
@@ -108,10 +105,15 @@ shows "Log in to Paperdoll first, then try sharing again." forever, which is
 indistinguishable from a legitimately logged-out user.
 
 One attribute is _not_ duplicated: the Keychain access group.
-`SecureStorage.swift` pins it on writes only; the extension's read omits it,
-because a query without an access group searches every group the process can
-reach, and the entitlement already scopes that. So the group string exists in
-exactly one Swift file, and a read can never land in the wrong place.
+`SecureStorage.swift` pins it on writes only, to the app group; the extension's
+read omits it, because a query without an access group searches every group the
+process can reach, and the entitlement already scopes that. So a read can never
+land in the wrong place, and the group needs naming in exactly one Swift file.
+
+Using the app group here rather than a dedicated Keychain group is what keeps
+that string a plain literal: Xcode team-prefixes Keychain groups but not app
+groups, so a dedicated group would have to reach Swift as a resolved
+`$(AppIdentifierPrefix)…` expansion smuggled through `Info.plist`.
 
 ## `Config/APIConfig.xcconfig`
 

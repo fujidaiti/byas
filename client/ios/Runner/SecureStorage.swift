@@ -48,10 +48,11 @@ enum SecureStorage {
       kSecClass as String: kSecClassGenericPassword,
       kSecAttrService as String: service,
       kSecAttrAccount as String: key,
-      // The one place the access group is named. It has to be the *resolved* group
-      // ("<team>.dev.norelease.paperdoll.shared"), which Info.plist expands from the same
-      // $(AppIdentifierPrefix)… expression Config/Runner.entitlements uses.
-      kSecAttrAccessGroup as String: accessGroup,
+      // The one place the access group is named. It is the app group rather than a
+      // dedicated Keychain group: an app group name doubles as a Keychain access group,
+      // and unlike a Keychain group it carries no team-id prefix, so the string is a
+      // literal here instead of something Info.plist has to resolve at signing time.
+      kSecAttrAccessGroup as String: appGroupIdentifier,
     ]
 
     // Delete first: SecItemAdd on an existing item fails with errSecDuplicateItem, and
@@ -70,16 +71,5 @@ enum SecureStorage {
 
     let added = SecItemAdd(item as CFDictionary, nil)
     guard added == errSecSuccess else { throw Failure(status: added) }
-  }
-
-  private static var accessGroup: String {
-    guard
-      let group = Bundle.main.object(forInfoDictionaryKey: "KeychainAccessGroup") as? String,
-      !group.isEmpty, !group.hasPrefix("$(")
-    else {
-      // A build misconfiguration, not a runtime condition.
-      preconditionFailure("KeychainAccessGroup is missing from Info.plist")
-    }
-    return group
   }
 }
