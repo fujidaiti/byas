@@ -1,5 +1,8 @@
-// Base configuration for all three ShareExtension build configurations. Nothing
-// here is configuration-dependent, so one file covers Debug, Release and Profile.
+// Base configuration for all three ShareExtension build configurations.
+//
+// Keep all three of the ShareExtension target's configurations pointed at this
+// file — Xcode's project editor > Info > Configurations, or
+// baseConfigurationReference in project.pbxproj.
 
 // FLUTTER_BUILD_NAME / FLUTTER_BUILD_NUMBER, from pubspec.yaml.
 #include "../Flutter/Generated.xcconfig"
