@@ -91,7 +91,7 @@ Registers a pending attempt and mails a code, instead of creating the user.
 | 429    | The address has been mailed too often lately |
 | 500    | Unknown error                                |
 
-### Add `POST /sign-up/verification`
+### Add `POST /sign-up/verify-email`
 
 Verifies the submitted email. Client apps call this after the user signs up and
 receives an email with a verification code. The attempt is queried by ticket.
@@ -120,7 +120,7 @@ Request:
 | 410    | The attempt is no longer usable (expired, or exhausted)    |
 | 500    | Unknown error                                              |
 
-### Add `POST /sign-up/retry`
+### Add `POST /sign-up/resend-verification`
 
 Re-sends a verification code to the address behind the given ticket, without the
 client holding the password a second time.
