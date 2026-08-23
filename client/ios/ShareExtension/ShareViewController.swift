@@ -5,9 +5,10 @@ import UniformTypeIdentifiers
 /// Share-sheet entry point, the iOS counterpart of Android's SaveWebClipActivity: pull the
 /// shared URL out of the extension item, POST it to the reading list, show the result.
 ///
-/// Hosts SwiftUI in a UIViewController because the extension point wants a view controller
-/// (MainInterface.storyboard names this class). The storyboard's root view is transparent,
-/// so the dialog draws over the host app.
+/// Hosts SwiftUI in a UIViewController because the extension point wants one:
+/// com.apple.share-services instantiates the NSExtensionPrincipalClass that Info.plist names,
+/// and there is no SwiftUI-native entry point for a share extension the way there is for a
+/// widget. Everything above the hosting controller is SwiftUI.
 class ShareViewController: UIViewController {
   private let model = SaveStateModel()
   private var uploader: ReadingListUploader?
@@ -18,6 +19,10 @@ class ShareViewController: UIViewController {
 
   override func viewDidLoad() {
     super.viewDidLoad()
+    // With no storyboard, the root view is a plain opaque UIView. Both properties have to be
+    // set for the host app to stay visible behind the dialog; a clear background on a view
+    // still marked opaque has no defined rendering result.
+    view.isOpaque = false
     view.backgroundColor = .clear
 
     extractSharedLink { [weak self] link in
