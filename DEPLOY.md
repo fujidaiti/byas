@@ -84,7 +84,7 @@ release bot's GitHub App is the only bypass actor, set to _Always allow_.
 - `client/ios/ci_scripts/ci_post_clone.sh`, which prepares the Xcode Cloud build
   machine for the workflow triggered by an `ios-stg-*` tag.
 - `client/ios/ci_scripts/ci_post_xcodebuild.sh`, which verifies the archive that
-  workflow produced before it reaches TestFlight.
+  workflow produced before it reaches App Store Connect.
 - [server-deploy.yaml], which is triggered by a `server-*` tag and publishes the
   OpenAPI documentation to GitHub Pages.
 
