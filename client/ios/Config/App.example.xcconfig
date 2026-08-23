@@ -9,7 +9,7 @@
 // xcconfig treats // as a comment delimiter anywhere on a line, including inside
 // a value, so a URL's slashes have to arrive through a variable. Without this,
 // "http://localhost:8080" silently becomes "http:".
-PAPERDOLL_URL_SLASH = /
+APP_URL_SLASH = /
 
 // Base URL of the Paperdoll REST API.
-PAPERDOLL_API_BASE_URL = http:$(PAPERDOLL_URL_SLASH)$(PAPERDOLL_URL_SLASH)localhost:8080
+APP_API_BASE_URL = http:$(APP_URL_SLASH)$(APP_URL_SLASH)localhost:8080

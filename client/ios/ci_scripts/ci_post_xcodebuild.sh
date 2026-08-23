@@ -43,7 +43,7 @@ plist_value() {
 # That comparison is the only thing standing between these and a TestFlight build
 # where every share silently fails:
 #
-#   $(PAPERDOLL_API_BASE_URL)  the xcconfig never arrived, or names a different
+#   $(APP_API_BASE_URL)        the xcconfig never arrived, or names a different
 #                              variable, leaving the plist entry unexpanded
 #   http:                      xcconfig treats // as a comment delimiter anywhere
 #                              on a line, so an unescaped URL loses everything

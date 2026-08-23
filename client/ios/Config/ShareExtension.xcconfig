@@ -10,7 +10,7 @@
 // where Generated.xcconfig's pubspec-derived values apply instead. Runner picks
 // up the same two files via Flutter/Debug.xcconfig and Flutter/Release.xcconfig.
 #include? "../Flutter/Version.xcconfig"
-// PAPERDOLL_API_BASE_URL. Not committed; see App.example.xcconfig.
+// APP_API_BASE_URL. Not committed; see App.example.xcconfig.
 #include "App.xcconfig"
 
 // An embedded extension's version must match its host app's exactly or App Store

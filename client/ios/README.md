@@ -128,7 +128,7 @@ Config/App.xcconfig            ← you create this, gitignored
 Config/ShareExtension.xcconfig ← base config of all three ShareExtension configurations
         │
         ▼
-ShareExtension/Info.plist      ← APIBaseURL = $(PAPERDOLL_API_BASE_URL)
+ShareExtension/Info.plist      ← APIBaseURL = $(APP_API_BASE_URL)
         │
         ▼
 AppConfig.swift                ← Bundle.main
@@ -148,12 +148,12 @@ iPhone or the iOS simulator.
 Two traps worth knowing:
 
 **xcconfig treats `//` as a comment delimiter anywhere on a line, including
-inside a value.** Writing `PAPERDOLL_API_BASE_URL = http://localhost:8080`
-silently yields `http:`. Hence the indirection:
+inside a value.** Writing `APP_API_BASE_URL = http://localhost:8080` silently
+yields `http:`. Hence the indirection:
 
 ```
-PAPERDOLL_URL_SLASH = /
-PAPERDOLL_API_BASE_URL = http:$(PAPERDOLL_URL_SLASH)$(PAPERDOLL_URL_SLASH)localhost:8080
+APP_URL_SLASH = /
+APP_API_BASE_URL = http:$(APP_URL_SLASH)$(APP_URL_SLASH)localhost:8080
 ```
 
 **This could not have been a build phase.** Xcode resolves xcconfig files when
