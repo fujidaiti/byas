@@ -1,6 +1,6 @@
-// Copy to APIConfig.xcconfig and adjust. Consumed by ShareExtension.xcconfig,
+// Copy to App.xcconfig and adjust. Consumed by ShareExtension.xcconfig,
 // surfaced into ShareExtension/Info.plist as APIBaseURL, and read at runtime by
-// APIConfig.swift.
+// AppConfig.swift.
 //
 // This is the iOS counterpart of client/.env, deliberately kept separate: .env
 // points at 10.0.2.2, the Android emulator's alias for the host machine, which

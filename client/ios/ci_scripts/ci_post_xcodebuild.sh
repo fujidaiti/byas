@@ -35,10 +35,10 @@ plist_value() {
 
 # The app and the extension reach the same API through two separate variables:
 # the app gets API_BASE_URL out of DART_DEFINES_BASE64 as a --dart-define, the
-# extension gets ios/Config/APIConfig.xcconfig out of API_CONFIG_XCCONFIG_BASE64,
-# surfaced as ShareExtension/Info.plist's APIBaseURL. An app and its own share
-# extension talking to different backends is never intended, so the app's value
-# is what the archive is checked against.
+# extension gets ios/Config/App.xcconfig out of APP_XCCONFIG_BASE64, surfaced as
+# ShareExtension/Info.plist's APIBaseURL. An app and its own share extension
+# talking to different backends is never intended, so the app's value is what
+# the archive is checked against.
 #
 # That comparison is the only thing standing between these and a TestFlight build
 # where every share silently fails:
@@ -51,7 +51,7 @@ plist_value() {
 #   a stale endpoint           well-formed, and pointing at the wrong server
 #
 # The first two are not caught at runtime either: URL(string:) accepts "http:"
-# as a scheme-only URL with no host, which APIConfig.swift's guard lets through.
+# as a scheme-only URL with no host, which AppConfig.swift's guard lets through.
 #
 # Compared byte for byte on purpose. Two build configurations naming one endpoint
 # should name it identically, so a stray trailing slash is worth a build failure.
@@ -85,8 +85,8 @@ APPEX_API_BASE_URL=$(plist_value "$APPEX_PLIST" APIBaseURL)
 
 if [ "$APPEX_API_BASE_URL" != "$API_BASE_URL" ]; then
   echo "ShareExtension APIBaseURL '$APPEX_API_BASE_URL' does not match the app's" >&2
-  echo "API_BASE_URL '$API_BASE_URL'. Check API_CONFIG_XCCONFIG_BASE64 against" >&2
-  echo "ios/Config/APIConfig.example.xcconfig." >&2
+  echo "API_BASE_URL '$API_BASE_URL'. Check APP_XCCONFIG_BASE64 against" >&2
+  echo "ios/Config/App.example.xcconfig." >&2
   exit 1
 fi
 

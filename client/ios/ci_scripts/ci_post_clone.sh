@@ -8,10 +8,10 @@
 #
 # That workflow has to define these environment variables:
 #
-#   DART_DEFINES_BASE64          base64-encoded dotenv file holding the app's
-#                                --dart-define values
-#   API_CONFIG_XCCONFIG_BASE64   base64-encoded Config/APIConfig.xcconfig
-#                                (see ios/Config/APIConfig.example.xcconfig)
+#   DART_DEFINES_BASE64   base64-encoded dotenv file holding the app's
+#                         --dart-define values
+#   APP_XCCONFIG_BASE64   base64-encoded Config/App.xcconfig
+#                         (see ios/Config/App.example.xcconfig)
 #
 # See DEPLOY.md for the overview of the entire deployment pipeline.
 
@@ -48,12 +48,12 @@ fi
 DOT_ENV="${TMPDIR%/}/.env"
 echo "$DART_DEFINES_BASE64" | base64 -d > "$DOT_ENV"
 
-##### Create APIConfig.xcconfig #####
+##### Create App.xcconfig #####
 
 # The share extension is native code with no access to --dart-define, so the API
 # endpoint has to reach it as a build setting instead. Locally that file is
-# hand-written (see ios/Config/APIConfig.example.xcconfig); here it arrives
-# verbatim in an environment variable, the same way the dotenv above does.
+# hand-written (see ios/Config/App.example.xcconfig); here it arrives verbatim
+# in an environment variable, the same way the dotenv above does.
 #
 # The file is taken as-is rather than assembled from API_BASE_URL, so the
 # xcconfig quirks — chiefly that // starts a comment anywhere on a line, even
@@ -63,13 +63,13 @@ echo "$DART_DEFINES_BASE64" | base64 -d > "$DOT_ENV"
 # builds the build plan, before any Run Script phase executes, so writing one
 # from a build phase would only ever affect the *next* build.
 
-if [ -z "$API_CONFIG_XCCONFIG_BASE64" ]; then
-  echo "API_CONFIG_XCCONFIG_BASE64 is not defined." >&2
+if [ -z "$APP_XCCONFIG_BASE64" ]; then
+  echo "APP_XCCONFIG_BASE64 is not defined." >&2
   exit 1
 fi
 
-echo "$API_CONFIG_XCCONFIG_BASE64" | base64 -d \
-  > "$FLUTTER_PROJECT_DIR/ios/Config/APIConfig.xcconfig"
+echo "$APP_XCCONFIG_BASE64" | base64 -d \
+  > "$FLUTTER_PROJECT_DIR/ios/Config/App.xcconfig"
 
 # Whether that file yields the right endpoint is checked after the build, by
 # ci_post_xcodebuild.sh, which compares the value that reached the archive

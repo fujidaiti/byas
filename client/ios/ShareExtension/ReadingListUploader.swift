@@ -58,7 +58,7 @@ final class ReadingListUploader: NSObject {
       let name = "\(UUID().uuidString).json"
       let body = try writeBody(named: name, url: url, title: title)
 
-      var request = URLRequest(url: APIConfig.baseURL.appendingPathComponent("reading-list"))
+      var request = URLRequest(url: AppConfig.baseURL.appendingPathComponent("reading-list"))
       request.httpMethod = "POST"
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
       request.setValue("application/json", forHTTPHeaderField: "Accept")

@@ -24,8 +24,8 @@ Three things are worth knowing before touching it.
 starts a Flutter engine and links nothing from the Flutter framework — its
 `Frameworks` build phase is empty and must stay empty, or the `.appex` bloats
 and App Store validation flags a non-extension-safe framework. Everything the
-extension needs it either compiles in (see `APIConfig.xcconfig` below) or reads
-out of shared storage.
+extension needs it either compiles in (see `App.xcconfig` below) or reads out of
+shared storage.
 
 **The POST outlives the extension.** iOS tears the extension process down the
 moment it calls `completeRequest`, so the upload is handed to `nsurlsessiond`
@@ -115,14 +115,14 @@ that string a plain literal: Xcode team-prefixes Keychain groups but not app
 groups, so a dedicated group would have to reach Swift as a resolved
 `$(AppIdentifierPrefix)…` expansion smuggled through `Info.plist`.
 
-## `Config/APIConfig.xcconfig`
+## `Config/App.xcconfig`
 
 The extension talks to the API directly, so it needs `API_BASE_URL` compiled in
 — the same value Flutter gets from `--dart-define-from-file=.env` and Android
 gets from `BuildConfig.API_BASE_URL`.
 
 ```
-Config/APIConfig.xcconfig      ← you create this, gitignored
+Config/App.xcconfig            ← you create this, gitignored
         │
         ▼
 Config/ShareExtension.xcconfig ← base config of all three ShareExtension configurations
@@ -131,15 +131,14 @@ Config/ShareExtension.xcconfig ← base config of all three ShareExtension confi
 ShareExtension/Info.plist      ← APIBaseURL = $(PAPERDOLL_API_BASE_URL)
         │
         ▼
-APIConfig.swift                ← Bundle.main
+AppConfig.swift                ← Bundle.main
 ```
 
-**Setup:** copy `Config/APIConfig.example.xcconfig` to
-`Config/APIConfig.xcconfig` and point it at your dev server. It is gitignored,
-on the same pattern as `.env`/`.env.example`. In CI it is the same file,
-base64-encoded into the Xcode Cloud environment variable
-`API_CONFIG_XCCONFIG_BASE64` and written back out verbatim by
-`ci_scripts/ci_post_clone.sh`.
+**Setup:** copy `Config/App.example.xcconfig` to `Config/App.xcconfig` and point
+it at your dev server. It is gitignored, on the same pattern as
+`.env`/`.env.example`. In CI it is the same file, base64-encoded into the Xcode
+Cloud environment variable `APP_XCCONFIG_BASE64` and written back out verbatim
+by `ci_scripts/ci_post_clone.sh`.
 
 **It is deliberately independent of `.env`.** iOS does not read `client/.env`,
 and the two files routinely hold different hosts — `.env` points at `10.0.2.2`,
@@ -171,8 +170,8 @@ also why `ci_post_clone.sh`, not a build phase, writes both this file and
 | `Flutter/Generated.xcconfig`                 | both targets     | Written by `flutter build`/`flutter run`. Gitignored.                                 |
 | `Flutter/Version.xcconfig`                   | both targets     | Written by `ci_post_clone.sh` from `version.json`. Absent locally, hence `#include?`. |
 | `Flutter/Debug.xcconfig`, `Release.xcconfig` | `Runner`         | Committed; include the two above.                                                     |
-| `Config/ShareExtension.xcconfig`             | `ShareExtension` | Committed; includes the two above plus `APIConfig.xcconfig`.                          |
-| `Config/APIConfig.xcconfig`                  | `ShareExtension` | Yours, or `ci_post_clone.sh`'s. Gitignored.                                           |
+| `Config/ShareExtension.xcconfig`             | `ShareExtension` | Committed; includes the two above plus `App.xcconfig`.                                |
+| `Config/App.xcconfig`                        | `ShareExtension` | Yours, or `ci_post_clone.sh`'s. Gitignored.                                           |
 
 **An embedded extension's version must match its host app's exactly, or App
 Store Connect rejects the upload.** Both targets therefore derive their versions
@@ -197,7 +196,7 @@ In CI this is enforced: `ci_scripts/ci_post_xcodebuild.sh` compares both
 versions in the archive and fails the build before the upload, along with
 checking that the extension's compiled-in `APIBaseURL` is byte-identical to the
 `API_BASE_URL` the app itself was built with — the failures neither a green
-build nor the runtime guard in `APIConfig.swift` catches. Locally, build and
+build nor the runtime guard in `AppConfig.swift` catches. Locally, build and
 compare:
 
 ```sh
