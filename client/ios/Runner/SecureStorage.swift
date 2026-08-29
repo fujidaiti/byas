@@ -13,9 +13,6 @@ enum SecureStorage {
   }
 
   static func read(_ key: String) -> String? {
-    // Deliberately no kSecAttrAccessGroup: a query without one searches every group this
-    // process can reach, so the item is found wherever the entitlement allows and a read
-    // can never look in the wrong place.
     let query: [String: Any] = [
       kSecClass as String: kSecClassGenericPassword,
       kSecAttrService as String: service,
