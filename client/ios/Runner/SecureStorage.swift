@@ -5,12 +5,6 @@ import Security
 /// through a MethodChannel in `AppDelegate`.
 ///
 /// Values live in a Keychain generic-password item, which encrypts them for us.
-///
-/// The share extension reads the auth token straight out of the Keychain rather than
-/// linking this file (see `ShareExtension/ReadingListUploader.swift`); it needs one read,
-/// not this whole surface. That means `service` and the key names are declared in both
-/// places. Change one, change the other: nothing breaks at compile time, and the
-/// extension would just read nil forever and claim the user is logged out.
 enum SecureStorage {
   static let service = "dev.norelease.paperdoll"
 
@@ -45,10 +39,6 @@ enum SecureStorage {
       kSecClass as String: kSecClassGenericPassword,
       kSecAttrService as String: service,
       kSecAttrAccount as String: key,
-      // The one place the access group is named. It is the app group rather than a
-      // dedicated Keychain group: an app group name doubles as a Keychain access group,
-      // and unlike a Keychain group it carries no team-id prefix, so the string is a
-      // literal here instead of something Info.plist has to resolve at signing time.
       kSecAttrAccessGroup as String: appGroupIdentifier,
     ]
 
