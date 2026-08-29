@@ -4,9 +4,6 @@ import UIKit
 
 private let secureStorageChannel = "dev.norelease.paperdoll/secure_storage"
 
-/// Upload bodies older than this are assumed orphaned and swept on launch.
-private let orphanedBodyAge: TimeInterval = 24 * 60 * 60
-
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
     override func application(
@@ -25,8 +22,6 @@ private let orphanedBodyAge: TimeInterval = 24 * 60 * 60
         _ engineBridge: FlutterImplicitEngineBridge
     ) {
         GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
-
-        // The Dart side is `SecureStorage` in lib/core/platform/secure_storage.dart.
         FlutterMethodChannel(
             name: secureStorageChannel,
             binaryMessenger: engineBridge.applicationRegistrar.messenger()
@@ -90,7 +85,10 @@ private let orphanedBodyAge: TimeInterval = 24 * 60 * 60
         )
     }
 
-    /// Removes bodies orphaned by a crash before any task delegate fired.
+    /// Upload bodies older than this are assumed orphaned and swept on launch.
+    private let orphanedBodyAge: TimeInterval = 24 * 60 * 60
+
+    /// Removes request bodies orphaned by a crash before any task delegate fired.
     /// Anything younger than the cutoff may still belong to a transfer the system is holding.
     private func sweepOrphanedUploadBodies() {
         guard let directory = AppGroup.sharedDirectory else { return }
@@ -114,8 +112,8 @@ private let orphanedBodyAge: TimeInterval = 24 * 60 * 60
 }
 
 /// Handles HTTP transfer completion events for requests that the share extension makes.
-/// Since URLSession requires us to write the request body to a local file, we remove it here
-/// after the transfer finishes regardless of the result.
+/// Since URLSession requires us to write the request body to a local file, we remove it
+/// here after the transfer finishes regardless of the result.
 extension AppDelegate: URLSessionDataDelegate {
     func urlSession(
         _ session: URLSession,

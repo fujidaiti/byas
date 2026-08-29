@@ -28,12 +28,11 @@ tool/version.sh vet "$VERSION_FILE"
 # Extract version name dropping the 'beta' suffix.
 VERSION_NAME=$(jq -r '.versionName // empty' "$VERSION_FILE" | sed 's/\.beta$//')
 
-# Flutter/Debug.xcconfig and Release.xcconfig will load this xcconfig,
+# Flutter/Release.xcconfig loads this xcconfig,
 # which overrides the default version values from pubspec.yaml.
-#
-# We ignore the build number in the version file here,
+# We ignore the build number from version.json here
 # and use the built-in incremental counter instead.
-cat > "$FLUTTER_PROJECT_DIR/ios/Flutter/Version.xcconfig" <<EOF
+cat > "$FLUTTER_PROJECT_DIR/ios/Config/Version.xcconfig" <<EOF
 FLUTTER_BUILD_NAME=$VERSION_NAME
 FLUTTER_BUILD_NUMBER=$CI_BUILD_NUMBER
 EOF

@@ -1,9 +1,8 @@
 import Foundation
 import Security
 
-/// Native-side backing store for the app's secure key-value storage, shared by the Flutter
-/// app and the share extension. The app reaches it from Dart through a MethodChannel in
-/// `AppDelegate`; the extension reads the auth token directly.
+/// Native-side backing store for the app's secure key-value storage, shared by
+/// the Flutter app and the share extension.
 ///
 /// Values live in a Keychain generic-password item, which encrypts them for us.
 public enum SecureStorage {
@@ -17,8 +16,6 @@ public enum SecureStorage {
     }
 
     public static func read(_ key: String) -> String? {
-        // No kSecAttrAccessGroup: a query without one searches every group this process can
-        // reach, so the entitlement alone decides what is visible.
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -28,7 +25,8 @@ public enum SecureStorage {
         ]
 
         var item: CFTypeRef?
-        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
+        guard
+            SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
             let data = item as? Data
         else {
             return nil
@@ -56,7 +54,8 @@ public enum SecureStorage {
         var item = identity
         item[kSecValueData as String] = Data(value.utf8)
         // Keeps the token out of iCloud backup and device transfer.
-        item[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        item[kSecAttrAccessible as String] =
+            kSecAttrAccessibleWhenUnlockedThisDeviceOnly
 
         let added = SecItemAdd(item as CFDictionary, nil)
         guard added == errSecSuccess else { throw Failure(status: added) }
