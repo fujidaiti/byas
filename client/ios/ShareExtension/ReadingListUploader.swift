@@ -55,8 +55,10 @@ final class ReadingListUploader: NSObject {
 
     func upload(url: String, title: String?, token: String) {
         do {
-            let name = "\(UUID().uuidString).json"
-            let body = try writeBody(named: name, url: url, title: title)
+            // Includes a UUID so two shares in quick succession cannot collide.
+            let taskName =
+                "\(Bundle.main.bundleIdentifier!).\(UUID().uuidString)"
+            let body = try writeBody(named: taskName, url: url, title: title)
 
             var request = URLRequest(
                 url: AppConfig.baseURL.appendingPathComponent("reading-list")
@@ -72,12 +74,11 @@ final class ReadingListUploader: NSObject {
                 forHTTPHeaderField: "Authorization"
             )
 
-            // Use UUID as part of the session ID, so two shares in quick succession cannot collide.
             let configuration = URLSessionConfiguration.background(
-                withIdentifier:
-                    "\(Bundle.main.bundleIdentifier!).\(UUID().uuidString)"
+                withIdentifier: taskName
             )
             configuration.sharedContainerIdentifier = appGroupIdentifier
+            configuration.sessionSendsLaunchEvents = true
             configuration.isDiscretionary = false
 
             let session = URLSession(
@@ -90,7 +91,7 @@ final class ReadingListUploader: NSObject {
             let task = session.uploadTask(with: request, fromFile: body)
             // Whichever process sees this task complete deletes the body by this name.
             // taskDescription is persisted with the task, so it survives our death.
-            task.taskDescription = name
+            task.taskDescription = taskName
             task.resume()
         } catch {
             onFinish(.error(.unexpected))
