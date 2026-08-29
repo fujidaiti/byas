@@ -1,41 +1,8 @@
 import Foundation
-import Security
-
-/// Storage key shared with Dart's `authTokenStorageKey` (auth_repository_impl.dart) and
-/// the service name in Runner's `SecureStorage.swift`. Duplicated rather than shared: this
-/// target needs one read, not that file's whole read/write/delete surface, and no
-/// mechanism would carry a single declaration across Dart and two Swift targets anyway.
-private let keychainService = "dev.norelease.paperdoll"
-private let authTokenKey = "auth_token"
-
-/// App group container, also named in Runner's `AppDelegate.swift`, which deletes the
-/// bodies written here once a transfer finishes.
-private let appGroupIdentifier = "group.dev.norelease.paperdoll"
-private let uploadBodyDirectory = "ShareUploads"
+import Shared
 
 /// Maximum length of the placeholder title sent to the server (URL is left as-is).
 private let maxTitleLength = 140
-
-/// The auth token Flutter wrote, or nil when nobody is logged in.
-func readAuthToken() -> String? {
-    // No kSecAttrAccessGroup: a query without one searches every group this process can
-    // reach, so the entitlement alone decides what is visible.
-    let query: [String: Any] = [
-        kSecClass as String: kSecClassGenericPassword,
-        kSecAttrService as String: keychainService,
-        kSecAttrAccount as String: authTokenKey,
-        kSecReturnData as String: true,
-        kSecMatchLimit as String: kSecMatchLimitOne,
-    ]
-
-    var item: CFTypeRef?
-    guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
-        let data = item as? Data
-    else {
-        return nil
-    }
-    return String(data: data, encoding: .utf8)
-}
 
 /// POSTs one URL to the reading list, on a background `URLSession` so the transfer outlives
 /// this extension.
@@ -73,15 +40,10 @@ final class ReadingListUploader: NSObject {
                 forHTTPHeaderField: "Authorization"
             )
 
-            let configuration = URLSessionConfiguration.background(
-                withIdentifier: taskName
-            )
-            configuration.sharedContainerIdentifier = appGroupIdentifier
-            configuration.sessionSendsLaunchEvents = true
-            configuration.isDiscretionary = false
-
             let session = URLSession(
-                configuration: configuration,
+                configuration: AppGroup.backgroundSessionConfiguration(
+                    identifier: taskName
+                ),
                 delegate: self,
                 delegateQueue: nil
             )
@@ -97,8 +59,6 @@ final class ReadingListUploader: NSObject {
         }
     }
 
-    /// Background uploads are file-based — there is no in-memory body — so the JSON goes to
-    /// the app group container, which both this extension and Runner can reach.
     private func writeBody(named name: String, url: String, title: String?)
         throws -> URL
     {
@@ -109,12 +69,8 @@ final class ReadingListUploader: NSObject {
             payload["title"] = truncate(title)
         }
 
-        guard
-            let directory = FileManager.default
-                .containerURL(
-                    forSecurityApplicationGroupIdentifier: appGroupIdentifier
-                )?
-                .appendingPathComponent(uploadBodyDirectory, isDirectory: true)
+        guard let directory = AppGroup.uploadBodyDirectory,
+            let body = AppGroup.uploadBody(named: name)
         else {
             throw CocoaError(.fileNoSuchFile)
         }
@@ -123,7 +79,6 @@ final class ReadingListUploader: NSObject {
             withIntermediateDirectories: true
         )
 
-        let body = directory.appendingPathComponent(name)
         try JSONSerialization.data(withJSONObject: payload).write(to: body)
         return body
     }
@@ -143,16 +98,7 @@ extension ReadingListUploader: URLSessionDataDelegate {
         didCompleteWithError error: Error?
     ) {
         if let name = task.taskDescription {
-            let directory = FileManager.default
-                .containerURL(
-                    forSecurityApplicationGroupIdentifier: appGroupIdentifier
-                )?
-                .appendingPathComponent(uploadBodyDirectory, isDirectory: true)
-            if let directory {
-                try? FileManager.default.removeItem(
-                    at: directory.appendingPathComponent(name)
-                )
-            }
+            AppGroup.removeUploadBody(named: name)
         }
 
         let state: SaveState

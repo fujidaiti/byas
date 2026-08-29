@@ -1,3 +1,4 @@
+import Shared
 import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
@@ -57,7 +58,7 @@ class ShareViewController: UIViewController {
     ])
     hosting.didMove(toParent: self)
 
-    guard let token = readAuthToken() else {
+    guard let token = SecureStorage.read(SecureStorage.authTokenKey) else {
       model.state = .error(.unauthenticated)
       return
     }

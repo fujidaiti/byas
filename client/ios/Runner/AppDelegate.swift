@@ -1,12 +1,8 @@
 import Flutter
+import Shared
 import UIKit
 
 private let secureStorageChannel = "dev.norelease.paperdoll/secure_storage"
-
-/// App group container shared with the share extension, which writes upload bodies into
-/// it. Declared there too — see `ShareExtension/ReadingListUploader.swift`.
-let appGroupIdentifier = "group.dev.norelease.paperdoll"
-private let uploadBodyDirectory = "ShareUploads"
 
 /// Upload bodies older than this are assumed orphaned and swept on launch.
 private let orphanedBodyAge: TimeInterval = 24 * 60 * 60
@@ -83,12 +79,10 @@ private let orphanedBodyAge: TimeInterval = 24 * 60 * 60
 
         // Create a new session with the ID that the share extension generated,
         // so that we can receive session events.
-        let configuration = URLSessionConfiguration.background(
-            withIdentifier: identifier
-        )
-        configuration.sharedContainerIdentifier = appGroupIdentifier
         _ = URLSession(
-            configuration: configuration,
+            configuration: AppGroup.backgroundSessionConfiguration(
+                identifier: identifier
+            ),
             delegate: self,
             delegateQueue: nil
         )
@@ -97,7 +91,7 @@ private let orphanedBodyAge: TimeInterval = 24 * 60 * 60
     /// Removes bodies orphaned by a crash before any task delegate fired.
     /// Anything younger than the cutoff may still belong to a transfer the system is holding.
     private func sweepOrphanedUploadBodies() {
-        guard let directory = uploadBodyDirectoryURL else { return }
+        guard let directory = AppGroup.uploadBodyDirectory else { return }
         let cutoff = Date().addingTimeInterval(-orphanedBodyAge)
         let bodies =
             (try? FileManager.default.contentsOfDirectory(
@@ -115,14 +109,6 @@ private let orphanedBodyAge: TimeInterval = 24 * 60 * 60
             }
         }
     }
-
-    fileprivate var uploadBodyDirectoryURL: URL? {
-        FileManager.default
-            .containerURL(
-                forSecurityApplicationGroupIdentifier: appGroupIdentifier
-            )?
-            .appendingPathComponent(uploadBodyDirectory, isDirectory: true)
-    }
 }
 
 /// Handles HTTP transfer completion events for requests that the share extension makes.
@@ -134,12 +120,8 @@ extension AppDelegate: URLSessionDataDelegate {
         task: URLSessionTask,
         didCompleteWithError error: Error?
     ) {
-        guard let name = task.taskDescription,
-            let directory = uploadBodyDirectoryURL
-        else { return }
-        try? FileManager.default.removeItem(
-            at: directory.appendingPathComponent(name)
-        )
+        guard let name = task.taskDescription else { return }
+        AppGroup.removeUploadBody(named: name)
     }
 
     func urlSessionDidFinishEvents(forBackgroundURLSession session: URLSession)

@@ -1,10 +1,12 @@
 # iOS
 
-The iOS project ships two targets:
+The iOS project ships two targets and a local Swift package:
 
 - `Runner` — the Flutter app.
 - `ShareExtension` — share sheet entry point for saving a URL from other apps
   such as Safari to the reading list.
+- `Shared` — code both targets use: the Keychain vault and the App Group
+  container they exchange upload bodies through.
 
 ## Setup
 
@@ -18,16 +20,14 @@ cp Config/App.example.xcconfig Config/App.xcconfig
 ## Shared auth token
 
 The extension is useful only when the user is already logged in, To ensure that
-Flutter and native code agree on one physical Keychain item,
-`SecureStorage.swift` implements the vault and the Flutter app interacts with it
-through a MethodChannel.
+Flutter and native code agree on one physical Keychain item, the `Shared`
+package's `SecureStorage.swift` implements the vault and the Flutter app
+interacts with it through a MethodChannel.
 
-The item's identifying attributes are declared independently in three places:
+The token key is the one attribute still declared twice, once per language:
 
-- `auth_repository_impl.dart` — `authTokenStorageKey`, the token key
-- `SecureStorage.swift` — App Group ID
-- `ReadingListUploader.swift` — Keychain service name, App Group ID, and the
-  token key
+- `auth_repository_impl.dart` — `authTokenStorageKey`
+- `SecureStorage.swift` — `authTokenKey`
 
 **Make sure they always stay in-sync.**
 
