@@ -33,5 +33,5 @@ Runner/GeneratedPluginRegistrant.*
 !default.pbxuser
 !default.perspectivev3
 
-# Local API endpoint for the share extension; see Config/App.example.xcconfig.
+# Local API endpoint for the share extension.
 Config/App.xcconfig
