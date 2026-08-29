@@ -2,8 +2,8 @@ import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
 
-/// Share-sheet entry point, the iOS counterpart of Android's SaveWebClipActivity: pull the
-/// shared URL out of the extension item, POST it to the reading list, show the result.
+/// Share-sheet entry point: pull the shared URL out of the extension item, POST it to the
+/// reading list, show the result.
 ///
 /// Hosts SwiftUI in a UIViewController because the extension point wants one:
 /// com.apple.share-services instantiates the NSExtensionPrincipalClass that Info.plist names,
@@ -28,8 +28,7 @@ class ShareViewController: UIViewController {
     extractSharedLink { [weak self] link in
       guard let self else { return }
       guard let link else {
-        // Nothing worth saving; back out without a dialog, like SaveWebClipActivity's
-        // bare finish().
+        // Nothing worth saving; back out without showing a dialog.
         self.extensionContext?.cancelRequest(withError: ShareError.noSharedURL)
         return
       }
@@ -70,13 +69,12 @@ class ShareViewController: UIViewController {
   // MARK: - Extracting the shared URL
 
   /// Browsers share a public.url; sharing selected text gives public.plain-text, which may
-  /// read "Page Title https://example.com/x". Those are the same two shapes extractUrl()
-  /// handles in SaveWebClipActivity.kt, for the same reason.
+  /// read "Page Title https://example.com/x". Both shapes are handled.
   ///
   /// The placeholder title rides on attributedContentText, which is where Safari puts the
   /// page title for a public.url share (attributedTitle is nil there, despite the name).
-  /// It is Android's EXTRA_SUBJECT equivalent, so it is only trusted on that path: on the
-  /// plain-text fallback the same field is the shared text, which is not a title. Better
+  /// It is only trusted on that path: on the plain-text fallback the same field is the
+  /// shared text, which is not a title. Better
   /// to send nothing than to invent one — SaveWebClip only overwrites the placeholder when
   /// the scrape extracts a real title, so a fabricated one would stick to a page the
   /// scraper cannot read forever, and an empty title is what tells the reading list it has

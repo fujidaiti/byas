@@ -38,7 +38,7 @@ private let orphanedBodyAge: TimeInterval = 24 * 60 * 60
     ) {
         GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
 
-        // Same contract as MainActivity.kt's channel of the same name.
+        // The Dart side is `SecureStorage` in lib/core/platform/secure_storage.dart.
         FlutterMethodChannel(
             name: secureStorageChannel,
             binaryMessenger: engineBridge.applicationRegistrar.messenger()

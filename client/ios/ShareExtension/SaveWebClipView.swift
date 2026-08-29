@@ -1,7 +1,7 @@
 import Combine
 import SwiftUI
 
-/// Straight port of SaveWebClipScreen.kt, copy included.
+/// Why a save failed, and the message shown for it.
 enum SaveErrorKind {
   /// The transfer genuinely gave up (not merely offline — see ReadingListUploader).
   case network
@@ -37,8 +37,8 @@ final class SaveStateModel: ObservableObject {
   @Published var state: SaveState = .loading
 }
 
-/// Dialog shown over the host app while the share is saved. Sized and laid out to match
-/// Android's Theme.SaveWebClip.Dialog rather than iOS's default full-height share sheet.
+/// Dialog shown over the host app while the share is saved. Sized and laid out as a
+/// compact dialog rather than iOS's default full-height share sheet.
 struct SaveWebClipView: View {
   let url: String
   let title: String?

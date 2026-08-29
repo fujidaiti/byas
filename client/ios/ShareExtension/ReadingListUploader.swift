@@ -4,8 +4,7 @@ import Security
 /// Storage key shared with Dart's `authTokenStorageKey` (auth_repository_impl.dart) and
 /// the service name in Runner's `SecureStorage.swift`. Duplicated rather than shared: this
 /// target needs one read, not that file's whole read/write/delete surface, and no
-/// mechanism would carry a single declaration across Dart, Kotlin and two Swift targets
-/// anyway — `SaveWebClipScreen.kt` re-declares the same key for the same reason.
+/// mechanism would carry a single declaration across Dart and two Swift targets anyway.
 private let keychainService = "dev.norelease.paperdoll"
 private let authTokenKey = "auth_token"
 
@@ -39,7 +38,7 @@ func readAuthToken() -> String? {
 }
 
 /// POSTs one URL to the reading list, on a background `URLSession` so the transfer outlives
-/// this extension — the counterpart of Android's process-lifetime `SaveScope`.
+/// this extension.
 ///
 /// iOS kills the extension the moment it calls `completeRequest`, so the request is handed
 /// to `nsurlsessiond` rather than run in-process. While the dialog is still up we get the
@@ -130,8 +129,7 @@ final class ReadingListUploader: NSObject {
     }
 
     /// Caps a title at [maxTitleLength] characters, truncating and appending "..." (so the
-    /// result never exceeds the limit) when it is longer. Mirrors `truncateTitle` in
-    /// SaveWebClipScreen.kt.
+    /// result never exceeds the limit) when it is longer.
     private func truncate(_ title: String) -> String {
         guard title.count > maxTitleLength else { return title }
         return title.prefix(maxTitleLength - 3) + "..."

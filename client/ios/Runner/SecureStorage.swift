@@ -4,15 +4,13 @@ import Security
 /// Native-side backing store for the app's secure key-value storage, reached from Dart
 /// through a MethodChannel in `AppDelegate`.
 ///
-/// Values live in a Keychain generic-password item, which encrypts them for us — the work
-/// `SecureStorage.kt` has to do by hand over Keystore on Android.
+/// Values live in a Keychain generic-password item, which encrypts them for us.
 ///
 /// The share extension reads the auth token straight out of the Keychain rather than
 /// linking this file (see `ShareExtension/ReadingListUploader.swift`); it needs one read,
 /// not this whole surface. That means `service` and the key names are declared in both
-/// places, the way `SaveWebClipScreen.kt` re-declares Dart's `authTokenStorageKey`. Change
-/// one, change the other: nothing breaks at compile time, and the extension would just
-/// read nil forever and claim the user is logged out.
+/// places. Change one, change the other: nothing breaks at compile time, and the
+/// extension would just read nil forever and claim the user is logged out.
 enum SecureStorage {
   static let service = "dev.norelease.paperdoll"
 
@@ -41,8 +39,7 @@ enum SecureStorage {
     return String(data: data, encoding: .utf8)
   }
 
-  /// Writes [value], or removes the item when it is nil — matching `prefs.remove` in
-  /// `SecureStorage.kt`.
+  /// Writes [value], or removes the item when it is nil.
   static func write(_ key: String, _ value: String?) throws {
     let identity: [String: Any] = [
       kSecClass as String: kSecClassGenericPassword,
@@ -65,8 +62,7 @@ enum SecureStorage {
 
     var item = identity
     item[kSecValueData as String] = Data(value.utf8)
-    // The iOS side of AndroidManifest.xml's allowBackup="false": keeps the token out of
-    // iCloud backup and device transfer.
+    // Keeps the token out of iCloud backup and device transfer.
     item[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
 
     let added = SecItemAdd(item as CFDictionary, nil)

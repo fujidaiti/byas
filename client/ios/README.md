@@ -12,11 +12,9 @@ this.
 
 ## The app and the share extension
 
-The extension is the iOS counterpart of Android's `SaveWebClipActivity` (see
-`android/app/src/main/kotlin/dev/norelease/paperdoll/`), and it is deliberately
-a straight port: same states, same copy, same fire-and-forget semantics. What
-differs is only the platform mechanism — Android exports an activity behind an
-`ACTION_SEND` intent filter, iOS embeds an app extension.
+Sharing a page from Safari offers Paperdoll and saves it to the reading list,
+without a second login and without opening the app. The save is fire-and-forget:
+"Close" is tappable from the first frame and never cancels it.
 
 Three things are worth knowing before touching it.
 
@@ -31,9 +29,8 @@ shared storage.
 moment it calls `completeRequest`, so the upload is handed to `nsurlsessiond`
 instead of being run in-process: a background `URLSession` upload task, with the
 request body written to a file in the app group container (background tasks are
-file-based — no in-memory bodies). This is what Android gets from its
-process-lifetime `SaveScope`, and it is why "Close" is tappable from the first
-frame and never cancels anything.
+file-based — no in-memory bodies). That is why "Close" is tappable from the
+first frame and never cancels anything.
 
 The consequence is that the _app_ has to clean up after the _extension_:
 
@@ -53,7 +50,7 @@ deletes the body file named by the task's `taskDescription`. It also sweeps the
 app group container on launch for files older than a day, to catch bodies
 orphaned by a crash before any delegate callback fired. Success and failure are
 both silent — once the dialog is gone, a save either lands or it quietly
-doesn't, matching Android exactly.
+doesn't.
 
 Background sessions created from an app extension need a _unique_ identifier per
 session, so the extension uses `<its bundle id>.<UUID>`.
@@ -74,32 +71,29 @@ there isn't one. That means Flutter and native code have to agree on one
 physical Keychain item.
 
 Flutter's `SecureStorage` (`lib/core/platform/secure_storage.dart`) routes iOS
-and Android through a `MethodChannel` to native code — `AppDelegate` +
-`SecureStorage.swift` here, `MainActivity` + `SecureStorage.kt` there. macOS
-still uses the `flutter_secure_storage` plugin. On iOS the backing store is a
-`kSecClassGenericPassword` item; the Keychain does the encryption Android had to
-hand-roll over Keystore.
+through a `MethodChannel` to native code — `AppDelegate` +
+`SecureStorage.swift`. macOS still uses the `flutter_secure_storage` plugin. On
+iOS the backing store is a `kSecClassGenericPassword` item, which the Keychain
+encrypts for us.
 
 The item is identified by three attributes, and **they are written out
-independently in four places**:
+independently in three places**:
 
-| Where                                                                      | Declares                             |
-| -------------------------------------------------------------------------- | ------------------------------------ |
-| `lib/features/auth/data/auth_repository_impl.dart`                         | `authTokenStorageKey` — the origin   |
-| `android/app/src/main/kotlin/dev/norelease/paperdoll/SaveWebClipScreen.kt` | `AUTH_TOKEN_KEY`                     |
-| `ios/Runner/SecureStorage.swift`                                           | service + account, read/write/delete |
-| `ios/ShareExtension/ReadingListUploader.swift`                             | service + account, read only         |
+| Where                                              | Declares                             |
+| -------------------------------------------------- | ------------------------------------ |
+| `lib/features/auth/data/auth_repository_impl.dart` | `authTokenStorageKey` — the origin   |
+| `ios/Runner/SecureStorage.swift`                   | service + account, read/write/delete |
+| `ios/ShareExtension/ReadingListUploader.swift`     | service + account, read only         |
 
 This duplication is deliberate, not an oversight. There is no cross-language
-mechanism that would let one declaration reach Dart, Kotlin and two Swift
-targets, and sharing the Swift file between `Runner` and `ShareExtension` would
-buy one shared string at the cost of an `ios/Shared/` group plus explicit
-build-file entries straddling the extension's synchronized-folder boundary — for
-a target that needs a single read, not the whole read/write/delete surface.
-Android already accepts exactly this duplication. Each copy carries a comment
-naming the others.
+mechanism that would let one declaration reach Dart and two Swift targets, and
+sharing the Swift file between `Runner` and `ShareExtension` would buy one
+shared string at the cost of an `ios/Shared/` group plus explicit build-file
+entries straddling the extension's synchronized-folder boundary — for a target
+that needs a single read, not the whole read/write/delete surface. Each copy
+carries a comment naming the others.
 
-**When you change any of these strings, change all four.** Nothing breaks at
+**When you change any of these strings, change all three.** Nothing breaks at
 compile time. The failure mode is that the extension silently reads `nil` and
 shows "Log in to Paperdoll first, then try sharing again." forever, which is
 indistinguishable from a legitimately logged-out user.
@@ -118,8 +112,7 @@ groups, so a dedicated group would have to reach Swift as a resolved
 ## `Config/App.xcconfig`
 
 The extension talks to the API directly, so it needs `API_BASE_URL` compiled in
-— the same value Flutter gets from `--dart-define-from-file=.env` and Android
-gets from `BuildConfig.API_BASE_URL`.
+— the same value Flutter gets from `--dart-define-from-file=.env`.
 
 ```
 Config/App.xcconfig            ← you create this, gitignored
@@ -141,9 +134,8 @@ Cloud environment variable `APP_XCCONFIG_BASE64` and written back out verbatim
 by `ci_scripts/ci_post_clone.sh`.
 
 **It is deliberately independent of `.env`.** iOS does not read `client/.env`,
-and the two files routinely hold different hosts — `.env` points at `10.0.2.2`,
-the Android emulator's alias for the host machine, which means nothing to an
-iPhone or the iOS simulator.
+and the two files routinely hold different hosts — `.env` points at a
+host-machine alias that means nothing to an iPhone or the iOS simulator.
 
 Two traps worth knowing:
 

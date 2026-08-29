@@ -8,9 +8,8 @@ import Foundation
 enum AppConfig {
   static let baseURL: URL = {
     let raw = Bundle.main.object(forInfoDictionaryKey: "APIBaseURL") as? String
-    // A build misconfiguration, not a runtime condition — the same stance as Android's
-    // Gradle build failing on a missing API_BASE_URL. An unexpanded "$(…)" means
-    // App.xcconfig was never created.
+    // A build misconfiguration, not a runtime condition, so it fails loudly. An
+    // unexpanded "$(…)" means App.xcconfig was never created.
     guard let raw, !raw.isEmpty, !raw.hasPrefix("$("), let url = URL(string: raw) else {
       preconditionFailure(
         "APIBaseURL is missing or unresolved. Copy Config/App.example.xcconfig to "
