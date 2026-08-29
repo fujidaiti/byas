@@ -79,10 +79,12 @@ private let orphanedBodyAge: TimeInterval = 24 * 60 * 60
 
         // Create a new session with the ID that the share extension generated,
         // so that we can receive session events.
+        let configuration = URLSessionConfiguration.background(
+            withIdentifier: identifier
+        )
+        configuration.sharedContainerIdentifier = AppGroup.identifier
         _ = URLSession(
-            configuration: AppGroup.backgroundSessionConfiguration(
-                identifier: identifier
-            ),
+            configuration: configuration,
             delegate: self,
             delegateQueue: nil
         )
@@ -91,7 +93,7 @@ private let orphanedBodyAge: TimeInterval = 24 * 60 * 60
     /// Removes bodies orphaned by a crash before any task delegate fired.
     /// Anything younger than the cutoff may still belong to a transfer the system is holding.
     private func sweepOrphanedUploadBodies() {
-        guard let directory = AppGroup.uploadBodyDirectory else { return }
+        guard let directory = AppGroup.sharedDirectory else { return }
         let cutoff = Date().addingTimeInterval(-orphanedBodyAge)
         let bodies =
             (try? FileManager.default.contentsOfDirectory(
@@ -121,7 +123,7 @@ extension AppDelegate: URLSessionDataDelegate {
         didCompleteWithError error: Error?
     ) {
         guard let name = task.taskDescription else { return }
-        AppGroup.removeUploadBody(named: name)
+        AppGroup.removeSharedFile(named: name)
     }
 
     func urlSessionDidFinishEvents(forBackgroundURLSession session: URLSession)

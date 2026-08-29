@@ -40,10 +40,15 @@ final class ReadingListUploader: NSObject {
                 forHTTPHeaderField: "Authorization"
             )
 
+            let configuration = URLSessionConfiguration.background(
+                withIdentifier: taskName
+            )
+            configuration.sharedContainerIdentifier = AppGroup.identifier
+            configuration.sessionSendsLaunchEvents = true
+            configuration.isDiscretionary = false
+
             let session = URLSession(
-                configuration: AppGroup.backgroundSessionConfiguration(
-                    identifier: taskName
-                ),
+                configuration: configuration,
                 delegate: self,
                 delegateQueue: nil
             )
@@ -59,6 +64,8 @@ final class ReadingListUploader: NSObject {
         }
     }
 
+    /// Background uploads are file-based — there is no in-memory body — so the JSON goes to
+    /// the app group container, which Runner can reach too once this extension is gone.
     private func writeBody(named name: String, url: String, title: String?)
         throws -> URL
     {
@@ -69,8 +76,8 @@ final class ReadingListUploader: NSObject {
             payload["title"] = truncate(title)
         }
 
-        guard let directory = AppGroup.uploadBodyDirectory,
-            let body = AppGroup.uploadBody(named: name)
+        guard let directory = AppGroup.sharedDirectory,
+            let body = AppGroup.sharedFile(named: name)
         else {
             throw CocoaError(.fileNoSuchFile)
         }
@@ -98,7 +105,7 @@ extension ReadingListUploader: URLSessionDataDelegate {
         didCompleteWithError error: Error?
     ) {
         if let name = task.taskDescription {
-            AppGroup.removeUploadBody(named: name)
+            AppGroup.removeSharedFile(named: name)
         }
 
         let state: SaveState
