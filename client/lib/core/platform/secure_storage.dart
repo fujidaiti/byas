@@ -12,7 +12,7 @@ SecureStorage secureStorage(Ref ref) => SecureStorage();
 abstract class SecureStorage {
   factory() {
     return switch (defaultTargetPlatform) {
-      .android => const _AndroidSecureStorage(),
+      .android || .iOS => const _NativeSecureStorage(),
       _ => const _FlutterSecureStorage(),
     };
   }
@@ -33,7 +33,8 @@ class const _FlutterSecureStorage() implements SecureStorage {
       _delegate.write(key: key, value: value);
 }
 
-class const _AndroidSecureStorage() implements SecureStorage {
+/// Talks to the platform's own store through a MethodChannel.
+class const _NativeSecureStorage() implements SecureStorage {
   static const _channel = MethodChannel(
     'dev.norelease.paperdoll/secure_storage',
   );
