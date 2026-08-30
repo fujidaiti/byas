@@ -1,12 +1,10 @@
 # iOS
 
-The iOS project ships two targets and a local Swift package:
+The iOS project ships two targets:
 
 - `Runner` — the Flutter app.
 - `ShareExtension` — share sheet entry point for saving a URL from other apps
   such as Safari to the reading list.
-- `Shared` — code both targets use: the Keychain vault and the App Group
-  container they exchange upload bodies through.
 
 ## Setup
 
@@ -33,14 +31,28 @@ The token key is the one attribute still declared twice, once per language:
 
 ## Versioning
 
-An embedded extension's version must match the Flutter app's exactly, so both
-targets derive `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` from
-`FLUTTER_BUILD_NAME` and `FLUTTER_BUILD_NUMBER` via their xcconfigs. Do not set
-either version in a target's build settings in Xcode: that silently overrides
-the xcconfig, and the archive fails validation at the end of an otherwise green
-build.
+App Store requires the share extension's version matches the Flutter app's
+exactly. Both of them use `FLUTTER_BUILD_NAME` as the version name, which is
+derived from pubspec.yaml in debug builds, and [version.json] in release builds.
 
-## Xcode Cloud
+As to the build number, we use `CI_BUILD_NUMBER`, which is a built-in
+incremental counter managed by Xcode Cloud.
 
-An Xcode Cloud workflow builds and uploads the TestFlight release. See DEPLOY.md
-for more details.
+See [Release.xcconfig] and [ShareExtension.xcconfig] for more details.
+
+[version.json]: version.json
+[Release.xcconfig]: Flutter/Release.xcconfig
+[ShareExtension.xcconfig]: Config/ShareExtension.xcconfig
+
+## Deployment
+
+An Xcode Cloud workflow builds and uploads the TestFlight release. See these
+files for more details:
+
+- [DEPLOY.md], which describes an overview of the release pipeline
+- [ci_post_clone.sh], which prepares Xcode Cloud machine to build the app
+- [ci_post_xcodebuild.sh], which validates the build archive
+
+[DEPLOY.md]: ../../DEPLOY.md
+[ci_post_clone.sh]: ci_scripts/ci_post_clone.sh
+[ci_post_xcodebuild.sh]: ci_scripts/ci_post_xcodebuild.sh

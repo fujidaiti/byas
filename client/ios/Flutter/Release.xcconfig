@@ -1,5 +1,5 @@
 #include "Generated.xcconfig"
 
-// In release builds, ci_post_clone.sh generates this xcconfig to override
-// FLUTTER_BUILD_* loaded above.
+// In release builds, ci_post_clone.sh generates this xcconfig
+// to override FLUTTER_BUILD_* loaded above.
 #include "../Config/Version.xcconfig"

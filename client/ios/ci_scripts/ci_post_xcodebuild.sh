@@ -1,7 +1,6 @@
 #!/bin/sh
 #
-# Verifies the archive Xcode Cloud just built,
-# before it reaches App Store Connect.
+# Verifies the archive Xcode Cloud just built, before it reaches App Store Connect.
 
 set -e
 

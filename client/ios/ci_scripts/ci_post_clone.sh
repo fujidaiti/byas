@@ -2,10 +2,6 @@
 #
 # Prepares the Xcode Cloud build machine to build the app.
 #
-# An Xcode Cloud workflow for the App Store Connect deployment runs this script
-# after cloning the repo and before the build. See DEPLOY.md for the overview
-# of the entire deployment pipeline.
-#
 # That workflow has to define these environment variables:
 #
 #   DART_DEFINES_BASE64   base64-encoded dotenv file holding the app's
