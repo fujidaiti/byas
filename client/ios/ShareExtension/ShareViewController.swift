@@ -35,7 +35,7 @@ class ShareViewController: UIViewController {
       }
       self.present(url: link.url, title: link.title)
 
-      guard let token = SecureStorage.read(SecureStorage.authTokenKey)
+      guard let token = SecureStorage.readAuthToken()
       else {
         model.state = .error(.unauthenticated)
         return

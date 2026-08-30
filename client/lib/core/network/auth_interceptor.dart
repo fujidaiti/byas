@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:paperdoll/core/platform/secure_storage.dart';
-import 'package:paperdoll/features/auth/data/auth_repository_impl.dart';
 import 'package:paperdoll/features/auth/presentation/providers/auth_providers.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -17,9 +16,7 @@ class AuthInterceptor(final Ref _ref) extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    final token = await _ref
-        .read(secureStorageProvider)
-        .read(authTokenStorageKey);
+    final token = await _ref.read(secureStorageProvider).readAuthToken();
     if (token != null) {
       options.headers['Authorization'] = 'Bearer $token';
     }

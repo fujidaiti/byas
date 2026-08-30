@@ -26,25 +26,12 @@ private let secureStorageChannel = "dev.norelease.paperdoll/secure_storage"
       name: secureStorageChannel,
       binaryMessenger: engineBridge.applicationRegistrar.messenger()
     ).setMethodCallHandler { call, result in
-      guard
-        let key = (call.arguments as? [String: Any])?["key"] as? String
-      else {
-        result(
-          FlutterError(
-            code: "secure_storage_failed",
-            message: "key is missing",
-            details: nil
-          )
-        )
-        return
-      }
       do {
         switch call.method {
-        case "read":
-          result(SecureStorage.read(key))
-        case "write":
-          try SecureStorage.write(
-            key,
+        case "readAuthToken":
+          result(SecureStorage.readAuthToken())
+        case "writeAuthToken":
+          try SecureStorage.writeAuthToken(
             (call.arguments as? [String: Any])?["value"] as? String
           )
           result(nil)

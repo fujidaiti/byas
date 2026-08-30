@@ -17,23 +17,27 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 /**
- * Native-side backing store for the app's secure key-value storage.
+ * Native-side backing store for the app's API auth token.
  *
- * Values are encrypted with an Android Keystore key and stored as Base64 in a Preferences
- * DataStore. Key names are stored as-is.
+ * The value is encrypted with an Android Keystore key and stored as Base64 in a Preferences
+ * DataStore. The key it is stored under is private to this object, so Dart and the share
+ * target cannot disagree about it.
  */
 object SecureStorage {
+    private const val AUTH_TOKEN_KEY = "auth_token"
+
     private val Context.secureKvStore: DataStore<Preferences> by
         preferencesDataStore(name = "secure_kv_store")
 
-    suspend fun read(context: Context, key: String): String? =
-        context.secureKvStore.data.first()[stringPreferencesKey(key)]?.let { encrypted ->
+    suspend fun readAuthToken(context: Context): String? =
+        context.secureKvStore.data.first()[stringPreferencesKey(AUTH_TOKEN_KEY)]?.let { encrypted ->
             runCatching { Crypto.decrypt(encrypted) }.getOrNull()
         }
 
-    suspend fun write(context: Context, key: String, value: String?) {
+    /** Writes [value], or removes the token when it is null. */
+    suspend fun writeAuthToken(context: Context, value: String?) {
         context.secureKvStore.edit { prefs ->
-            val prefKey = stringPreferencesKey(key)
+            val prefKey = stringPreferencesKey(AUTH_TOKEN_KEY)
             if (value == null) prefs.remove(prefKey) else prefs[prefKey] = Crypto.encrypt(value)
         }
     }

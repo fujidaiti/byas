@@ -69,19 +69,13 @@ Future<void> pumpAppWithAuth(PatrolTester $, StubServer server) =>
     pumpApp($, server, token: 'test-token');
 
 class _InMemorySecureStorage implements SecureStorage {
-  final _store = <String, String>{};
+  String? _token;
 
   @override
-  Future<String?> read(String key) async => _store[key];
+  Future<String?> readAuthToken() async => _token;
 
   @override
-  Future<void> write(String key, String? value) async {
-    if (value == null) {
-      _store.remove(key);
-    } else {
-      _store[key] = value;
-    }
-  }
+  Future<void> writeAuthToken(String? value) async => _token = value;
 }
 
 class _StubDevice implements Device {

@@ -25,12 +25,13 @@ class MainActivity : FlutterActivity() {
         ).setMethodCallHandler { call, result ->
                 channelScope.launch {
                     try {
-                        val key = call.argument<String>("key")
                         when (call.method) {
-                            "read" -> result.success(SecureStorage.read(applicationContext, key!!))
-                            "write" -> {
+                            "readAuthToken" ->
+                                result.success(SecureStorage.readAuthToken(applicationContext))
+
+                            "writeAuthToken" -> {
                                 val value = call.argument<String>("value")
-                                SecureStorage.write(applicationContext, key!!, value)
+                                SecureStorage.writeAuthToken(applicationContext, value)
                                 result.success(null)
                             }
 

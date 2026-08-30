@@ -22,12 +22,10 @@ Flutter and native code agree on one physical Keychain item, the `Shared`
 package's `SecureStorage.swift` implements the vault and the Flutter app
 interacts with it through a MethodChannel.
 
-The token key is the one attribute still declared twice, once per language:
-
-- `auth_repository_impl.dart` — `authTokenStorageKey`
-- `SecureStorage.swift` — `authTokenKey`
-
-**Make sure they always stay in-sync.**
+`SecureStorage` exposes only `readAuthToken()` and `writeAuthToken(_:)`, and the
+MethodChannel carries the matching `readAuthToken` / `writeAuthToken` methods.
+The Keychain account name is private to `SecureStorage.swift`, so the Flutter
+app never names it and the two sides cannot drift apart.
 
 ## Versioning
 
