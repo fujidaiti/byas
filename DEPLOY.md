@@ -40,15 +40,16 @@ Then push it, or create a PR and merge it to the `main` or a `deploy/*` branch.
 Pushing new version file(s) is the only action a developer takes. Everything
 past this point is automatic:
 
-1. Version tagging (`.github/workflows/version-tagging.yaml`) runs on the push,
-   validates the bump, and tags the commit `android-stg-<versionName>`.
-2. Android Staging Deploy (`.github/workflows/android-stg-deploy.yaml`) runs on
-   that tag push, builds a release APK, and uploads it to Firebase App
-   Distribution.
+1. Version tagging ([version-tagging.yaml]) runs on the push, validates the
+   bump, and tags the commit `android-stg-<versionName>`.
+2. Android Staging Deploy ([android-stg-deploy.yaml]) runs on that tag push,
+   builds a release APK, and uploads it to Firebase App Distribution.
 
 Each build target keeps its own version file within its directory (e.g.
-`client/android/version.json`). It tracks the version that target's next release
-should ship as.
+[android/version.json]). It tracks the version that target's next release should
+ship as.
+
+[version.json]: client/android/version.json
 
 ### iOS
 
@@ -75,17 +76,19 @@ release bot's GitHub App is the only bypass actor, set to _Always allow_.
 
 ## See also
 
-- `tool/version.sh`, which is the tool that bumps a version file and validates a
-  bump
-- `.github/workflows/version-tagging.yaml`, which observes version files and
-  creates release tags when it bumps
-- `.github/workflows/android-stg-deploy.yaml`, which is triggered by an
-  `android-stg-*` tag and deploys the client app to Firebase App Distribution.
-- `client/ios/ci_scripts/ci_post_clone.sh`, which prepares the Xcode Cloud build
-  machine for the workflow triggered by an `ios-stg-*` tag.
-- `client/ios/ci_scripts/ci_post_xcodebuild.sh`, which verifies the archive that
-  workflow produced before it reaches App Store Connect.
+- [version.sh], which is the tool that bumps a version file and validates a
+  bump.
+- [version-tagging.yaml], which observes version files and creates release tags
+  when it bumps.
+- [android-stg-deploy.yaml], which is triggered by an `android-stg-*` tag and
+  deploys the client app to Firebase App Distribution.
+- [ci_post_clone.sh], which prepares the Xcode Cloud build machine for the
+  workflow triggered by an `ios-stg-*` tag.
 - [server-deploy.yaml], which is triggered by a `server-*` tag and publishes the
   OpenAPI documentation to GitHub Pages.
 
+[version.sh]: tool/version.sh
+[version-tagging.yaml]: .github/workflows/version-tagging.yaml
+[android-stg-deploy.yaml]: .github/workflows/android-stg-deploy.yaml
+[ci_post_clone.sh]: .client/ios/ci_scripts/ci_post_clone.sh
 [server-deploy.yaml]: .github/workflows/server-deploy.yaml

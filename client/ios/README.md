@@ -1,4 +1,4 @@
-# iOS
+# iOS app
 
 The iOS project ships two targets:
 
@@ -49,9 +49,9 @@ See [Release.xcconfig] and [ShareExtension.xcconfig] for more details.
 An Xcode Cloud workflow builds and uploads the TestFlight release. See these
 files for more details:
 
-- [DEPLOY.md], which describes an overview of the release pipeline
-- [ci_post_clone.sh], which prepares Xcode Cloud machine to build the app
-- [ci_post_xcodebuild.sh], which validates the build archive
+- [DEPLOY.md], which describes an overview of the release pipeline.
+- [ci_post_clone.sh], which prepares Xcode Cloud machine to build the app.
+- [ci_post_xcodebuild.sh], which validates the build archive.
 
 [DEPLOY.md]: ../../DEPLOY.md
 [ci_post_clone.sh]: ci_scripts/ci_post_clone.sh
