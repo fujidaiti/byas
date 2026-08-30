@@ -33,7 +33,7 @@ The token key is the one attribute still declared twice, once per language:
 
 ## Versioning
 
-An embedded extension's version must match its host app's exactly, so both
+An embedded extension's version must match the Flutter app's exactly, so both
 targets derive `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` from
 `FLUTTER_BUILD_NAME` and `FLUTTER_BUILD_NUMBER` via their xcconfigs. Do not set
 either version in a target's build settings in Xcode: that silently overrides

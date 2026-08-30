@@ -12,8 +12,10 @@ enum SaveErrorKind {
 
   var message: String {
     switch self {
-    case .network: "Couldn't reach the server. Check your connection and try again."
-    case .unauthenticated: "Log in to Paperdoll first, then try sharing again."
+    case .network:
+      "Couldn't reach the server. Check your connection and try again."
+    case .unauthenticated:
+      "Log in to Paperdoll first, then try sharing again."
     case .unexpected: "Couldn't add to your reading list. Please try again."
     }
   }
@@ -53,10 +55,12 @@ struct SaveWebClipView: View {
     return trimmed.flatMap { $0.isEmpty ? nil : $0 } ?? url
   }
 
-  /// When a title is shown, surface the URL's domain beneath it. When it isn't, the URL is
-  /// already the label, so there's nothing extra to show.
+  /// When a title is shown, surface the URL's domain beneath it.
+  /// When it isn't, the URL is already the label, so there's nothing extra to show.
   private var domain: String? {
-    guard label != url, let host = URL(string: url)?.host else { return nil }
+    guard label != url, let host = URL(string: url)?.host else {
+      return nil
+    }
     let bare = host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
     return bare.isEmpty ? nil : bare
   }
