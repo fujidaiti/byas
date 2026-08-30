@@ -51,7 +51,7 @@ ship as.
 
 [Version tagging]: .github/workflows/version-tagging.yaml
 [Android Staging Deploy]: .github/workflows/android-stg-deploy.yaml
-[version.json]: client/android/version.json
+[android/version.json]: client/android/version.json
 
 ### iOS
 
