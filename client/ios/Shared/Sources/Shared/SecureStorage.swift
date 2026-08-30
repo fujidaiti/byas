@@ -1,10 +1,6 @@
 import Foundation
 import Security
 
-/// Native-side backing store for the app's secure key-value storage, shared by
-/// the Flutter app and the share extension.
-///
-/// Values live in a Keychain generic-password item, which encrypts them for us.
 public enum SecureStorage {
   public static let service = "dev.norelease.paperdoll"
 

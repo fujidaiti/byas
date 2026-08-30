@@ -4,13 +4,8 @@ import Shared
 /// Maximum length of the placeholder title sent to the server (URL is left as-is).
 private let maxTitleLength = 140
 
-/// POSTs one URL to the reading list, on a background `URLSession` so the transfer outlives
-/// this extension.
-///
-/// iOS kills the extension the moment it calls `completeRequest`, so the request is handed
-/// to `nsurlsessiond` rather than run in-process. While the dialog is still up we get the
-/// delegate callbacks ourselves and report the outcome; once it is gone, `Runner` picks
-/// them up instead and silently cleans up the body file.
+/// POSTs one URL to the reading list, on a background `URLSession` so the transfer
+/// outlives this extension.
 final class ReadingListUploader: NSObject {
   private let onFinish: (SaveState) -> Void
   private var session: URLSession?
