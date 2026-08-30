@@ -1,19 +1,16 @@
 #!/bin/sh
 #
-# Prepares the Xcode Cloud build machine to build the iOS app.
+# Prepares the Xcode Cloud build machine to build the app.
 #
-# An Xcode Cloud workflow for the TestFlight deployment runs this script after
-# cloning the repo and before the build. The workflow triggers on ios-stg-* tags,
-# which version-tagging.yaml pushes when client/ios/version.json is bumped.
+# An Xcode Cloud workflow for the App Store Connect deployment runs this script
+# after cloning the repo and before the build. See DEPLOY.md for the overview
+# of the entire deployment pipeline.
 #
 # That workflow has to define these environment variables:
 #
 #   DART_DEFINES_BASE64   base64-encoded dotenv file holding the app's
 #                         --dart-define values
 #   APP_XCCONFIG_BASE64   base64-encoded Config/App.xcconfig
-#                         (see ios/Config/App.example.xcconfig)
-#
-# See DEPLOY.md for the overview of the entire deployment pipeline.
 
 FLUTTER_PROJECT_DIR="$CI_PROJECT_FILE_PATH/../.."
 
@@ -25,11 +22,10 @@ cd "$CI_PRIMARY_REPOSITORY_PATH"
 
 VERSION_FILE="$FLUTTER_PROJECT_DIR/ios/version.json"
 tool/version.sh vet "$VERSION_FILE"
-# Extract version name dropping the 'beta' suffix.
+# Extract version name dropping the 'beta' suffix, which Apple doesn't accept.
 VERSION_NAME=$(jq -r '.versionName // empty' "$VERSION_FILE" | sed 's/\.beta$//')
 
-# Flutter/Release.xcconfig loads this xcconfig,
-# which overrides the default version values from pubspec.yaml.
+# Flutter/Release.xcconfig loads this xcconfig.
 # We ignore the build number from version.json here
 # and use the built-in incremental counter instead.
 cat > "$FLUTTER_PROJECT_DIR/ios/Config/Version.xcconfig" <<EOF
@@ -37,7 +33,7 @@ FLUTTER_BUILD_NAME=$VERSION_NAME
 FLUTTER_BUILD_NUMBER=$CI_BUILD_NUMBER
 EOF
 
-##### Prepare Dart defines #####
+##### Create dotenv file #####
 
 if [ -z "$DART_DEFINES_BASE64" ]; then
   echo "DART_DEFINES_BASE64 is not defined." >&2
@@ -49,19 +45,6 @@ echo "$DART_DEFINES_BASE64" | base64 -d > "$DOT_ENV"
 
 ##### Create App.xcconfig #####
 
-# The share extension is native code with no access to --dart-define, so the API
-# endpoint has to reach it as a build setting instead. Locally that file is
-# hand-written (see ios/Config/App.example.xcconfig); here it arrives verbatim
-# in an environment variable, the same way the dotenv above does.
-#
-# The file is taken as-is rather than assembled from API_BASE_URL, so the
-# xcconfig quirks — chiefly that // starts a comment anywhere on a line, even
-# inside a value — are the example file's business and not this script's.
-#
-# This runs before the build on purpose: Xcode resolves xcconfig files when it
-# builds the build plan, before any Run Script phase executes, so writing one
-# from a build phase would only ever affect the *next* build.
-
 if [ -z "$APP_XCCONFIG_BASE64" ]; then
   echo "APP_XCCONFIG_BASE64 is not defined." >&2
   exit 1
@@ -69,10 +52,6 @@ fi
 
 echo "$APP_XCCONFIG_BASE64" | base64 -d \
   > "$FLUTTER_PROJECT_DIR/ios/Config/App.xcconfig"
-
-# Whether that file yields the right endpoint is checked after the build, by
-# ci_post_xcodebuild.sh, which compares the value that reached the archive
-# against the API_BASE_URL in the dotenv above.
 
 ##### Install Flutter SDK #####
 
@@ -107,8 +86,6 @@ fi
 cd "$FLUTTER_PROJECT_DIR"
 # See https://docs.flutter.dev/deployment/cd#xcode-cloud
 flutter precache --ios
-# Configure the Xcode project without archiving.
-# Xcode Cloud runs the actual build afterwards.
 # TODO: upload the symbol file to Firebase crashlytics.
 flutter build ios \
     --release \
