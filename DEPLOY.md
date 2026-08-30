@@ -40,15 +40,17 @@ Then push it, or create a PR and merge it to the `main` or a `deploy/*` branch.
 Pushing new version file(s) is the only action a developer takes. Everything
 past this point is automatic:
 
-1. Version tagging ([version-tagging.yaml]) runs on the push, validates the
-   bump, and tags the commit `android-stg-<versionName>`.
-2. Android Staging Deploy ([android-stg-deploy.yaml]) runs on that tag push,
-   builds a release APK, and uploads it to Firebase App Distribution.
+1. [Version tagging] runs on the push, validates the bump, and tags the commit
+   `android-stg-<versionName>`.
+2. [Android staging deploy] runs on that tag push, builds a release APK, and
+   uploads it to Firebase App Distribution.
 
 Each build target keeps its own version file within its directory (e.g.
 [android/version.json]). It tracks the version that target's next release should
 ship as.
 
+[Version tagging]: .github/workflows/version-tagging.yaml
+[Android Staging Deploy]: .github/workflows/android-stg-deploy.yaml
 [version.json]: client/android/version.json
 
 ### iOS
