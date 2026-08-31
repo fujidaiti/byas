@@ -9,10 +9,6 @@ part 'secure_storage.g.dart';
 SecureStorage secureStorage(Ref ref) => SecureStorage();
 
 /// A driver for the device's secure local storage.
-///
-/// The API is deliberately limited to the auth token instead of arbitrary
-/// key-value pairs, so that the physical key name stays an implementation
-/// detail of whichever store backs the current platform.
 abstract class SecureStorage {
   factory() {
     return switch (defaultTargetPlatform) {
@@ -42,8 +38,6 @@ class const _FlutterSecureStorage() implements SecureStorage {
       _delegate.write(key: _authTokenKey, value: value);
 }
 
-/// Talks to the platform's own store through a MethodChannel. The key the
-/// token is stored under is known only to the native implementations.
 class const _NativeSecureStorage() implements SecureStorage {
   static const _channel = MethodChannel(
     'dev.norelease.paperdoll/secure_storage',

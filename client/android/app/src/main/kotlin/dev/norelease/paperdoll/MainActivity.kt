@@ -20,28 +20,30 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
 
         MethodChannel(
-            flutterEngine.dartExecutor.binaryMessenger,
-            SECURE_STORAGE_CHANNEL
+            flutterEngine.dartExecutor.binaryMessenger, SECURE_STORAGE_CHANNEL
         ).setMethodCallHandler { call, result ->
-                channelScope.launch {
-                    try {
-                        when (call.method) {
-                            "readAuthToken" ->
-                                result.success(SecureStorage.readAuthToken(applicationContext))
+            channelScope.launch {
+                try {
+                    when (call.method) {
+                        "readAuthToken" -> result.success(
+                            SecureStorage.readAuthToken(
+                                applicationContext
+                            )
+                        )
 
-                            "writeAuthToken" -> {
-                                val value = call.argument<String>("value")
-                                SecureStorage.writeAuthToken(applicationContext, value)
-                                result.success(null)
-                            }
-
-                            else -> result.notImplemented()
+                        "writeAuthToken" -> {
+                            val value = call.argument<String>("value")
+                            SecureStorage.writeAuthToken(applicationContext, value)
+                            result.success(null)
                         }
-                    } catch (e: Exception) {
-                        result.error("secure_storage_failed", e.message, null)
+
+                        else -> result.notImplemented()
                     }
+                } catch (e: Exception) {
+                    result.error("secure_storage_failed", e.message, null)
                 }
             }
+        }
     }
 
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {

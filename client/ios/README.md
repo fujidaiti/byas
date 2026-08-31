@@ -18,14 +18,11 @@ cp Config/App.example.xcconfig Config/App.xcconfig
 ## Shared auth token
 
 The extension is useful only when the user is already logged in, To ensure that
-Flutter and native code agree on one physical Keychain item, the `Shared`
-package's `SecureStorage.swift` implements the vault and the Flutter app
-interacts with it through a MethodChannel.
+Flutter and native code agree on one physical Keychain item, the
+[SecureStorage.swift] implements the vault and the Flutter app interacts with it
+through a MethodChannel.
 
-`SecureStorage` exposes only `readAuthToken()` and `writeAuthToken(_:)`, and the
-MethodChannel carries the matching `readAuthToken` / `writeAuthToken` methods.
-The Keychain account name is private to `SecureStorage.swift`, so the Flutter
-app never names it and the two sides cannot drift apart.
+[SecureStorage.swift]: Shared/Sources/Shared/SecureStorage.swift
 
 ## Versioning
 

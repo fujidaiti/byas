@@ -17,17 +17,15 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 /**
- * Native-side backing store for the app's API auth token.
+ * Native-side backing store for the app's secure key-value storage.
  *
- * The value is encrypted with an Android Keystore key and stored as Base64 in a Preferences
- * DataStore. The key it is stored under is private to this object, so Dart and the share
- * target cannot disagree about it.
+ * Values are encrypted with an Android Keystore key and stored as Base64 in a Preferences
+ * DataStore. Key names are stored as-is.
  */
 object SecureStorage {
     private const val AUTH_TOKEN_KEY = "auth_token"
 
-    private val Context.secureKvStore: DataStore<Preferences> by
-        preferencesDataStore(name = "secure_kv_store")
+    private val Context.secureKvStore: DataStore<Preferences> by preferencesDataStore(name = "secure_kv_store")
 
     suspend fun readAuthToken(context: Context): String? =
         context.secureKvStore.data.first()[stringPreferencesKey(AUTH_TOKEN_KEY)]?.let { encrypted ->
@@ -55,18 +53,14 @@ private object Crypto {
         val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
         (keyStore.getKey(KEY_ALIAS, null) as? SecretKey)?.let { return it }
 
-        val spec =
-            KeyGenParameterSpec.Builder(
-                KEY_ALIAS,
-                KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
-            )
-                .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-                .build()
+        val spec = KeyGenParameterSpec.Builder(
+            KEY_ALIAS,
+            KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
+        ).setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE).build()
 
         return KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE)
-            .apply { init(spec) }
-            .generateKey()
+            .apply { init(spec) }.generateKey()
     }
 
     /** Returns the IV prefixed to the ciphertext, Base64-encoded. */

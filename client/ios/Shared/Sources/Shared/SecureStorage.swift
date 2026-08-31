@@ -2,9 +2,6 @@ import Foundation
 import Security
 
 /// The device's secure store for the app's API auth token.
-///
-/// Only token-specific entry points are exposed, so the Keychain account name stays
-/// private to this type and neither Dart nor the share extension can disagree about it.
 public enum SecureStorage {
   public static let service = "dev.norelease.paperdoll"
 
