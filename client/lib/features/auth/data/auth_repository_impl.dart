@@ -4,24 +4,16 @@ import 'package:paperdoll/core/network/request_runner.dart';
 import 'package:paperdoll/core/platform/secure_storage.dart';
 import 'package:paperdoll/features/auth/domain/auth_repository.dart';
 
-/// Secure-storage key the session token is persisted under. Public so the
-/// Dio auth interceptor can read it directly instead of going through
-/// [AuthRepositoryImpl] or the session provider, which would re-enter the
-/// latter when the request originates from one of its own methods
-/// (sign-in/sign-up/sign-out).
-const authTokenStorageKey = 'auth_token';
-
 class const AuthRepositoryImpl(final Dio _dio, final SecureStorage _storage)
     implements AuthRepository {
   @override
-  Future<String?> readAuthToken() => _storage.read(authTokenStorageKey);
+  Future<String?> readAuthToken() => _storage.readAuthToken();
 
   @override
-  Future<void> writeAuthToken(String token) =>
-      _storage.write(authTokenStorageKey, token);
+  Future<void> writeAuthToken(String token) => _storage.writeAuthToken(token);
 
   @override
-  Future<void> clearAuthToken() => _storage.write(authTokenStorageKey, null);
+  Future<void> clearAuthToken() => _storage.writeAuthToken(null);
 
   @override
   Future<String> signUp({

@@ -23,17 +23,19 @@ import javax.crypto.spec.GCMParameterSpec
  * DataStore. Key names are stored as-is.
  */
 object SecureStorage {
-    private val Context.secureKvStore: DataStore<Preferences> by
-        preferencesDataStore(name = "secure_kv_store")
+    private const val AUTH_TOKEN_KEY = "auth_token"
 
-    suspend fun read(context: Context, key: String): String? =
-        context.secureKvStore.data.first()[stringPreferencesKey(key)]?.let { encrypted ->
+    private val Context.secureKvStore: DataStore<Preferences> by preferencesDataStore(name = "secure_kv_store")
+
+    suspend fun readAuthToken(context: Context): String? =
+        context.secureKvStore.data.first()[stringPreferencesKey(AUTH_TOKEN_KEY)]?.let { encrypted ->
             runCatching { Crypto.decrypt(encrypted) }.getOrNull()
         }
 
-    suspend fun write(context: Context, key: String, value: String?) {
+    /** Writes [value], or removes the token when it is null. */
+    suspend fun writeAuthToken(context: Context, value: String?) {
         context.secureKvStore.edit { prefs ->
-            val prefKey = stringPreferencesKey(key)
+            val prefKey = stringPreferencesKey(AUTH_TOKEN_KEY)
             if (value == null) prefs.remove(prefKey) else prefs[prefKey] = Crypto.encrypt(value)
         }
     }
@@ -51,18 +53,14 @@ private object Crypto {
         val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
         (keyStore.getKey(KEY_ALIAS, null) as? SecretKey)?.let { return it }
 
-        val spec =
-            KeyGenParameterSpec.Builder(
-                KEY_ALIAS,
-                KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
-            )
-                .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-                .build()
+        val spec = KeyGenParameterSpec.Builder(
+            KEY_ALIAS,
+            KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
+        ).setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE).build()
 
         return KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE)
-            .apply { init(spec) }
-            .generateKey()
+            .apply { init(spec) }.generateKey()
     }
 
     /** Returns the IV prefixed to the ciphertext, Base64-encoded. */

@@ -1,17 +1,12 @@
 #!/bin/sh
 #
-# Prepares the Xcode Cloud build machine to build the iOS app.
+# Prepares the Xcode Cloud build machine to build the app.
 #
-# An Xcode Cloud workflow for the TestFlight deployment runs this script after
-# cloning the repo and before the build. The workflow triggers on ios-stg-* tags,
-# which version-tagging.yaml pushes when client/ios/version.json is bumped.
-#
-# That workflow has to define this environment variable:
+# That workflow has to define these environment variables:
 #
 #   DART_DEFINES_BASE64   base64-encoded dotenv file holding the app's
 #                         --dart-define values
-#
-# See DEPLOY.md for the overview of the entire deployment pipeline.
+#   APP_XCCONFIG_BASE64   base64-encoded Config/App.xcconfig
 
 FLUTTER_PROJECT_DIR="$CI_PROJECT_FILE_PATH/../.."
 
@@ -23,20 +18,18 @@ cd "$CI_PRIMARY_REPOSITORY_PATH"
 
 VERSION_FILE="$FLUTTER_PROJECT_DIR/ios/version.json"
 tool/version.sh vet "$VERSION_FILE"
-# Extract version name dropping the 'beta' suffix.
+# Extract version name dropping the 'beta' suffix, which Apple doesn't accept.
 VERSION_NAME=$(jq -r '.versionName // empty' "$VERSION_FILE" | sed 's/\.beta$//')
 
-# Flutter/Debug.xcconfig and Release.xcconfig will load this xcconfig,
-# which overrides the default version values from pubspec.yaml.
-#
-# We ignore the build number in the version file here,
+# Flutter/Release.xcconfig loads this xcconfig.
+# We ignore the build number from version.json here
 # and use the built-in incremental counter instead.
-cat > "$FLUTTER_PROJECT_DIR/ios/Flutter/Version.xcconfig" <<EOF
+cat > "$FLUTTER_PROJECT_DIR/ios/Config/Version.xcconfig" <<EOF
 FLUTTER_BUILD_NAME=$VERSION_NAME
 FLUTTER_BUILD_NUMBER=$CI_BUILD_NUMBER
 EOF
 
-##### Prepare Dart defines #####
+##### Create dotenv file #####
 
 if [ -z "$DART_DEFINES_BASE64" ]; then
   echo "DART_DEFINES_BASE64 is not defined." >&2
@@ -45,6 +38,16 @@ fi
 
 DOT_ENV="${TMPDIR%/}/.env"
 echo "$DART_DEFINES_BASE64" | base64 -d > "$DOT_ENV"
+
+##### Create App.xcconfig #####
+
+if [ -z "$APP_XCCONFIG_BASE64" ]; then
+  echo "APP_XCCONFIG_BASE64 is not defined." >&2
+  exit 1
+fi
+
+echo "$APP_XCCONFIG_BASE64" | base64 -d \
+  > "$FLUTTER_PROJECT_DIR/ios/Config/App.xcconfig"
 
 ##### Install Flutter SDK #####
 
@@ -79,8 +82,6 @@ fi
 cd "$FLUTTER_PROJECT_DIR"
 # See https://docs.flutter.dev/deployment/cd#xcode-cloud
 flutter precache --ios
-# Configure the Xcode project without archiving.
-# Xcode Cloud runs the actual build afterwards.
 # TODO: upload the symbol file to Firebase crashlytics.
 flutter build ios \
     --release \

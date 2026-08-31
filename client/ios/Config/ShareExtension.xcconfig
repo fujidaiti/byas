@@ -1,0 +1,14 @@
+// Base configuration for all three ShareExtension build configurations.
+//
+// Keep all three of the ShareExtension target's configurations pointed
+// at this file.
+
+#include "App.xcconfig"
+
+// In debug builds, use FLUTTER_BUILD_* derived from pubspec.yaml for
+// version labels.
+#include "../Flutter/Generated.xcconfig"
+
+// In release builds, ci_post_clone.sh generates this xcconfig to override
+// FLUTTER_BUILD_* loaded above.
+#include? "../Config/Version.xcconfig"

@@ -1,0 +1,6 @@
+// Copy this file to Config/App.xcconfig.
+
+APP_URL_SLASH = /
+
+// Base URL of the Paperdoll REST API.
+APP_API_BASE_URL = http:$(APP_URL_SLASH)$(APP_URL_SLASH)localhost:8080
