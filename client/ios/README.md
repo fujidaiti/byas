@@ -18,16 +18,11 @@ cp Config/App.example.xcconfig Config/App.xcconfig
 ## Shared auth token
 
 The extension is useful only when the user is already logged in, To ensure that
-Flutter and native code agree on one physical Keychain item, the `Shared`
-package's `SecureStorage.swift` implements the vault and the Flutter app
-interacts with it through a MethodChannel.
+Flutter and native code agree on one physical Keychain item, the
+[SecureStorage.swift] implements the vault and the Flutter app interacts with it
+through a MethodChannel.
 
-The token key is the one attribute still declared twice, once per language:
-
-- `auth_repository_impl.dart` — `authTokenStorageKey`
-- `SecureStorage.swift` — `authTokenKey`
-
-**Make sure they always stay in-sync.**
+[SecureStorage.swift]: Shared/Sources/Shared/SecureStorage.swift
 
 ## Versioning
 

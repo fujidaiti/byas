@@ -20,27 +20,30 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
 
         MethodChannel(
-            flutterEngine.dartExecutor.binaryMessenger,
-            SECURE_STORAGE_CHANNEL
+            flutterEngine.dartExecutor.binaryMessenger, SECURE_STORAGE_CHANNEL
         ).setMethodCallHandler { call, result ->
-                channelScope.launch {
-                    try {
-                        val key = call.argument<String>("key")
-                        when (call.method) {
-                            "read" -> result.success(SecureStorage.read(applicationContext, key!!))
-                            "write" -> {
-                                val value = call.argument<String>("value")
-                                SecureStorage.write(applicationContext, key!!, value)
-                                result.success(null)
-                            }
+            channelScope.launch {
+                try {
+                    when (call.method) {
+                        "readAuthToken" -> result.success(
+                            SecureStorage.readAuthToken(
+                                applicationContext
+                            )
+                        )
 
-                            else -> result.notImplemented()
+                        "writeAuthToken" -> {
+                            val value = call.argument<String>("value")
+                            SecureStorage.writeAuthToken(applicationContext, value)
+                            result.success(null)
                         }
-                    } catch (e: Exception) {
-                        result.error("secure_storage_failed", e.message, null)
+
+                        else -> result.notImplemented()
                     }
+                } catch (e: Exception) {
+                    result.error("secure_storage_failed", e.message, null)
                 }
             }
+        }
     }
 
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {

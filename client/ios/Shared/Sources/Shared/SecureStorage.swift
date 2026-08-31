@@ -1,17 +1,24 @@
 import Foundation
 import Security
 
+/// The device's secure store for the app's API auth token.
 public enum SecureStorage {
   public static let service = "dev.norelease.paperdoll"
 
-  /// Mirrors `authTokenStorageKey` in auth_repository_impl.dart.
-  public static let authTokenKey = "auth_token"
+  private static let authTokenKey = "auth_token"
 
   public struct Failure: Error {
     public let status: OSStatus
   }
 
-  public static func read(_ key: String) -> String? {
+  public static func readAuthToken() -> String? { read(authTokenKey) }
+
+  /// Writes [value], or removes the token when it is nil.
+  public static func writeAuthToken(_ value: String?) throws {
+    try write(authTokenKey, value)
+  }
+
+  private static func read(_ key: String) -> String? {
     let query: [String: Any] = [
       kSecClass as String: kSecClassGenericPassword,
       kSecAttrService as String: service,
@@ -30,8 +37,7 @@ public enum SecureStorage {
     return String(data: data, encoding: .utf8)
   }
 
-  /// Writes [value], or removes the item when it is nil.
-  public static func write(_ key: String, _ value: String?) throws {
+  private static func write(_ key: String, _ value: String?) throws {
     let identity: [String: Any] = [
       kSecClass as String: kSecClassGenericPassword,
       kSecAttrService as String: service,
