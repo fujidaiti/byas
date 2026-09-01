@@ -20,6 +20,7 @@ import (
 	"github.com/fujidaiti/paperdoll/server/feature/readinglist"
 	"github.com/fujidaiti/paperdoll/server/feature/scraper"
 	"github.com/fujidaiti/paperdoll/server/feature/user"
+	"github.com/fujidaiti/paperdoll/server/infra"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -73,11 +74,8 @@ func StartServer(ctx context.Context) {
 func NewServer(db *sql.DB, httpProxy *url.URL) *http.Server {
 	scrp := scraper.NewService(httpProxy)
 	h := &Handler{
-		DB: db,
-		UserService: &user.Service{
-			DB:  db,
-			Now: func() time.Time { return time.Now() },
-		},
+		DB:                 db,
+		UserService:        user.NewService(db, infra.SendEmail),
 		ReadingListService: readinglist.NewService(db, scrp),
 		FeedService:        feed.NewService(db, scrp),
 		ScraperService:     scrp,
