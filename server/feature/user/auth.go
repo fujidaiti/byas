@@ -8,9 +8,11 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"net/mail"
 	"regexp"
 	"strings"
+	"time"
 	"unicode"
 
 	"golang.org/x/crypto/bcrypt"
@@ -23,6 +25,9 @@ var (
 	ErrPswdInvalid  = errors.New("password has invalid format")
 	ErrAuthFailed   = errors.New("email or password is incorrect")
 	ErrTokenInvalid = errors.New("token is invalid or has been expired")
+
+	ErrEmailVerifyFailed      = errors.New("can not verify email address")
+	ErrEmailVerifyCodeExpired = errors.New("verification code is expired")
 )
 
 // TODO: re-define this as a named type
@@ -41,6 +46,7 @@ func ValidatePassword(p string) (ValidPassword, error) {
 	return ValidPassword{p}, nil
 }
 
+// TODO: Rename to CanonicalEmailAddr
 // TODO: re-define this as a named type of string
 type CanonicalEmail struct{ value string }
 
@@ -57,6 +63,7 @@ func ParseEmail(addr string) (CanonicalEmail, error) {
 	return CanonicalEmail{strings.ToLower(a.Address)}, nil
 }
 
+// TODO: Rename to something more abstract one
 type AuthToken struct{ value [32]byte }
 
 func generateAuthToken() (AuthToken, error) {
@@ -192,4 +199,83 @@ func (s *Service) VerifyAuthToken(ctx context.Context, t string) (UserID, error)
 		return 0, ErrTokenInvalid
 	}
 	return id, nil
+}
+
+// VerifySignUpEmailAddress verifies the submitted email address and promotes it
+// to a new account if confirmed. Clients call this after the user signs up and
+// receives an email with a verification code.
+//
+// The email is verified only if the pair of ticket and code is correct, which are
+// generated in the same sign-up attempt.
+//
+// On a wrong code, the per-ticket fail count increases. Once it reaches the threshold,
+// the ticket is dead: verification never succeeds again event with the correct code.
+func (s *Service) VerifySignUpEmailAddress(
+	ctx context.Context, ticket, code, device string) (AuthToken, error) {
+	if device == "" {
+		return AuthToken{}, ErrDeviceEmpty
+	}
+	tkt, err := decodeAuthToken(ticket)
+	if err != nil {
+		return AuthToken{}, fmt.Errorf("ticket is malformed")
+	}
+
+	var (
+		aID                int
+		email              string
+		pswdHash, codeHash []byte
+		expiresAt          time.Time
+	)
+	err = s.DB.QueryRowContext(ctx, `
+		SELECT id, email, password_hash, verification_code_hash, expires_at
+		FROM pending_signup_attempts WHERE ticket_hash = $1
+	`, tkt.Hash()).Scan(&aID, &email, &pswdHash, &codeHash, &expiresAt)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return AuthToken{}, ErrEmailVerifyFailed
+	case err != nil:
+		return AuthToken{}, fmt.Errorf("failed to lookup an attempt: %w", err)
+	}
+
+	deleteAttemptSQL := `DELETE FROM pending_signup_attempts WHERE id = $1`
+	if time.Now().After(expiresAt) {
+		_, err := s.DB.ExecContext(ctx, deleteAttemptSQL, aID)
+		if err != nil {
+			fmt.Printf("failed to delete a stale signup attempt: %v", err)
+		}
+		return AuthToken{}, ErrEmailVerifyCodeExpired
+	}
+
+	if bcrypt.CompareHashAndPassword(codeHash, []byte(code)) != nil {
+		return AuthToken{}, ErrEmailVerifyFailed
+	}
+
+	var uID UserID
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return AuthToken{}, err
+	}
+	defer func() {
+		if err := tx.Rollback(); err != nil {
+			fmt.Printf("failed to rollback: %v", err)
+		}
+	}()
+
+	err = tx.QueryRowContext(ctx, `
+		INSERT INTO users (email, password_hash) VALUES ($1, $2)
+		ON CONFLICT (email) DO NOTHING RETURNING id
+	`, email, pswdHash).Scan(&uID)
+	if err != nil {
+		return AuthToken{}, fmt.Errorf("failed to create a new account: %w", err)
+	}
+	_, err = tx.ExecContext(ctx, deleteAttemptSQL, aID)
+	if err != nil {
+		fmt.Printf("failed to delete a stale signup attempt: %v", err)
+	}
+	if err := tx.Commit(); err != nil {
+		err2 := tx.Rollback()
+		return AuthToken{}, fmt.Errorf(
+			"failed to create a new account: %w", errors.Join(err, err2))
+	}
+	return s.issueAuthToken(ctx, uID, device)
 }
