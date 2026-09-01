@@ -258,17 +258,7 @@ func TestAuth_SignIn_Success(t *testing.T) {
 	s := user.Service{DB: testenv.DB()}
 	// Seed users
 	for _, u := range users {
-		s.Now = func() time.Time { return u.signUpAt }
-		var err error
-		_, err = s.SignUp(
-			t.Context(),
-			must(user.ParseEmail(u.email)),
-			must(user.ValidatePassword(u.password)),
-			u.signUpDevice,
-		)
-		if err != nil {
-			t.Fatalf("failed to seed user (%s): %v", u.email, err)
-		}
+		provisionTestAccount(t, u.email, u.password, u.signUpDevice, u.signUpAt)
 	}
 
 	var gotTokens []user.AuthToken
@@ -365,17 +355,8 @@ func TestAuth_SignIn_Failure(t *testing.T) {
 	}
 
 	// Seed user
-	s := user.Service{DB: testenv.DB(), Now: func() time.Time { return alice.signUpAt }}
-	var err error
-	_, err = s.SignUp(
-		t.Context(),
-		must(user.ParseEmail(alice.email)),
-		must(user.ValidatePassword(alice.password)),
-		alice.signUpDevice,
-	)
-	if err != nil {
-		t.Fatalf("failed to seed user: %v", err)
-	}
+	s := user.Service{DB: testenv.DB()}
+	provisionTestAccount(t, alice.email, alice.password, alice.signUpDevice, alice.signUpAt)
 
 	for _, tt := range test {
 		s.Now = func() time.Time { return tt.signedInAt }
@@ -404,15 +385,13 @@ func TestAuth_SignOut(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
 
 	s := user.Service{DB: testenv.DB()}
-	email := must(user.ParseEmail("alice@example.com"))
-	pswd := "alice#password$123"
 	// Sign up
-	s.Now = func() time.Time { return mustTimeUTC("2026-07-01 13:30:00") }
-	token1, err := s.SignUp(t.Context(), email, must(user.ValidatePassword(pswd)), "Pixel9a")
-	if err != nil {
-		t.Fatalf("failed to sign up: %v", err)
-	}
+	addr, pswd := "alice@example.com", "alice#password$123"
+	_, token1 := provisionTestAccount(t,
+		addr, pswd, "Pixel9a", mustTimeUTC("2026-07-01 13:30:00"))
+
 	// Sign in from other devices
+	email := must(user.ParseEmail(addr))
 	s.Now = func() time.Time { return mustTimeUTC("2026-07-02 23:18:45") }
 	token2, err := s.SignIn(t.Context(), email, pswd, "iPhone17")
 	if err != nil {
@@ -481,15 +460,8 @@ func TestAuth_VerifyAuthToken(t *testing.T) {
 	aEmail, aPswd := "alice@example.com", "alice#password$123"
 	bEmail, bPswd := "bob@example.com", "bob#password$789"
 	// Alice signs up
-	s.Now = func() time.Time { return mustTimeUTC("2026-07-01 13:30:00") }
-	token1, err := s.SignUp(t.Context(),
-		must(user.ParseEmail(aEmail)),
-		must(user.ValidatePassword(aPswd)),
-		"Pixel9a",
-	)
-	if err != nil {
-		t.Fatalf("failed to sign up: %v", err)
-	}
+	aID, token1 := provisionTestAccount(t,
+		aEmail, aPswd, "Pixel9a", mustTimeUTC("2026-07-01 13:30:00"))
 	// Alice signs in from another device
 	s.Now = func() time.Time { return mustTimeUTC("2026-07-02 09:00:00") }
 	token2, err := s.SignIn(t.Context(), must(user.ParseEmail(aEmail)), aPswd, "iPad")
@@ -497,25 +469,14 @@ func TestAuth_VerifyAuthToken(t *testing.T) {
 		t.Fatalf("failed to sign in: %v", err)
 	}
 	// Bob signs up
-	s.Now = func() time.Time { return mustTimeUTC("2026-07-02 23:18:45") }
-	token3, err := s.SignUp(t.Context(),
-		must(user.ParseEmail(bEmail)),
-		must(user.ValidatePassword(bPswd)),
-		"iPhone17",
-	)
-	if err != nil {
-		t.Fatalf("failed to sign up: %v", err)
-	}
+	bID, token3 := provisionTestAccount(t,
+		bEmail, bPswd, "iPhone17", mustTimeUTC("2026-07-02 23:18:45"))
 	// Bob signs in from another device
 	s.Now = func() time.Time { return mustTimeUTC("2026-07-04 19:30:00") }
 	token4, err := s.SignIn(t.Context(), must(user.ParseEmail(bEmail)), bPswd, "macbookAir 2020")
 	if err != nil {
 		t.Fatalf("failed to sign in: %v", err)
 	}
-
-	var aID, bID user.UserID
-	scanRowOrFatal(t, `SELECT id FROM users WHERE email = $1`, []any{aEmail}, &aID)
-	scanRowOrFatal(t, `SELECT id FROM users WHERE email = $1`, []any{bEmail}, &bID)
 
 	test := []struct {
 		name    string

@@ -2,9 +2,11 @@ package itest
 
 import (
 	"database/sql"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/fujidaiti/paperdoll/server/feature/user"
 	"github.com/fujidaiti/paperdoll/server/itest/testenv"
 )
 
@@ -81,4 +83,38 @@ func execOrFatal(t *testing.T, query string, args ...any) {
 	if _, err := testenv.DB().ExecContext(t.Context(), query, args...); err != nil {
 		t.Fatalf("failed to exec: %v\nquery: %s", err, query)
 	}
+}
+
+// provisionTestAccount creates a usable test account at the given time and
+// returns the new user ID along with the auth token issued for device.
+func provisionTestAccount(
+	t *testing.T, email, password, device string, at time.Time,
+) (user.UserID, user.AuthToken) {
+	t.Helper()
+	s := user.Service{DB: testenv.DB(), Now: func() time.Time { return at }}
+	token, err := s.SignUp(
+		t.Context(),
+		must(user.ParseEmail(email)),
+		must(user.ValidatePassword(password)),
+		device,
+	)
+	if err != nil {
+		t.Fatalf("failed to provision a test account (%s): %v", email, err)
+	}
+	// TODO: Remove this workaround when CannonicalEmail is refactored to be a named type.
+	// SignUp stores the canonicalized (lower-cased) address.
+	uid := scanValOrFatal[user.UserID](t,
+		`SELECT id FROM users WHERE email = $1`, strings.ToLower(email))
+	return uid, token
+}
+
+// provisionDefaultTestAccount creates a test account at the given time with a
+// fixed email address and password, and returns the new user ID. Use it when
+// the email address and password do not matter for the test. Note that it can
+// only be called once per test, since the address is always the same.
+func provisionDefaultTestAccount(t *testing.T, at time.Time) user.UserID {
+	t.Helper()
+	uid, _ := provisionTestAccount(
+		t, "test-account@example.com", "test#password$1234", "Pixel9a", at)
+	return uid
 }
