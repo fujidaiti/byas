@@ -703,10 +703,8 @@ func (h *Handler) subscribeToFeed(w http.ResponseWriter, r *http.Request) {
 		serverError(w, http.StatusInternalServerError, "Failed to subscribe to feed")
 		return
 	}
-	res := subscribeToFeedResBody{}
-	res.ID = fd.ID
-	res.URL = fd.URL.String()
-	res.Title = fd.Title
+
+	res := subscribeToFeedResBody{ID: fd.ID, URL: fd.URL.String(), Title: fd.Title}
 	if u := fd.SiteURL; u != nil {
 		res.SiteURL = u.String()
 	}
