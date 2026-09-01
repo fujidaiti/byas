@@ -532,3 +532,390 @@ func TestAuth_VerifyAuthToken(t *testing.T) {
 		})
 	}
 }
+
+// Ticket fixtures: 32 random bytes, base64url-encoded — the same wire format
+// that user.AuthToken.Encode produces. Fixed so tests are reproducible.
+const (
+	ticketAlice = "vaMr9K5HEEV9kldJoix-n4rLggBXWj6QrGrs59VlZD8"
+	ticketBob   = "Ljpw4JKJAC6ylb8PblpQ890dstgAPTvmtXzmTJAhRKg"
+	ticketCarol = "aNEzrkBC996ne6HafDO8q7K9XWPffYjTFnrkkxfy0lM"
+)
+
+func TestAuth_VerifySignUpEmailAddress_Success(t *testing.T) {
+	t.Cleanup(testenv.TearDown)
+
+	test := []struct {
+		name, ticket, email, password, code, device string
+		expiresAt, verifiedAt                       time.Time
+	}{
+		{
+			name:       "alice",
+			ticket:     ticketAlice,
+			email:      "alice@gmail.com",
+			password:   "Test$Password+123",
+			code:       "123456",
+			device:     "Pixel9a/Android16",
+			expiresAt:  mustTimeUTC("2026-07-01 09:30:00"),
+			verifiedAt: mustTimeUTC("2026-07-01 09:15:00"),
+		},
+		{
+			name:       "bob (same password and code as alice)",
+			ticket:     ticketBob,
+			email:      "bob@exchange.com",
+			password:   "Test$Password+123",
+			code:       "123456",
+			device:     "iPhone17/iOS26",
+			expiresAt:  mustTimeUTC("2027-08-20 14:15:00"),
+			verifiedAt: mustTimeUTC("2027-08-20 14:00:59"),
+		},
+	}
+
+	s := user.Service{DB: testenv.DB()}
+	var gotTokens []user.AuthToken
+	for i, tt := range test {
+		t.Run(tt.name, func(t *testing.T) {
+			aID := seedPendingSignUpAttempt(
+				t, tt.ticket, tt.email, tt.password, tt.code, tt.expiresAt)
+			wantPswdHash := scanValOrFatal[[]byte](t, `
+				SELECT password_hash FROM pending_signup_attempts WHERE id = $1
+			`, aID)
+
+			s.Now = func() time.Time { return tt.verifiedAt }
+			gotToken, err := s.VerifySignUpEmailAddress(
+				t.Context(), tt.ticket, tt.code, tt.device)
+			if err != nil {
+				t.Fatalf("failed to verify the email address: %v", err)
+			}
+			if gotToken.Encode() == "" {
+				t.Fatal("an auth token must be issued on success")
+			}
+			gotTokens = append(gotTokens, gotToken)
+
+			var gotUser userRecord
+			scanRowOrFatal(t, `
+				SELECT id, email, password_hash FROM users WHERE email = $1;
+			`, []any{tt.email}, &gotUser.ID, &gotUser.Email, &gotUser.PasswordHash)
+
+			if gotUser.Email != tt.email {
+				t.Errorf("created user has a malformed email %q, want %q", gotUser.Email, tt.email)
+			}
+
+			// The pending password hash must be carried over as-is, not recomputed.
+			if d := cmp.Diff(gotUser.PasswordHash, wantPswdHash); d != "" {
+				t.Errorf("password hash must be carried over from the attempt, diff:\n%s", d)
+			}
+
+			var nAttempts int
+			scanRowOrFatal(t, `
+				SELECT COUNT(*) FROM pending_signup_attempts WHERE id = $1
+			`, []any{aID}, &nAttempts)
+			if nAttempts != 0 {
+				t.Errorf("the verified attempt must be deleted, got %d rows", nAttempts)
+			}
+
+			var n int
+			scanRowOrFatal(t, `SELECT COUNT(*) from auth_tokens`, nil, &n)
+			if want := i + 1; n != want {
+				t.Errorf("only one token record must be added, got +%d rows", n-want)
+			}
+
+			var gotRec authTokenRecord
+			scanRowOrFatal(t, `
+				SELECT user_id, device, token_hash, expires_at FROM auth_tokens
+				ORDER BY created_at DESC LIMIT 1
+			`, nil, &gotRec.UserId, &gotRec.Device, &gotRec.TokenHash, &gotRec.ExpiresAt)
+			if got, want := gotRec.UserId, gotUser.ID; got != want {
+				t.Errorf("token was issued for wrong user Id=%d, want Id=%d", got, want)
+			}
+
+			if gotRec.Device != tt.device {
+				t.Errorf("got device %q, want %q", gotRec.Device, tt.device)
+			}
+
+			if d := gotRec.ExpiresAt.Sub(tt.verifiedAt); d != 30*24*time.Hour {
+				t.Errorf("token should expires in 30 days, got TTL = %g day(s)", d.Hours()/24)
+			}
+
+			if d := cmp.Diff(gotRec.TokenHash, gotToken.Hash()); d != "" {
+				t.Errorf("token must be hashed in DB, diff:\n%s", d)
+			}
+		})
+	}
+
+	if !isDistinct(gotTokens) {
+		t.Errorf("auth tokens must be uniqueue")
+	}
+}
+
+func TestAuth_VerifySignUpEmailAddress_Failure(t *testing.T) {
+	t.Cleanup(testenv.TearDown)
+
+	alice := struct {
+		ticket, email, password, code, device string
+		expiresAt                             time.Time
+	}{
+		ticketAlice, "alice@example.com", "alice#password$123", "123456",
+		"Pixel9a/Android16", mustTimeUTC("2026-07-01 09:30:00"),
+	}
+
+	test := []struct {
+		name, ticket, code, device string
+		verifiedAt                 time.Time
+		// wantErr is nil for cases where the returned error is not a sentinel;
+		// those are only checked for being non-nil.
+		wantErr error
+	}{
+		{
+			name:       "wrong code",
+			ticket:     alice.ticket,
+			code:       "654321",
+			device:     alice.device,
+			verifiedAt: mustTimeUTC("2026-07-01 09:16:00"),
+			wantErr:    user.ErrEmailVerifyFailed,
+		},
+		{
+			name:       "unknown ticket",
+			ticket:     ticketCarol,
+			code:       alice.code,
+			device:     alice.device,
+			verifiedAt: mustTimeUTC("2026-07-01 09:16:00"),
+			wantErr:    user.ErrEmailVerifyFailed,
+		},
+		{
+			// TODO: This branch should report a sentinel error so callers can
+			// distinguish a malformed ticket. Only non-nil is asserted for now.
+			name:       "malformed ticket",
+			ticket:     "not-a-ticket",
+			code:       alice.code,
+			device:     alice.device,
+			verifiedAt: mustTimeUTC("2026-07-01 09:16:00"),
+			wantErr:    nil,
+		},
+		{
+			name:       "no device info",
+			ticket:     alice.ticket,
+			code:       alice.code,
+			device:     "",
+			verifiedAt: mustTimeUTC("2026-07-01 09:16:00"),
+			wantErr:    user.ErrDeviceEmpty,
+		},
+	}
+
+	s := user.Service{DB: testenv.DB()}
+	aID := seedPendingSignUpAttempt(
+		t, alice.ticket, alice.email, alice.password, alice.code, alice.expiresAt)
+
+	for _, tt := range test {
+		t.Run(tt.name, func(t *testing.T) {
+			s.Now = func() time.Time { return tt.verifiedAt }
+			gotToken, gotErr := s.VerifySignUpEmailAddress(
+				t.Context(), tt.ticket, tt.code, tt.device)
+
+			if gotErr == nil {
+				t.Fatalf("want an error, got nil")
+			}
+			if tt.wantErr != nil && !errors.Is(gotErr, tt.wantErr) {
+				t.Errorf("got %v, want %v", gotErr, tt.wantErr)
+			}
+			if got := gotToken.Encode(); got != "" {
+				t.Errorf("must be an empty token, got %v", got)
+			}
+
+			var nUsers int
+			scanRowOrFatal(t, `SELECT COUNT(*) FROM users`, nil, &nUsers)
+			if nUsers != 0 {
+				t.Errorf("no user must be created, got %d rows", nUsers)
+			}
+
+			var nTokens int
+			scanRowOrFatal(t, `SELECT COUNT(*) FROM auth_tokens`, nil, &nTokens)
+			if nTokens != 0 {
+				t.Errorf("no token must be issued, got %d rows", nTokens)
+			}
+
+			// Only the expiry and success paths delete the attempt.
+			var nAttempts int
+			scanRowOrFatal(t, `
+				SELECT COUNT(*) FROM pending_signup_attempts WHERE id = $1
+			`, []any{aID}, &nAttempts)
+			if nAttempts != 1 {
+				t.Errorf("the attempt must be retained, got %d rows", nAttempts)
+			}
+		})
+	}
+}
+
+func TestAuth_VerifySignUpEmailAddress_Expired(t *testing.T) {
+	t.Cleanup(testenv.TearDown)
+
+	const (
+		email    = "alice@example.com"
+		password = "alice#password$123"
+		code     = "123456"
+		device   = "Pixel9a/Android16"
+	)
+	expiresAt := mustTimeUTC("2026-07-01 09:30:00")
+
+	s := user.Service{DB: testenv.DB()}
+
+	// The check is `expiresAt.After(now)`, so the boundary is still valid.
+	t.Run("exactly at the expiry", func(t *testing.T) {
+		seedPendingSignUpAttempt(t, ticketAlice, email, password, code, expiresAt)
+		s.Now = func() time.Time { return expiresAt }
+		gotToken, gotErr := s.VerifySignUpEmailAddress(t.Context(), ticketAlice, code, device)
+		if gotErr != nil {
+			t.Fatalf("the code must still be valid at the expiry, got %v", gotErr)
+		}
+		if gotToken.Encode() == "" {
+			t.Error("an auth token must be issued on success")
+		}
+	})
+
+	t.Run("one second after the expiry", func(t *testing.T) {
+		// The previous sub-case consumed alice's attempt and created her account.
+		aID := seedPendingSignUpAttempt(
+			t, ticketBob, "bob@example.com", password, code, expiresAt)
+		s.Now = func() time.Time { return expiresAt.Add(time.Second) }
+		gotToken, gotErr := s.VerifySignUpEmailAddress(t.Context(), ticketBob, code, device)
+
+		if want := user.ErrEmailVerifyCodeExpired; !errors.Is(gotErr, want) {
+			t.Errorf("got %v, want %v", gotErr, want)
+		}
+		if got := gotToken.Encode(); got != "" {
+			t.Errorf("must be an empty token, got %v", got)
+		}
+
+		var nUsers int
+		scanRowOrFatal(t, `
+			SELECT COUNT(*) FROM users WHERE email = $1
+		`, []any{"bob@example.com"}, &nUsers)
+		if nUsers != 0 {
+			t.Errorf("no user must be created, got %d rows", nUsers)
+		}
+
+		var nAttempts int
+		scanRowOrFatal(t, `
+			SELECT COUNT(*) FROM pending_signup_attempts WHERE id = $1
+		`, []any{aID}, &nAttempts)
+		if nAttempts != 0 {
+			t.Errorf("the stale attempt must be deleted, got %d rows", nAttempts)
+		}
+	})
+}
+
+func TestAuth_VerifySignUpEmailAddress_EmailAlreadyRegistered(t *testing.T) {
+	t.Cleanup(testenv.TearDown)
+
+	const (
+		email          = "alice@example.com"
+		signUpPassword = "alice#password$123"
+		signUpDevice   = "Pixel9a/Android16"
+		// The pending attempt was started before the address got registered.
+		pendingPassword = "alice#password$987"
+		pendingCode     = "123456"
+		pendingDevice   = "iPhone17/iOS26"
+	)
+
+	// The address is registered through the regular sign-up path first.
+	provisionTestAccount(t, email, signUpPassword, signUpDevice,
+		mustTimeUTC("2026-07-01 09:00:00"))
+	var wantUser userRecord
+	scanRowOrFatal(t, `
+		SELECT id, email, password_hash FROM users WHERE email = $1
+	`, []any{email}, &wantUser.ID, &wantUser.Email, &wantUser.PasswordHash)
+
+	seedPendingSignUpAttempt(t, ticketAlice, email, pendingPassword, pendingCode,
+		mustTimeUTC("2026-07-01 09:30:00"))
+
+	s := user.Service{
+		DB:  testenv.DB(),
+		Now: func() time.Time { return mustTimeUTC("2026-07-01 09:15:00") },
+	}
+	gotToken, gotErr := s.VerifySignUpEmailAddress(
+		t.Context(), ticketAlice, pendingCode, pendingDevice)
+
+	if gotErr == nil {
+		t.Fatal("want an error, got nil")
+	}
+	if got := gotToken.Encode(); got != "" {
+		t.Errorf("must be an empty token, got %v", got)
+	}
+
+	gotUsers := scanRowsOrFatal(t, `
+		SELECT id, email, password_hash FROM users
+	`, nil, func(r *sql.Rows, d *userRecord) error {
+		return r.Scan(&d.ID, &d.Email, &d.PasswordHash)
+	})
+	if n := len(gotUsers); n != 1 {
+		t.Fatalf("exactly one user must be registered, got %d users", n)
+	}
+	if d := cmp.Diff(gotUsers[0], wantUser); d != "" {
+		t.Errorf("already registered user must never be touched, diff:\n%s", d)
+	}
+
+	var nTokens int
+	scanRowOrFatal(t, `
+		SELECT COUNT(*) FROM auth_tokens WHERE device = $1
+	`, []any{pendingDevice}, &nTokens)
+	if nTokens != 0 {
+		t.Errorf("no token must be issued for the pending device, got %d rows", nTokens)
+	}
+}
+
+// The fail count cap is not implemented yet, so this test fails until it is.
+func TestAuth_VerifySignUpEmailAddress_FailCountCap(t *testing.T) {
+	t.Cleanup(testenv.TearDown)
+
+	const (
+		email    = "alice@example.com"
+		password = "alice#password$123"
+		code     = "123456"
+		device   = "Pixel9a/Android16"
+	)
+	aID := seedPendingSignUpAttempt(t, ticketAlice, email, password, code,
+		mustTimeUTC("2026-07-01 09:30:00"))
+
+	s := user.Service{
+		DB:  testenv.DB(),
+		Now: func() time.Time { return mustTimeUTC("2026-07-01 09:15:00") },
+	}
+
+	// The number of wrong codes that kills a ticket.
+	const maxVerifyFailCount = 5
+	for i := 1; i <= maxVerifyFailCount; i++ {
+		_, gotErr := s.VerifySignUpEmailAddress(t.Context(), ticketAlice, "654321", device)
+		if want := user.ErrEmailVerifyFailed; !errors.Is(gotErr, want) {
+			t.Fatalf("attempt %d: got %v, want %v", i, gotErr, want)
+		}
+
+		var gotCount int
+		scanRowOrFatal(t, `
+			SELECT fail_count FROM pending_signup_attempts WHERE id = $1
+		`, []any{aID}, &gotCount)
+		if gotCount != i {
+			t.Errorf("after %d wrong code(s): got fail_count = %d, want %d", i, gotCount, i)
+		}
+	}
+
+	// The last wrong code reached the cap, so the ticket is dead: even the
+	// correct code must not verify it.
+	gotToken, gotErr := s.VerifySignUpEmailAddress(t.Context(), ticketAlice, code, device)
+	if want := user.ErrEmailVerifyFailed; !errors.Is(gotErr, want) {
+		t.Errorf("got %v, want %v", gotErr, want)
+	}
+	if got := gotToken.Encode(); got != "" {
+		t.Errorf("must be an empty token, got %v", got)
+	}
+
+	var nUsers int
+	scanRowOrFatal(t, `SELECT COUNT(*) FROM users`, nil, &nUsers)
+	if nUsers != 0 {
+		t.Errorf("no user must be created, got %d rows", nUsers)
+	}
+
+	var nTokens int
+	scanRowOrFatal(t, `SELECT COUNT(*) FROM auth_tokens`, nil, &nTokens)
+	if nTokens != 0 {
+		t.Errorf("no token must be issued, got %d rows", nTokens)
+	}
+}

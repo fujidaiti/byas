@@ -212,6 +212,9 @@ func (s *Service) VerifyAuthToken(ctx context.Context, t string) (UserID, error)
 // the ticket is dead: verification never succeeds again event with the correct code.
 func (s *Service) VerifySignUpEmailAddress(
 	ctx context.Context, ticket, code, device string) (AuthToken, error) {
+	// The number of wrong codes that kills a ticket.
+	const maxVerifyCount = 5
+
 	if device == "" {
 		return AuthToken{}, ErrDeviceEmpty
 	}
@@ -238,15 +241,33 @@ func (s *Service) VerifySignUpEmailAddress(
 	}
 
 	deleteAttemptSQL := `DELETE FROM pending_signup_attempts WHERE id = $1`
-	if time.Now().After(expiresAt) {
+	if s.Now().After(expiresAt) {
 		_, err := s.DB.ExecContext(ctx, deleteAttemptSQL, aID)
 		if err != nil {
-			fmt.Printf("failed to delete a stale signup attempt: %v", err)
+			fmt.Printf("failed to delete stale signup attempt: %v\n", err)
 		}
 		return AuthToken{}, ErrEmailVerifyCodeExpired
 	}
 
 	if bcrypt.CompareHashAndPassword(codeHash, []byte(code)) != nil {
+		var fc int
+		err := s.DB.QueryRowContext(ctx, `
+			UPDATE pending_signup_attempts
+			SET fail_count = fail_count + 1 WHERE id = $1
+			RETURNING fail_count
+		`, aID).Scan(&fc)
+		if err != nil {
+			fmt.Printf("failed to fetch fail count: %v\n", err)
+		}
+		if fc > maxVerifyCount {
+			_, err := s.DB.ExecContext(ctx, `
+				UPDATE pending_signup_attempts
+				SET expires_at = now() WHERE id = $1
+			`, aID)
+			if err != nil {
+				fmt.Printf("failed to expire ticket: %v\n", err)
+			}
+		}
 		return AuthToken{}, ErrEmailVerifyFailed
 	}
 
@@ -256,8 +277,8 @@ func (s *Service) VerifySignUpEmailAddress(
 		return AuthToken{}, err
 	}
 	defer func() {
-		if err := tx.Rollback(); err != nil {
-			fmt.Printf("failed to rollback: %v", err)
+		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
+			fmt.Printf("failed to rollback: %v\n", err)
 		}
 	}()
 
@@ -265,12 +286,16 @@ func (s *Service) VerifySignUpEmailAddress(
 		INSERT INTO users (email, password_hash) VALUES ($1, $2)
 		ON CONFLICT (email) DO NOTHING RETURNING id
 	`, email, pswdHash).Scan(&uID)
-	if err != nil {
-		return AuthToken{}, fmt.Errorf("failed to create a new account: %w", err)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return AuthToken{}, ErrEmailTaken
+	case err != nil:
+		return AuthToken{}, fmt.Errorf("failed to create new account: %w", err)
 	}
+
 	_, err = tx.ExecContext(ctx, deleteAttemptSQL, aID)
 	if err != nil {
-		fmt.Printf("failed to delete a stale signup attempt: %v", err)
+		fmt.Printf("failed to delete stale signup attempt: %v\n", err)
 	}
 	if err := tx.Commit(); err != nil {
 		err2 := tx.Rollback()
