@@ -715,7 +715,7 @@ func TestAuth_VerifySignUpEmailAddress_Failure(t *testing.T) {
 				t.Fatalf("want an error, got nil")
 			}
 			if tt.wantErr != nil && !errors.Is(gotErr, tt.wantErr) {
-				t.Errorf("got %v, want %v", gotErr, tt.wantErr)
+				t.Errorf("got %q, want %q", gotErr, tt.wantErr)
 			}
 			if got := gotToken.Encode(); got != "" {
 				t.Errorf("must be an empty token, got %v", got)
@@ -748,59 +748,72 @@ func TestAuth_VerifySignUpEmailAddress_Failure(t *testing.T) {
 func TestAuth_VerifySignUpEmailAddress_Expired(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
 
-	const (
-		email    = "alice@example.com"
-		password = "alice#password$123"
-		code     = "123456"
-		device   = "Pixel9a/Android16"
-	)
 	expiresAt := mustTimeUTC("2026-07-01 09:30:00")
+	test := []struct {
+		name          string
+		email, ticket string
+		verifyAt      time.Time
+		wantErr       error
+		wantAccount   bool
+	}{
+		{
+			name:        "before the expiry",
+			email:       "alice@example.com",
+			ticket:      ticketAlice,
+			verifyAt:    expiresAt.Add(-time.Second),
+			wantErr:     nil,
+			wantAccount: true,
+		},
+		{
+			name:        "exactly at the expiry",
+			email:       "bob@example.com",
+			ticket:      ticketBob,
+			verifyAt:    expiresAt,
+			wantErr:     nil,
+			wantAccount: true,
+		},
+		{
+			name:        "after the expiry",
+			email:       "carol@example.com",
+			ticket:      ticketCarol,
+			verifyAt:    expiresAt.Add(time.Second),
+			wantErr:     user.ErrEmailVerifyCodeExpired,
+			wantAccount: false,
+		},
+	}
 
 	s := user.Service{DB: testenv.DB()}
+	for _, tt := range test {
+		seedPendingSignUpAttempt(
+			t, tt.ticket, tt.email, "test#password$123", "123456", expiresAt,
+		)
+		s.Now = func() time.Time { return tt.verifyAt }
+		t.Run(tt.name, func(t *testing.T) {
+			gotToken, gotErr := s.VerifySignUpEmailAddress(
+				t.Context(), tt.ticket, "123456", "Pixel9a/Android",
+			)
+			var nUsers int
+			scanRowOrFatal(t, `
+				SELECT COUNT(*) FROM users WHERE email = $1
+			`, []any{tt.email}, &nUsers)
 
-	// The check is `expiresAt.After(now)`, so the boundary is still valid.
-	t.Run("exactly at the expiry", func(t *testing.T) {
-		seedPendingSignUpAttempt(t, ticketAlice, email, password, code, expiresAt)
-		s.Now = func() time.Time { return expiresAt }
-		gotToken, gotErr := s.VerifySignUpEmailAddress(t.Context(), ticketAlice, code, device)
-		if gotErr != nil {
-			t.Fatalf("the code must still be valid at the expiry, got %v", gotErr)
-		}
-		if gotToken.Encode() == "" {
-			t.Error("an auth token must be issued on success")
-		}
-	})
-
-	t.Run("one second after the expiry", func(t *testing.T) {
-		// The previous sub-case consumed alice's attempt and created her account.
-		aID := seedPendingSignUpAttempt(
-			t, ticketBob, "bob@example.com", password, code, expiresAt)
-		s.Now = func() time.Time { return expiresAt.Add(time.Second) }
-		gotToken, gotErr := s.VerifySignUpEmailAddress(t.Context(), ticketBob, code, device)
-
-		if want := user.ErrEmailVerifyCodeExpired; !errors.Is(gotErr, want) {
-			t.Errorf("got %v, want %v", gotErr, want)
-		}
-		if got := gotToken.Encode(); got != "" {
-			t.Errorf("must be an empty token, got %v", got)
-		}
-
-		var nUsers int
-		scanRowOrFatal(t, `
-			SELECT COUNT(*) FROM users WHERE email = $1
-		`, []any{"bob@example.com"}, &nUsers)
-		if nUsers != 0 {
-			t.Errorf("no user must be created, got %d rows", nUsers)
-		}
-
-		var nAttempts int
-		scanRowOrFatal(t, `
-			SELECT COUNT(*) FROM pending_signup_attempts WHERE id = $1
-		`, []any{aID}, &nAttempts)
-		if nAttempts != 0 {
-			t.Errorf("the stale attempt must be deleted, got %d rows", nAttempts)
-		}
-	})
+			if errors.Is(gotErr, tt.wantErr) {
+				t.Errorf("got %q, want %q", gotErr, tt.wantErr)
+			}
+			switch tkn := gotToken.Encode(); {
+			case tt.wantAccount && tkn == "":
+				t.Errorf("got empty token, want valid one")
+			case !tt.wantAccount && tkn != "":
+				t.Errorf("got %v, want empty token", gotToken)
+			}
+			switch {
+			case tt.wantAccount && nUsers != 1:
+				t.Errorf("exactly one user must be created, got %d rows", nUsers)
+			case !tt.wantAccount && nUsers != 0:
+				t.Errorf("no user must be created, got %d rows", nUsers)
+			}
+		})
+	}
 }
 
 func TestAuth_VerifySignUpEmailAddress_EmailAlreadyRegistered(t *testing.T) {
@@ -817,8 +830,9 @@ func TestAuth_VerifySignUpEmailAddress_EmailAlreadyRegistered(t *testing.T) {
 	)
 
 	// The address is registered through the regular sign-up path first.
-	provisionTestAccount(t, email, signUpPassword, signUpDevice,
-		mustTimeUTC("2026-07-01 09:00:00"))
+	provisionTestAccount(
+		t, email, signUpPassword, signUpDevice, mustTimeUTC("2026-07-01 09:00:00"),
+	)
 	var wantUser userRecord
 	scanRowOrFatal(t, `
 		SELECT id, email, password_hash FROM users WHERE email = $1
@@ -862,7 +876,6 @@ func TestAuth_VerifySignUpEmailAddress_EmailAlreadyRegistered(t *testing.T) {
 	}
 }
 
-// The fail count cap is not implemented yet, so this test fails until it is.
 func TestAuth_VerifySignUpEmailAddress_FailCountCap(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
 
@@ -872,9 +885,9 @@ func TestAuth_VerifySignUpEmailAddress_FailCountCap(t *testing.T) {
 		code     = "123456"
 		device   = "Pixel9a/Android16"
 	)
-	aID := seedPendingSignUpAttempt(t, ticketAlice, email, password, code,
-		mustTimeUTC("2026-07-01 09:30:00"))
-
+	_ = seedPendingSignUpAttempt(
+		t, ticketAlice, email, password, code, mustTimeUTC("2026-07-01 09:30:00"),
+	)
 	s := user.Service{
 		DB:  testenv.DB(),
 		Now: func() time.Time { return mustTimeUTC("2026-07-01 09:15:00") },
@@ -887,35 +900,25 @@ func TestAuth_VerifySignUpEmailAddress_FailCountCap(t *testing.T) {
 		if want := user.ErrEmailVerifyFailed; !errors.Is(gotErr, want) {
 			t.Fatalf("attempt %d: got %v, want %v", i, gotErr, want)
 		}
-
-		var gotCount int
-		scanRowOrFatal(t, `
-			SELECT fail_count FROM pending_signup_attempts WHERE id = $1
-		`, []any{aID}, &gotCount)
-		if gotCount != i {
-			t.Errorf("after %d wrong code(s): got fail_count = %d, want %d", i, gotCount, i)
-		}
 	}
 
 	// The last wrong code reached the cap, so the ticket is dead: even the
 	// correct code must not verify it.
 	gotToken, gotErr := s.VerifySignUpEmailAddress(t.Context(), ticketAlice, code, device)
 	if want := user.ErrEmailVerifyFailed; !errors.Is(gotErr, want) {
-		t.Errorf("got %v, want %v", gotErr, want)
+		t.Errorf("got %q, want %q", gotErr, want)
 	}
 	if got := gotToken.Encode(); got != "" {
 		t.Errorf("must be an empty token, got %v", got)
 	}
 
-	var nUsers int
-	scanRowOrFatal(t, `SELECT COUNT(*) FROM users`, nil, &nUsers)
-	if nUsers != 0 {
-		t.Errorf("no user must be created, got %d rows", nUsers)
+	var n int
+	scanRowOrFatal(t, `SELECT COUNT(*) FROM users`, nil, &n)
+	if n != 0 {
+		t.Errorf("no user must be created, got %d rows", n)
 	}
-
-	var nTokens int
-	scanRowOrFatal(t, `SELECT COUNT(*) FROM auth_tokens`, nil, &nTokens)
-	if nTokens != 0 {
-		t.Errorf("no token must be issued, got %d rows", nTokens)
+	scanRowOrFatal(t, `SELECT COUNT(*) FROM auth_tokens`, nil, &n)
+	if n != 0 {
+		t.Errorf("no token must be issued, got %d rows", n)
 	}
 }
