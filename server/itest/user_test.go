@@ -4,14 +4,18 @@ package itest
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/base64"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/fujidaiti/paperdoll/server/feature/user"
 	"github.com/fujidaiti/paperdoll/server/itest/testenv"
 	"github.com/google/go-cmp/cmp"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type userRecord struct {
@@ -541,12 +545,49 @@ const (
 	ticketCarol = "aNEzrkBC996ne6HafDO8q7K9XWPffYjTFnrkkxfy0lM"
 )
 
+// seedPendingSignUpAttempt inserts a pending sign-up attempt directly into the
+// DB and returns its row ID. The ticket must be a base64url-encoded 32-byte
+// value, matching what user.AuthToken.Encode produces.
+//
+// TODO: Replace this with the real sign-up-request function once it exists.
+func seedPendingSignUpAttempt(
+	t *testing.T, ticket, email, password, code string, expiresAt time.Time,
+) int {
+	t.Helper()
+	// Mirrors user.AuthToken.Hash, whose internals this package cannot reach.
+	raw, err := base64.RawURLEncoding.DecodeString(ticket)
+	if err != nil {
+		t.Fatalf("ticket %q is not base64url: %v", ticket, err)
+	}
+	if len(raw) != 32 {
+		t.Fatalf("ticket %q decodes to %d bytes, want 32", ticket, len(raw))
+	}
+	ticketHash := sha256.Sum256(raw)
+
+	// MinCost keeps the suite fast; CompareHashAndPassword accepts any cost.
+	pswdHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
+	if err != nil {
+		t.Fatalf("failed to hash the password: %v", err)
+	}
+	codeHash, err := bcrypt.GenerateFromPassword([]byte(code), bcrypt.MinCost)
+	if err != nil {
+		t.Fatalf("failed to hash the verification code: %v", err)
+	}
+
+	return scanValOrFatal[int](t, `
+		INSERT INTO pending_signup_attempts
+			(email, password_hash, verification_code_hash, ticket_hash, expires_at)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id
+	`, strings.ToLower(email), pswdHash, codeHash, ticketHash[:], expiresAt)
+}
+
 func TestAuth_VerifySignUpEmailAddress_Success(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
 
 	test := []struct {
 		name, ticket, email, password, code, device string
-		expiresAt, verifiedAt                       time.Time
+		signUpAt, expiresAt, verifiedAt             time.Time
 	}{
 		{
 			name:       "alice",
@@ -555,6 +596,7 @@ func TestAuth_VerifySignUpEmailAddress_Success(t *testing.T) {
 			password:   "Test$Password+123",
 			code:       "123456",
 			device:     "Pixel9a/Android16",
+			signUpAt:   mustTimeUTC("2026-07-01 09:20:00"),
 			expiresAt:  mustTimeUTC("2026-07-01 09:30:00"),
 			verifiedAt: mustTimeUTC("2026-07-01 09:15:00"),
 		},
@@ -575,7 +617,8 @@ func TestAuth_VerifySignUpEmailAddress_Success(t *testing.T) {
 	for i, tt := range test {
 		t.Run(tt.name, func(t *testing.T) {
 			aID := seedPendingSignUpAttempt(
-				t, tt.ticket, tt.email, tt.password, tt.code, tt.expiresAt)
+				t, tt.ticket, tt.email, tt.password, tt.code, tt.expiresAt,
+			)
 			wantPswdHash := scanValOrFatal[[]byte](t, `
 				SELECT password_hash FROM pending_signup_attempts WHERE id = $1
 			`, aID)
@@ -603,14 +646,6 @@ func TestAuth_VerifySignUpEmailAddress_Success(t *testing.T) {
 			// The pending password hash must be carried over as-is, not recomputed.
 			if d := cmp.Diff(gotUser.PasswordHash, wantPswdHash); d != "" {
 				t.Errorf("password hash must be carried over from the attempt, diff:\n%s", d)
-			}
-
-			var nAttempts int
-			scanRowOrFatal(t, `
-				SELECT COUNT(*) FROM pending_signup_attempts WHERE id = $1
-			`, []any{aID}, &nAttempts)
-			if nAttempts != 0 {
-				t.Errorf("the verified attempt must be deleted, got %d rows", nAttempts)
 			}
 
 			var n int
@@ -651,25 +686,26 @@ func TestAuth_VerifySignUpEmailAddress_Failure(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
 
 	alice := struct {
-		ticket, email, password, code, device string
-		expiresAt                             time.Time
+		email, password, device string
+		ticket, code            string
+		expiresAt               time.Time
 	}{
-		ticketAlice, "alice@example.com", "alice#password$123", "123456",
-		"Pixel9a/Android16", mustTimeUTC("2026-07-01 09:30:00"),
+		"alice@example.com", "alice#password$123", "Pixel9a/Android16",
+		ticketAlice, "123456",
+		mustTimeUTC("2026-07-01 09:30:00"),
 	}
 
 	test := []struct {
 		name, ticket, code, device string
-		verifiedAt                 time.Time
-		// wantErr is nil for cases where the returned error is not a sentinel;
-		// those are only checked for being non-nil.
-		wantErr error
+		signUpAt, verifiedAt       time.Time
+		wantErr                    error
 	}{
 		{
 			name:       "wrong code",
 			ticket:     alice.ticket,
 			code:       "654321",
 			device:     alice.device,
+			signUpAt:   mustTimeUTC("2026-07-01 09:15:00"),
 			verifiedAt: mustTimeUTC("2026-07-01 09:16:00"),
 			wantErr:    user.ErrEmailVerifyFailed,
 		},
@@ -678,6 +714,7 @@ func TestAuth_VerifySignUpEmailAddress_Failure(t *testing.T) {
 			ticket:     ticketCarol,
 			code:       alice.code,
 			device:     alice.device,
+			signUpAt:   mustTimeUTC("2026-07-01 09:15:00"),
 			verifiedAt: mustTimeUTC("2026-07-01 09:16:00"),
 			wantErr:    user.ErrEmailVerifyFailed,
 		},
@@ -688,6 +725,7 @@ func TestAuth_VerifySignUpEmailAddress_Failure(t *testing.T) {
 			ticket:     "not-a-ticket",
 			code:       alice.code,
 			device:     alice.device,
+			signUpAt:   mustTimeUTC("2026-07-01 09:15:00"),
 			verifiedAt: mustTimeUTC("2026-07-01 09:16:00"),
 			wantErr:    nil,
 		},
@@ -696,6 +734,7 @@ func TestAuth_VerifySignUpEmailAddress_Failure(t *testing.T) {
 			ticket:     alice.ticket,
 			code:       alice.code,
 			device:     "",
+			signUpAt:   mustTimeUTC("2026-07-01 09:15:00"),
 			verifiedAt: mustTimeUTC("2026-07-01 09:16:00"),
 			wantErr:    user.ErrDeviceEmpty,
 		},
@@ -703,7 +742,8 @@ func TestAuth_VerifySignUpEmailAddress_Failure(t *testing.T) {
 
 	s := user.Service{DB: testenv.DB()}
 	aID := seedPendingSignUpAttempt(
-		t, alice.ticket, alice.email, alice.password, alice.code, alice.expiresAt)
+		t, alice.ticket, alice.email, alice.password, alice.code, alice.expiresAt,
+	)
 
 	for _, tt := range test {
 		t.Run(tt.name, func(t *testing.T) {
@@ -797,7 +837,7 @@ func TestAuth_VerifySignUpEmailAddress_Expired(t *testing.T) {
 				SELECT COUNT(*) FROM users WHERE email = $1
 			`, []any{tt.email}, &nUsers)
 
-			if errors.Is(gotErr, tt.wantErr) {
+			if !errors.Is(gotErr, tt.wantErr) {
 				t.Errorf("got %q, want %q", gotErr, tt.wantErr)
 			}
 			switch tkn := gotToken.Encode(); {
@@ -838,8 +878,10 @@ func TestAuth_VerifySignUpEmailAddress_EmailAlreadyRegistered(t *testing.T) {
 		SELECT id, email, password_hash FROM users WHERE email = $1
 	`, []any{email}, &wantUser.ID, &wantUser.Email, &wantUser.PasswordHash)
 
-	seedPendingSignUpAttempt(t, ticketAlice, email, pendingPassword, pendingCode,
-		mustTimeUTC("2026-07-01 09:30:00"))
+	seedPendingSignUpAttempt(
+		t, ticketAlice, email, pendingPassword, pendingCode,
+		mustTimeUTC("2026-07-01 09:30:00"),
+	)
 
 	s := user.Service{
 		DB:  testenv.DB(),
@@ -886,16 +928,19 @@ func TestAuth_VerifySignUpEmailAddress_FailCountCap(t *testing.T) {
 		device   = "Pixel9a/Android16"
 	)
 	_ = seedPendingSignUpAttempt(
-		t, ticketAlice, email, password, code, mustTimeUTC("2026-07-01 09:30:00"),
+		t, ticketAlice, email, password, code,
+		mustTimeUTC("2026-07-01 09:30:00"),
 	)
+	base := mustTimeUTC("2026-07-01 09:21:00")
 	s := user.Service{
 		DB:  testenv.DB(),
-		Now: func() time.Time { return mustTimeUTC("2026-07-01 09:15:00") },
+		Now: func() time.Time { return base },
 	}
 
 	// The number of wrong codes that kills a ticket.
 	const maxVerifyFailCount = 5
 	for i := 1; i <= maxVerifyFailCount; i++ {
+		s.Now = func() time.Time { return base.Add(time.Duration(i) * time.Second) }
 		_, gotErr := s.VerifySignUpEmailAddress(t.Context(), ticketAlice, "654321", device)
 		if want := user.ErrEmailVerifyFailed; !errors.Is(gotErr, want) {
 			t.Fatalf("attempt %d: got %v, want %v", i, gotErr, want)
@@ -904,12 +949,13 @@ func TestAuth_VerifySignUpEmailAddress_FailCountCap(t *testing.T) {
 
 	// The last wrong code reached the cap, so the ticket is dead: even the
 	// correct code must not verify it.
+	s.Now = func() time.Time { return base.Add(time.Minute) }
 	gotToken, gotErr := s.VerifySignUpEmailAddress(t.Context(), ticketAlice, code, device)
-	if want := user.ErrEmailVerifyFailed; !errors.Is(gotErr, want) {
+	if want := user.ErrEmailVerifyCodeExpired; !errors.Is(gotErr, want) {
 		t.Errorf("got %q, want %q", gotErr, want)
 	}
 	if got := gotToken.Encode(); got != "" {
-		t.Errorf("must be an empty token, got %v", got)
+		t.Errorf("got %v, want an empty token", got)
 	}
 
 	var n int

@@ -1,16 +1,13 @@
 package itest
 
 import (
-	"crypto/sha256"
 	"database/sql"
-	"encoding/base64"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/fujidaiti/paperdoll/server/feature/user"
 	"github.com/fujidaiti/paperdoll/server/itest/testenv"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // isDistinct checks if all comparable elements in v are uniqueue.
@@ -120,41 +117,4 @@ func provisionDefaultTestAccount(t *testing.T, at time.Time) user.UserID {
 	uid, _ := provisionTestAccount(
 		t, "test-account@example.com", "test#password$1234", "Pixel9a", at)
 	return uid
-}
-
-// seedPendingSignUpAttempt inserts a pending sign-up attempt directly into the
-// DB and returns its row ID. The ticket must be a base64url-encoded 32-byte
-// value, matching what user.AuthToken.Encode produces.
-//
-// TODO: Replace this with the real sign-up-request function once it exists.
-func seedPendingSignUpAttempt(
-	t *testing.T, ticket, email, password, code string, expiresAt time.Time,
-) int {
-	t.Helper()
-	// Mirrors user.AuthToken.Hash, whose internals this package cannot reach.
-	raw, err := base64.RawURLEncoding.DecodeString(ticket)
-	if err != nil {
-		t.Fatalf("ticket %q is not base64url: %v", ticket, err)
-	}
-	if len(raw) != 32 {
-		t.Fatalf("ticket %q decodes to %d bytes, want 32", ticket, len(raw))
-	}
-	ticketHash := sha256.Sum256(raw)
-
-	// MinCost keeps the suite fast; CompareHashAndPassword accepts any cost.
-	pswdHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
-	if err != nil {
-		t.Fatalf("failed to hash the password: %v", err)
-	}
-	codeHash, err := bcrypt.GenerateFromPassword([]byte(code), bcrypt.MinCost)
-	if err != nil {
-		t.Fatalf("failed to hash the verification code: %v", err)
-	}
-
-	return scanValOrFatal[int](t, `
-		INSERT INTO pending_signup_attempts
-			(email, password_hash, verification_code_hash, ticket_hash, expires_at)
-		VALUES ($1, $2, $3, $4, $5)
-		RETURNING id
-	`, strings.ToLower(email), pswdHash, codeHash, ticketHash[:], expiresAt)
 }
