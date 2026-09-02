@@ -213,7 +213,7 @@ func (s *Service) VerifyAuthToken(ctx context.Context, t string) (UserID, error)
 func (s *Service) VerifySignUpEmailAddress(
 	ctx context.Context, ticket, code, device string) (AuthToken, error) {
 	// The number of wrong codes that kills a ticket.
-	const maxVerifyCount = 5
+	const maxFailCount = 5
 
 	if device == "" {
 		return AuthToken{}, ErrDeviceEmpty
@@ -254,7 +254,7 @@ func (s *Service) VerifySignUpEmailAddress(
 		if err != nil {
 			fmt.Printf("failed to fetch fail count: %v\n", err)
 		}
-		if fc >= maxVerifyCount {
+		if fc >= maxFailCount {
 			_, err := s.DB.ExecContext(ctx, `
 				UPDATE pending_signup_attempts
 				SET expires_at = $1 WHERE id = $2
