@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -33,94 +34,104 @@ type authTokenRecord struct {
 	ExpiresAt time.Time
 }
 
+type pendingSignUpAttemptRecord struct {
+	ID                   int
+	Email                string
+	PasswordHash         []byte
+	VerificationCodeHash []byte
+	TicketHash           []byte
+	ExpiresAt            time.Time
+}
+
 func TestAuth_SignUp_Success(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
 
 	test := []struct {
-		name, email, password, device string
-		signUpAt                      time.Time
+		name, email, password string
+		signUpAt              time.Time
 	}{
 		{
 			name:     "alice",
 			email:    "alice@gmail.com",
 			password: "Test$Password+123",
-			device:   "Pixel9a/Android16",
 			signUpAt: mustTimeUTC("2026-07-01 09:15:00"),
+		},
+		{
+			name:     "alice (the second attempt)",
+			email:    "alice@gmail.com",
+			password: "New$Password+456",
+			signUpAt: mustTimeUTC("2026-07-01 09:20:00"),
 		},
 		{
 			name:     "bob (same password as alice)",
 			email:    "bob@exchange.com",
 			password: "Test$Password+123",
-			device:   "iPhone17/iOS26",
 			signUpAt: mustTimeUTC("2027-08-20 14:00:59"),
 		},
 	}
 
+	// Extract a verification code from the email body.
+	codeRe := regexp.MustCompile(`\b(\d{6})\b`)
 	s := user.Service{DB: testenv.DB()}
 	var gotPswdHashes []string
-	var gotTokens []user.AuthToken
-	for i, tt := range test {
+	var gotTickets []user.AuthToken
+	for _, tt := range test {
+		s.Now = func() time.Time { return tt.signUpAt }
+
+		var gotCode string
+		s.SendEmail = func(_, _, body string) error {
+			if m := codeRe.FindStringSubmatch(gotCode); len(m) > 0 {
+				gotCode = m[0]
+			}
+			return nil
+		}
+
 		t.Run(tt.name, func(t *testing.T) {
-			s.Now = func() time.Time { return tt.signUpAt }
-			gotToken, err := s.SignUp(
+			gotTicket, err := s.SignUp(
 				t.Context(),
 				must(user.ParseEmail(tt.email)),
 				must(user.ValidatePassword(tt.password)),
-				tt.device,
+				"remove this later",
 			)
 			if err != nil {
-				t.Fatalf("failed to create user account: %v", err)
+				t.Fatalf("got %v, want nil error", err)
 			}
-			gotTokens = append(gotTokens, gotToken)
+			gotTickets = append(gotTickets, gotTicket)
 
-			var gotUser userRecord
+			var gotAtmpt pendingSignUpAttemptRecord
 			scanRowOrFatal(t, `
-				SELECT id, email, password_hash FROM users WHERE email = $1;
-			`, []any{tt.email}, &gotUser.ID, &gotUser.Email, &gotUser.PasswordHash)
-			gotPswdHashes = append(gotPswdHashes, string(gotUser.PasswordHash))
+				SELECT id, email, password_hash, verification_code_hash, ticket_hash, expires_at
+				FROM pending_signup_attempts WHERE email = $1
+			`, []any{tt.email}, &gotAtmpt.ID, &gotAtmpt.Email, &gotAtmpt.PasswordHash,
+				&gotAtmpt.VerificationCodeHash, &gotAtmpt.TicketHash, &gotAtmpt.ExpiresAt,
+			)
+			gotPswdHashes = append(gotPswdHashes, string(gotAtmpt.PasswordHash))
 
-			if gotUser.Email != tt.email {
-				t.Errorf("created user has a malformed email %q, want %q", gotUser.Email, tt.email)
+			if gotAtmpt.Email != tt.email {
+				t.Errorf("got %q, want %q", gotAtmpt.Email, tt.email)
 			}
-
-			if bytes.Equal(gotUser.PasswordHash, []byte(tt.password)) {
-				t.Error("raw password must not be stored in DB")
+			if bytes.Equal(gotAtmpt.PasswordHash, []byte(tt.password)) {
+				t.Error("raw password must not be stored")
 			}
-
-			var n int
-			scanRowOrFatal(t, `SELECT COUNT(*) from auth_tokens`, nil, &n)
-			if want := i + 1; n != want {
-				t.Errorf("only one token record must be added, got +%d rows", n-want)
+			if !bytes.Equal(gotAtmpt.TicketHash, gotTicket.Hash()) {
+				t.Errorf("raw ticket must not be stored")
 			}
-
-			var gotRec authTokenRecord
-			scanRowOrFatal(t, `
-				SELECT user_id, device, token_hash, expires_at FROM auth_tokens
-				ORDER BY created_at DESC LIMIT 1
-			`, nil, &gotRec.UserId, &gotRec.Device, &gotRec.TokenHash, &gotRec.ExpiresAt)
-			if got, want := gotRec.UserId, gotUser.ID; got != want {
-				t.Errorf("token was issued for wrong user Id=%d, want Id=%d", got, want)
+			if gotCode == "" {
+				t.Errorf("email must contain a 6-digits verification code")
+			} else if bytes.Equal(gotAtmpt.VerificationCodeHash, []byte(gotCode)) {
+				t.Errorf("raw verification code must no be stored")
 			}
-
-			if gotRec.Device != tt.device {
-				t.Errorf("got device %q, want %q", gotRec.Device, tt.device)
-			}
-
-			if d := gotRec.ExpiresAt.Sub(tt.signUpAt); d != 30*24*time.Hour {
-				t.Errorf("token should expires in 30 days, got TTL = %g day(s)", d.Hours()/24)
-			}
-
-			if d := cmp.Diff(gotRec.TokenHash, gotToken.Hash()); d != "" {
-				t.Errorf("token must be hashed in DB, diff:\n%s", d)
+			if d := gotAtmpt.ExpiresAt.Sub(tt.signUpAt); d != 10*time.Minute {
+				t.Errorf("got TTL %g min, want 10 min", d.Minutes())
 			}
 		})
 	}
 
 	if !isDistinct(gotPswdHashes) {
-		t.Errorf("password hashes must be uniqueue for each user even if raw passwords are identical")
+		t.Errorf("password hashes must be uniqueue even if raw passwords are identical")
 	}
-	if !isDistinct(gotTokens) {
-		t.Errorf("auth tokens must be uniqueue")
+	if !isDistinct(gotTickets) {
+		t.Errorf("tickets must be uniqueue")
 	}
 }
 
@@ -193,6 +204,38 @@ func TestAuth_SignUp_EmailUniqueness(t *testing.T) {
 
 			if d := cmp.Diff(gotUsers[0], *firstUser); d != "" {
 				t.Errorf("already registered user must never be touched, diff:\n%s", d)
+			}
+		})
+	}
+}
+
+func TestAuth_SignUp_PerEmailAddressThrottle(t *testing.T) {
+	test := []struct {
+		signUpAt time.Time
+		wantErr  error
+	}{
+		{mustTimeUTC("2026-09-03 12:00:00"), nil},
+		{mustTimeUTC("2026-09-03 12:10:56"), nil},
+		{mustTimeUTC("2026-09-03 12:30:00"), nil},
+		{mustTimeUTC("2026-09-03 12:30:01"), user.ErrTooManyAttempts},
+		{mustTimeUTC("2026-09-03 12:59:59"), user.ErrTooManyAttempts},
+		{mustTimeUTC("2026-09-03 13:00:00"), user.ErrTooManyAttempts},
+		{mustTimeUTC("2026-09-03 13:00:01"), nil},
+		{mustTimeUTC("2026-09-03 13:10:56"), user.ErrTooManyAttempts},
+		{mustTimeUTC("2026-09-03 14:30:00"), nil},
+	}
+
+	s := user.Service{DB: testenv.DB()}
+	for i, tt := range test {
+		s.Now = func() time.Time { return tt.signUpAt }
+		t.Run(fmt.Sprintf("attempt %d", i+1), func(t *testing.T) {
+			_, got := s.SignUp(
+				t.Context(), must(user.ParseEmail("alice@example.com")),
+				must(user.ValidatePassword("Test$Password#1234")),
+				"delete this later",
+			)
+			if !errors.Is(got, tt.wantErr) {
+				t.Errorf("got %q, want %q", got, tt.wantErr)
 			}
 		})
 	}

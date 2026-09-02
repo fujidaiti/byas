@@ -19,12 +19,13 @@ import (
 )
 
 var (
-	ErrDeviceEmpty  = errors.New("device is empty")
-	ErrEmailInvalid = errors.New("email has invalid format")
-	ErrEmailTaken   = errors.New("email already exists")
-	ErrPswdInvalid  = errors.New("password has invalid format")
-	ErrAuthFailed   = errors.New("email or password is incorrect")
-	ErrTokenInvalid = errors.New("token is invalid or has been expired")
+	ErrDeviceEmpty     = errors.New("device is empty")
+	ErrEmailInvalid    = errors.New("email has invalid format")
+	ErrEmailTaken      = errors.New("email already exists")
+	ErrPswdInvalid     = errors.New("password has invalid format")
+	ErrAuthFailed      = errors.New("email or password is incorrect")
+	ErrTokenInvalid    = errors.New("token is invalid or has been expired")
+	ErrTooManyAttempts = errors.New("too many attempts")
 
 	ErrEmailVerifyFailed      = errors.New("can not verify email address")
 	ErrEmailVerifyCodeExpired = errors.New("verification code is expired")
