@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -921,41 +922,41 @@ func TestAuth_VerifySignUpEmailAddress_EmailAlreadyRegistered(t *testing.T) {
 func TestAuth_VerifySignUpEmailAddress_FailCountCap(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
 
-	const (
-		email    = "alice@example.com"
-		password = "alice#password$123"
-		code     = "123456"
-		device   = "Pixel9a/Android16"
-	)
 	_ = seedPendingSignUpAttempt(
-		t, ticketAlice, email, password, code,
+		t, ticketAlice, "alice@example.com", "alice#password$123", "123456",
 		mustTimeUTC("2026-07-01 09:30:00"),
 	)
-	base := mustTimeUTC("2026-07-01 09:21:00")
-	s := user.Service{
-		DB:  testenv.DB(),
-		Now: func() time.Time { return base },
+
+	test := []struct {
+		code     string
+		wantErr  error
+		verifyAt time.Time
+	}{
+		{"000000", user.ErrEmailVerifyFailed, mustTimeUTC("2026-07-01 09:20:00")},
+		{"111111", user.ErrEmailVerifyFailed, mustTimeUTC("2026-07-01 09:20:20")},
+		{"222222", user.ErrEmailVerifyFailed, mustTimeUTC("2026-07-01 09:20:40")},
+		{"333333", user.ErrEmailVerifyFailed, mustTimeUTC("2026-07-01 09:21:00")},
+		{"444444", user.ErrEmailVerifyFailed, mustTimeUTC("2026-07-01 09:21:30")},
+		// The last wrong code reached the cap (5 times), so the ticket is dead:
+		// even the correct code must not verify it.
+		{"123456", user.ErrEmailVerifyCodeExpired, mustTimeUTC("2026-07-01 09:22:00")},
 	}
 
-	// The number of wrong codes that kills a ticket.
-	const maxVerifyFailCount = 5
-	for i := 1; i <= maxVerifyFailCount; i++ {
-		s.Now = func() time.Time { return base.Add(time.Duration(i) * time.Second) }
-		_, gotErr := s.VerifySignUpEmailAddress(t.Context(), ticketAlice, "654321", device)
-		if want := user.ErrEmailVerifyFailed; !errors.Is(gotErr, want) {
-			t.Fatalf("attempt %d: got %v, want %v", i, gotErr, want)
-		}
-	}
-
-	// The last wrong code reached the cap, so the ticket is dead: even the
-	// correct code must not verify it.
-	s.Now = func() time.Time { return base.Add(time.Minute) }
-	gotToken, gotErr := s.VerifySignUpEmailAddress(t.Context(), ticketAlice, code, device)
-	if want := user.ErrEmailVerifyCodeExpired; !errors.Is(gotErr, want) {
-		t.Errorf("got %q, want %q", gotErr, want)
-	}
-	if got := gotToken.Encode(); got != "" {
-		t.Errorf("got %v, want an empty token", got)
+	s := user.Service{DB: testenv.DB()}
+	for i, tt := range test {
+		attempt := i + 1
+		s.Now = func() time.Time { return tt.verifyAt }
+		t.Run(fmt.Sprintf("attempt %d", attempt), func(t *testing.T) {
+			gotToken, gotErr := s.VerifySignUpEmailAddress(
+				t.Context(), ticketAlice, tt.code, "Pixel9a/Android",
+			)
+			if !errors.Is(gotErr, tt.wantErr) {
+				t.Fatalf("attempt %d: got %q, want %q", attempt, gotErr, tt.wantErr)
+			}
+			if got := gotToken.Encode(); got != "" {
+				t.Errorf("attempt %d: got %v, want an empty token", attempt, got)
+			}
+		})
 	}
 
 	var n int
