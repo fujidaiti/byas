@@ -240,12 +240,7 @@ func (s *Service) VerifySignUpEmailAddress(
 		return AuthToken{}, fmt.Errorf("failed to lookup an attempt: %w", err)
 	}
 
-	deleteAttemptSQL := `DELETE FROM pending_signup_attempts WHERE id = $1`
 	if s.Now().After(expiresAt) {
-		_, err := s.DB.ExecContext(ctx, deleteAttemptSQL, aID)
-		if err != nil {
-			fmt.Printf("failed to delete stale signup attempt: %v\n", err)
-		}
 		return AuthToken{}, ErrEmailVerifyCodeExpired
 	}
 
@@ -272,17 +267,7 @@ func (s *Service) VerifySignUpEmailAddress(
 	}
 
 	var uID UserID
-	tx, err := s.DB.BeginTx(ctx, nil)
-	if err != nil {
-		return AuthToken{}, err
-	}
-	defer func() {
-		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
-			fmt.Printf("failed to rollback: %v\n", err)
-		}
-	}()
-
-	err = tx.QueryRowContext(ctx, `
+	err = s.DB.QueryRowContext(ctx, `
 		INSERT INTO users (email, password_hash) VALUES ($1, $2)
 		ON CONFLICT (email) DO NOTHING RETURNING id
 	`, email, pswdHash).Scan(&uID)
@@ -293,14 +278,5 @@ func (s *Service) VerifySignUpEmailAddress(
 		return AuthToken{}, fmt.Errorf("failed to create new account: %w", err)
 	}
 
-	_, err = tx.ExecContext(ctx, deleteAttemptSQL, aID)
-	if err != nil {
-		fmt.Printf("failed to delete stale signup attempt: %v\n", err)
-	}
-	if err := tx.Commit(); err != nil {
-		err2 := tx.Rollback()
-		return AuthToken{}, fmt.Errorf(
-			"failed to create a new account: %w", errors.Join(err, err2))
-	}
 	return s.issueAuthToken(ctx, uID, device)
 }
