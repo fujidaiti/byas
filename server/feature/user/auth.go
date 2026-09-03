@@ -229,11 +229,12 @@ func (s *Service) VerifySignUpEmailAddress(
 		email              string
 		pswdHash, codeHash []byte
 		expiresAt          time.Time
+		failCount          int
 	)
 	err = s.DB.QueryRowContext(ctx, `
-		SELECT id, email, password_hash, verification_code_hash, expires_at
+		SELECT id, email, password_hash, verification_code_hash, expires_at, fail_count
 		FROM pending_signup_attempts WHERE ticket_hash = $1
-	`, tkt.Hash()).Scan(&aID, &email, &pswdHash, &codeHash, &expiresAt)
+	`, tkt.Hash()).Scan(&aID, &email, &pswdHash, &codeHash, &expiresAt, &failCount)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
 		return AuthToken{}, ErrEmailVerifyFailed
@@ -241,28 +242,17 @@ func (s *Service) VerifySignUpEmailAddress(
 		return AuthToken{}, fmt.Errorf("failed to lookup an attempt: %w", err)
 	}
 
-	if s.Now().After(expiresAt) {
+	if failCount >= maxFailCount || s.Now().After(expiresAt) {
 		return AuthToken{}, ErrEmailVerifyCodeExpired
 	}
 
 	if bcrypt.CompareHashAndPassword(codeHash, []byte(code)) != nil {
-		var fc int
-		err := s.DB.QueryRowContext(ctx, `
+		_, err := s.DB.ExecContext(ctx, `
 			UPDATE pending_signup_attempts
 			SET fail_count = fail_count + 1 WHERE id = $1
-			RETURNING fail_count
-		`, aID).Scan(&fc)
+		`, aID)
 		if err != nil {
-			fmt.Printf("failed to fetch fail count: %v\n", err)
-		}
-		if fc >= maxFailCount {
-			_, err := s.DB.ExecContext(ctx, `
-				UPDATE pending_signup_attempts
-				SET expires_at = $1 WHERE id = $2
-			`, s.Now(), aID)
-			if err != nil {
-				fmt.Printf("failed to expire ticket: %v\n", err)
-			}
+			fmt.Printf("failed to increase fail count: %v\n", err)
 		}
 		return AuthToken{}, ErrEmailVerifyFailed
 	}
