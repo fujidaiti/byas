@@ -238,11 +238,11 @@ func (s *Service) VerifySignUpEmailAddress(
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
 		return AuthToken{}, ErrEmailVerifyFailed
+
 	case err != nil:
 		return AuthToken{}, fmt.Errorf("failed to lookup an attempt: %w", err)
-	}
 
-	if failCount >= maxFailCount || s.Now().After(expiresAt) {
+	case failCount >= maxFailCount || s.Now().After(expiresAt):
 		return AuthToken{}, ErrEmailVerifyCodeExpired
 	}
 
