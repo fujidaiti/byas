@@ -64,7 +64,7 @@ func ParseEmail(addr string) (CanonicalEmail, error) {
 	return CanonicalEmail{strings.ToLower(a.Address)}, nil
 }
 
-// TODO: Rename to something more abstract one
+// TODO: Remove this type and use Token everywhere instead
 type AuthToken struct{ value [32]byte }
 
 func generateAuthToken() (AuthToken, error) {
@@ -93,6 +93,37 @@ func (t AuthToken) Hash() []byte {
 		return nil
 	}
 	h := sha256.Sum256(t.value[:])
+	return h[:]
+}
+
+type Token [32]byte
+
+func NewToken() (Token, error) {
+	t := Token{}
+	_, err := rand.Read(t[:])
+	return t, err
+}
+
+func DecodeToken(t string) (Token, error) {
+	b, err := base64.RawURLEncoding.DecodeString(t)
+	if err != nil || len(b) != 32 {
+		return Token{}, ErrTokenInvalid
+	}
+	return Token([32]byte(b)), nil
+}
+
+func (t Token) Encode() string {
+	if t == (Token{}) {
+		return ""
+	}
+	return base64.RawURLEncoding.EncodeToString(t[:])
+}
+
+func (t Token) Hash() []byte {
+	if t == (Token{}) {
+		return nil
+	}
+	h := sha256.Sum256(t[:])
 	return h[:]
 }
 
