@@ -829,6 +829,46 @@ func TestAuth_VerifySignUpEmailAddress_Failure(t *testing.T) {
 	}
 }
 
+func TestAuth_VerifySignUpEmailAddress_DuplicateVerifications(t *testing.T) {
+	t.Cleanup(testenv.TearDown)
+
+	const (
+		email  = "alice@example.com"
+		code   = "123456"
+		device = "Pixel9a/Android"
+	)
+	seedPendingSignUpAttempt(
+		t, ticketAlice, email, "Test#Password$1234", code,
+		mustTimeUTC("2026-09-03 12:00:00"),
+	)
+
+	s := user.Service{
+		DB:  testenv.DB(),
+		Now: func() time.Time { return mustTimeUTC("2026-09-03 11:52:00") },
+	}
+	_, gotErr := s.VerifySignUpEmailAddress(t.Context(), ticketAlice, code, device)
+	if gotErr != nil {
+		t.Fatal("new account must be created")
+	}
+
+	// Duplicate verifications must fail even the attempt isn't expired and the code is correct.
+	s.Now = func() time.Time { return mustTimeUTC("2026-09-03 11:58:00") }
+	_, gotErr = s.VerifySignUpEmailAddress(t.Context(), ticketAlice, code, device)
+	if want := user.ErrEmailTaken; !errors.Is(gotErr, want) {
+		t.Errorf("got %q, want %q", gotErr, want)
+	}
+
+	var n int
+	scanRowOrFatal(t, `SELECT COUNT(*) FROM users`, []any{}, &n)
+	if n != 1 {
+		t.Errorf("got %d user rows, want exactly one", n)
+	}
+	scanRowOrFatal(t, `SELECT COUNT(*) FROM auth_tokens`, []any{}, &n)
+	if n != 1 {
+		t.Errorf("got %d token rows, want exactly one", n)
+	}
+}
+
 func TestAuth_VerifySignUpEmailAddress_Expired(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
 
