@@ -1133,7 +1133,7 @@ func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.UserService.SignUp(r.Context(), email, pswd, req.Device)
+	token, err := h.UserService.SignUp(r.Context(), email, pswd)
 	switch {
 	case errors.Is(err, user.ErrDeviceEmpty):
 		serverError(w, http.StatusBadRequest, "Device is empty")

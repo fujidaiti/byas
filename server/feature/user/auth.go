@@ -2,19 +2,24 @@
 package user
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
+	_ "embed"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"html/template"
+	"math/big"
 	"net/mail"
 	"regexp"
 	"strings"
 	"time"
 	"unicode"
 
+	"github.com/fujidaiti/paperdoll/server/infra"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -45,6 +50,11 @@ func ValidatePassword(p string) (ValidPassword, error) {
 		return ValidPassword{}, ErrPswdInvalid
 	}
 	return ValidPassword{p}, nil
+}
+
+func (p ValidPassword) Hash() ([]byte, error) {
+	const cost = 12
+	return bcrypt.GenerateFromPassword([]byte(p.value), cost)
 }
 
 // TODO: Rename to CanonicalEmailAddr
@@ -127,18 +137,48 @@ func (t Token) Hash() []byte {
 	return h[:]
 }
 
+type VerificationCode string
+
+func NewVerificationCode() (VerificationCode, error) {
+	n, err := rand.Int(rand.Reader, big.NewInt(1_000_000))
+	if err != nil {
+		return "", err
+	}
+	return VerificationCode(fmt.Sprintf("%06d", n)), nil
+}
+
+func (c VerificationCode) Hash() []byte {
+	if c == "" {
+		return nil
+	}
+	h := sha256.Sum256([]byte(c))
+	return h[:]
+}
+
+//go:embed template/verification_email.html
+var verificationEmailTmplSrc string
+var verificationEmailTmpl = template.Must(
+	template.New("verification_email").Parse(verificationEmailTmplSrc),
+)
+
 func (s *Service) SignUp(
 	ctx context.Context, email CanonicalEmail, pswd ValidPassword,
-	codeGenerator func() (string, error),
-	emailSender func(code string) error,
+) (Token, error) {
+	return SignUp(ctx, email, pswd, s.DB, time.Now(), NewVerificationCode, infra.SendEmail)
+}
+
+func SignUp(
+	ctx context.Context, email CanonicalEmail, pswd ValidPassword,
+	db *sql.DB, currentTime time.Time,
+	generateCode func() (VerificationCode, error),
+	sendEmail infra.EmailSender,
 ) (Token, error) {
 	const ticketTTL = 10 * time.Minute
-	const pswdHashCost = 12
 	const throttleWindow = time.Hour
 	const throttleCap = 3
 
 	var emailExists bool
-	err := s.DB.QueryRowContext(ctx, `
+	err := db.QueryRowContext(ctx, `
 		SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)
 	`, email.value).Scan(&emailExists)
 	switch {
@@ -148,12 +188,11 @@ func (s *Service) SignUp(
 		return Token{}, ErrEmailTaken
 	}
 
-	now := s.Now()
 	var nAttempts int
-	err = s.DB.QueryRowContext(ctx, `
+	err = db.QueryRowContext(ctx, `
 		COUNT (*) FROM pending_signup_attempts
 		WHERE email = $1 AND created_at >= $2
-	`, email.value, now.Add(-1*throttleWindow)).Scan(&nAttempts)
+	`, email.value, currentTime.Add(-1*throttleWindow)).Scan(&nAttempts)
 	switch {
 	case err != nil:
 		return Token{}, fmt.Errorf("failed to count attempts")
@@ -161,8 +200,8 @@ func (s *Service) SignUp(
 		return Token{}, ErrTooManyAttempts
 	}
 
-	expiresAt := now.Add(ticketTTL)
-	pswdHash, err := bcrypt.GenerateFromPassword([]byte(pswd.value), pswdHashCost)
+	expiresAt := currentTime.Add(ticketTTL)
+	pswdHash, err := pswd.Hash()
 	if err != nil {
 		return Token{}, fmt.Errorf("failed to hash password: %w", err)
 	}
@@ -170,12 +209,33 @@ func (s *Service) SignUp(
 	if err != nil {
 		return Token{}, fmt.Errorf("failed to generate sign-up verirication ticket: %w", err)
 	}
+	code, err := generateCode()
+	if err != nil {
+		return Token{}, fmt.Errorf("failed to generate sign-up verification code: %w", err)
+	}
 
-	_, err = s.DB.ExecContext(ctx, `
+	var buf bytes.Buffer
+	err = verificationEmailTmpl.Execute(&buf, map[string]any{
+		"Code":             code,
+		"ExpiresInMinutes": ticketTTL / time.Minute,
+	})
+	if err != nil {
+		return Token{}, fmt.Errorf("failed to write verification email body: %w", err)
+	}
+	err = sendEmail(infra.Draft{
+		To:      email.value,
+		Subject: "Your verification code",
+		Body:    buf.String(),
+	})
+	if err != nil {
+		return Token{}, fmt.Errorf("failed to send sign-up verification email: %w", err)
+	}
+
+	_, err = db.ExecContext(ctx, `
 		INSERT INTO pending_signup_attempts
 			(email, password_hash, verification_code_hash, ticket_hash, expires_at)
 		VALUES ($1, $2, $3, $4, $5)
-	`, email.value, pswdHash, nil, ticket.Hash(), expiresAt)
+	`, email.value, pswdHash, code.Hash(), ticket.Hash(), expiresAt)
 	if err != nil {
 		return Token{}, fmt.Errorf("failed to register sign-up attempt: %w", err)
 	}
@@ -206,11 +266,11 @@ func (s *Service) SignIn(
 	return s.issueAuthToken(ctx, id, device)
 }
 
-const tokenExpiresInDays = 30
-
 func (s *Service) issueAuthToken(
 	ctx context.Context, id UserID, device string,
 ) (AuthToken, error) {
+	const tokenExpiresInDays = 30
+
 	token, err := generateAuthToken()
 	if err != nil {
 		return AuthToken{}, err

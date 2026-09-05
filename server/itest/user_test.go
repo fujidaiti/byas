@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/fujidaiti/paperdoll/server/feature/user"
+	"github.com/fujidaiti/paperdoll/server/infra"
 	"github.com/fujidaiti/paperdoll/server/itest/testenv"
 	"github.com/google/go-cmp/cmp"
 	"golang.org/x/crypto/bcrypt"
@@ -47,51 +48,55 @@ func TestAuth_SignUp_Success(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
 
 	test := []struct {
-		name, email, password string
-		signUpAt              time.Time
+		name     string
+		email    string
+		password string
+		code     string
+		signUpAt time.Time
 	}{
 		{
 			name:     "alice",
 			email:    "alice@gmail.com",
 			password: "Test$Password+123",
+			code:     "123456",
 			signUpAt: mustTimeUTC("2026-07-01 09:15:00"),
 		},
 		{
 			name:     "alice (the second attempt)",
 			email:    "alice@gmail.com",
 			password: "New$Password+456",
+			code:     "654321",
 			signUpAt: mustTimeUTC("2026-07-01 09:20:00"),
 		},
 		{
 			name:     "bob (same password as alice)",
 			email:    "bob@exchange.com",
 			password: "Test$Password+123",
+			code:     "162534",
 			signUpAt: mustTimeUTC("2027-08-20 14:00:59"),
 		},
 	}
 
-	// Extract a verification code from the email body.
-	codeRe := regexp.MustCompile(`\b(\d{6})\b`)
-	s := user.Service{DB: testenv.DB()}
 	var gotPswdHashes []string
-	var gotTickets []user.AuthToken
+	var gotTickets []user.Token
 	for _, tt := range test {
-		s.Now = func() time.Time { return tt.signUpAt }
-
-		var gotCode string
-		s.SendEmail = func(_, _, body string) error {
-			if m := codeRe.FindStringSubmatch(gotCode); len(m) > 0 {
-				gotCode = m[0]
-			}
-			return nil
-		}
-
 		t.Run(tt.name, func(t *testing.T) {
-			gotTicket, err := s.SignUp(
+			var gotEmailDraft infra.Draft
+			captureEmailSent := func(d infra.Draft) error {
+				gotEmailDraft = d
+				return nil
+			}
+
+			gotTicket, err := user.SignUp(
 				t.Context(),
 				must(user.ParseEmail(tt.email)),
 				must(user.ValidatePassword(tt.password)),
-				"remove this later",
+				testenv.DB(),
+				tt.signUpAt,
+				func() (user.VerificationCode, error) {
+					return user.VerificationCode(tt.code), nil
+				},
+				captureEmailSent,
 			)
 			if err != nil {
 				t.Fatalf("got %v, want nil error", err)
@@ -113,16 +118,27 @@ func TestAuth_SignUp_Success(t *testing.T) {
 			if bytes.Equal(gotAtmpt.PasswordHash, []byte(tt.password)) {
 				t.Error("raw password must not be stored")
 			}
+			if bytes.Equal(gotAtmpt.VerificationCodeHash, []byte(tt.code)) {
+				t.Error("raw code must not be stored")
+			}
 			if !bytes.Equal(gotAtmpt.TicketHash, gotTicket.Hash()) {
 				t.Errorf("raw ticket must not be stored")
 			}
-			if gotCode == "" {
-				t.Errorf("email must contain a 6-digits verification code")
-			} else if bytes.Equal(gotAtmpt.VerificationCodeHash, []byte(gotCode)) {
-				t.Errorf("raw verification code must no be stored")
-			}
 			if d := gotAtmpt.ExpiresAt.Sub(tt.signUpAt); d != 10*time.Minute {
 				t.Errorf("got TTL %g min, want 10 min", d.Minutes())
+			}
+
+			if gotEmailDraft.To != tt.email {
+				t.Errorf("got email recipient %q, want %q", gotEmailDraft.To, tt.email)
+			}
+			if gotEmailDraft.Subject == "" {
+				t.Errorf("email subject must not be empty")
+			}
+			codeRe := regexp.MustCompile(fmt.Sprintf(`\b%s\b`, regexp.QuoteMeta(tt.code)))
+			if n := len(codeRe.FindAllString(gotEmailDraft.Body, 2)); n == 0 {
+				t.Error("no code found in email body")
+			} else if n > 1 {
+				t.Error("found multiple codes in email body, want exactly one")
 			}
 		})
 	}
@@ -138,55 +154,54 @@ func TestAuth_SignUp_Success(t *testing.T) {
 func TestAuth_SignUp_EmailUniqueness(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
 
+	var (
+		aliceAddr = "alice@example.com"
+		alicePswd = must(user.ValidatePassword("Test$Password123"))
+	)
+	var alice userRecord
+	scanRowOrFatal(t, `
+		INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id
+	`, []any{aliceAddr, must(alicePswd.Hash())}, &alice.ID, &alice.Email, &alice.PasswordHash)
+
 	test := []struct {
-		name, email, password, device string
-		wantErr                       error
+		name     string
+		email    string
+		password string
+		signUpAt time.Time
 	}{
-		{
-			name:     "baseline",
-			email:    "alice@gmail.com",
-			password: "test$Password123",
-			device:   "Pixel9a/Android16",
-			wantErr:  nil,
-		},
 		{
 			name:     "same email and different password",
 			email:    "alice@gmail.com",
 			password: "test$Password987",
-			device:   "Pixel9a/Android16",
-			wantErr:  user.ErrEmailTaken,
+			signUpAt: mustTimeUTC("2026-09-05 20:34:00"),
 		},
 		{
 			name:     "same email and same password",
 			email:    "alice@gmail.com",
 			password: "test$Password123",
-			device:   "Pixel9a/Android16",
-			wantErr:  user.ErrEmailTaken,
+			signUpAt: mustTimeUTC("2026-09-05 20:35:00"),
 		},
 		{
 			name:     "same but capitalized email",
 			email:    "ALICE@GMAIL.COM",
 			password: "test$Password123",
-			device:   "Pixel9a/Android16",
-			wantErr:  user.ErrEmailTaken,
+			signUpAt: mustTimeUTC("2026-09-05 20:36:00"),
 		},
 	}
 
-	s := user.Service{
-		DB:  testenv.DB(),
-		Now: func() time.Time { return time.Now() },
-	}
-	var firstUser *userRecord
 	for _, tt := range test {
 		t.Run(tt.name, func(t *testing.T) {
-			_, gotErr := s.SignUp(
+			_, got := user.SignUp(
 				t.Context(),
 				must(user.ParseEmail(tt.email)),
 				must(user.ValidatePassword(tt.password)),
-				tt.device,
+				testenv.DB(),
+				tt.signUpAt,
+				user.NewVerificationCode,
+				func(_ infra.Draft) error { return nil },
 			)
-			if !errors.Is(gotErr, tt.wantErr) {
-				t.Errorf("got '%v', want '%v'", gotErr, tt.wantErr)
+			if want := user.ErrEmailTaken; !errors.Is(got, want) {
+				t.Errorf("got %q, want %q", got, want)
 			}
 
 			gotUsers := scanRowsOrFatal(t, `
@@ -198,11 +213,7 @@ func TestAuth_SignUp_EmailUniqueness(t *testing.T) {
 			if n := len(gotUsers); n != 1 {
 				t.Fatalf("exactly one user must be registered, got %d users", n)
 			}
-			if firstUser == nil {
-				firstUser = &gotUsers[0]
-			}
-
-			if d := cmp.Diff(gotUsers[0], *firstUser); d != "" {
+			if d := cmp.Diff(gotUsers[0], alice); d != "" {
 				t.Errorf("already registered user must never be touched, diff:\n%s", d)
 			}
 		})
@@ -225,14 +236,16 @@ func TestAuth_SignUp_PerEmailAddressThrottle(t *testing.T) {
 		{mustTimeUTC("2026-09-03 14:30:00"), nil},
 	}
 
-	s := user.Service{DB: testenv.DB()}
 	for i, tt := range test {
-		s.Now = func() time.Time { return tt.signUpAt }
 		t.Run(fmt.Sprintf("attempt %d", i+1), func(t *testing.T) {
-			_, got := s.SignUp(
-				t.Context(), must(user.ParseEmail("alice@example.com")),
+			_, got := user.SignUp(
+				t.Context(),
+				must(user.ParseEmail("alice@example.com")),
 				must(user.ValidatePassword("Test$Password#1234")),
-				"delete this later",
+				testenv.DB(),
+				tt.signUpAt,
+				func() (user.VerificationCode, error) { return "123456", nil },
+				func(_ infra.Draft) error { return nil },
 			)
 			if !errors.Is(got, tt.wantErr) {
 				t.Errorf("got %q, want %q", got, tt.wantErr)

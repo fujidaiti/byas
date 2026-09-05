@@ -1,8 +1,14 @@
 package infra
 
-type EmailSender = func(from, to, body string) error
+type Draft struct {
+	To      string
+	Subject string
+	Body    string
+}
 
-func SendEmail(from, to, body string) error {
+type EmailSender = func(d Draft) error
+
+func SendEmail(d Draft) error {
 	// TODO: Send an email using Resend
 	return nil
 }
