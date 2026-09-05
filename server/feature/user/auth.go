@@ -127,33 +127,58 @@ func (t Token) Hash() []byte {
 	return h[:]
 }
 
-// TODO: Tweak the bcrypt cost
-const bcryptCost = 12
-
 func (s *Service) SignUp(
-	ctx context.Context, email CanonicalEmail, pswd ValidPassword, device string,
-) (AuthToken, error) {
-	if device == "" {
-		return AuthToken{}, ErrDeviceEmpty
-	}
-	hash, err := bcrypt.GenerateFromPassword([]byte(pswd.value), bcryptCost)
-	if err != nil {
-		return AuthToken{}, err
-	}
-	var id int
-	err = s.DB.QueryRowContext(ctx, `
-		INSERT INTO users (email, password_hash)
-		VALUES ($1, $2)
-		ON CONFLICT (email) DO NOTHING
-		RETURNING id
-	`, email.value, hash).Scan(&id)
+	ctx context.Context, email CanonicalEmail, pswd ValidPassword,
+) (Token, error) {
+	const ticketTTL = 10 * time.Minute
+	const pswdHashCost = 12
+	const throttleWindow = time.Hour
+	const throttleCap = 3
+
+	var emailExists bool
+	err := s.DB.QueryRowContext(ctx, `
+		SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)
+	`, email.value).Scan(&emailExists)
 	switch {
-	case errors.Is(err, sql.ErrNoRows):
-		return AuthToken{}, ErrEmailTaken
 	case err != nil:
-		return AuthToken{}, err
+		return Token{}, fmt.Errorf("can not verify email uniquness")
+	case !emailExists:
+		return Token{}, ErrEmailTaken
 	}
-	return s.issueAuthToken(ctx, id, device)
+
+	now := s.Now()
+	var nAttempts int
+	err = s.DB.QueryRowContext(ctx, `
+		COUNT (*) FROM pending_signup_attempts
+		WHERE email = $1 AND created_at >= $2
+	`, email.value, now.Add(-1*throttleWindow)).Scan(&nAttempts)
+	switch {
+	case err != nil:
+		return Token{}, fmt.Errorf("failed to count attempts")
+	case nAttempts >= throttleCap:
+		return Token{}, ErrTooManyAttempts
+	}
+
+	expiresAt := now.Add(ticketTTL)
+	pswdHash, err := bcrypt.GenerateFromPassword([]byte(pswd.value), pswdHashCost)
+	if err != nil {
+		return Token{}, fmt.Errorf("failed to hash password: %w", err)
+	}
+	ticket, err := NewToken()
+	if err != nil {
+		return Token{}, fmt.Errorf("failed to generate sign-up verirication ticket: %w", err)
+	}
+
+	_, err = s.DB.ExecContext(ctx, `
+		INSERT INTO pending_signup_attempts
+			(email, password_hash, verification_code_hash, ticket_hash, expires_at)
+		VALUES ($1, $2, $3, $4, $5)
+	`, email.value, pswdHash, nil, ticket.Hash(), expiresAt)
+	if err != nil {
+		return Token{}, fmt.Errorf("failed to register sign-up attempt: %w", err)
+	}
+
+	return ticket, nil
 }
 
 func (s *Service) SignIn(
