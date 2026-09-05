@@ -129,6 +129,8 @@ func (t Token) Hash() []byte {
 
 func (s *Service) SignUp(
 	ctx context.Context, email CanonicalEmail, pswd ValidPassword,
+	codeGenerator func() (string, error),
+	emailSender func(code string) error,
 ) (Token, error) {
 	const ticketTTL = 10 * time.Minute
 	const pswdHashCost = 12
