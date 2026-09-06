@@ -732,8 +732,8 @@ func TestAuth_VerifySignUpEmailAddress_Failure(t *testing.T) {
 			wantErr:    user.ErrEmailVerifyFailed,
 		},
 		{
-			name:       "valid but unknown ticket",
-			ticket:     must(user.DecodeToken("aNEzrkBC996ne6HafDO8q7K9XWPffYjTFnrkkxfy0lM")).Encode(),
+			name:       "unknown ticket",
+			ticket:     must(user.DecodeToken("tLTHpBZIggBuaRO_TGmz0MQkrlQ4tsjXnwFMIQINRnY")).Encode(),
 			code:       alice.code,
 			device:     alice.device,
 			signUpAt:   mustTimeUTC("2026-07-01 09:15:00"),
@@ -741,15 +741,13 @@ func TestAuth_VerifySignUpEmailAddress_Failure(t *testing.T) {
 			wantErr:    user.ErrEmailVerifyFailed,
 		},
 		{
-			// TODO: This branch should report a sentinel error so callers can
-			// distinguish a malformed ticket. Only non-nil is asserted for now.
 			name:       "malformed ticket",
-			ticket:     "not-a-ticket",
+			ticket:     "invalid",
 			code:       alice.code,
 			device:     alice.device,
 			signUpAt:   mustTimeUTC("2026-07-01 09:15:00"),
 			verifiedAt: mustTimeUTC("2026-07-01 09:16:00"),
-			wantErr:    nil,
+			wantErr:    user.ErrEmailVerifyFailed,
 		},
 		{
 			name:       "no device info",
@@ -764,14 +762,12 @@ func TestAuth_VerifySignUpEmailAddress_Failure(t *testing.T) {
 
 	s := user.Service{DB: testenv.DB()}
 	for _, tt := range test {
+		fmt.Printf("ticket: %s", tt.ticket)
 		t.Run(tt.name, func(t *testing.T) {
 			s.Now = func() time.Time { return tt.verifiedAt }
 			gotToken, gotErr := s.VerifySignUpEmailAddress(t.Context(), tt.ticket, tt.code, tt.device)
 
-			if gotErr == nil {
-				t.Fatalf("want an error, got nil")
-			}
-			if tt.wantErr != nil && !errors.Is(gotErr, tt.wantErr) {
+			if !errors.Is(gotErr, tt.wantErr) {
 				t.Errorf("got %q, want %q", gotErr, tt.wantErr)
 			}
 			if got := gotToken.Encode(); got != "" {

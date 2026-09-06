@@ -321,7 +321,7 @@ func (s *Service) VerifySignUpEmailAddress(ctx context.Context, ticket, code, de
 	}
 	tkt, err := DecodeToken(ticket)
 	if err != nil {
-		return Token{}, fmt.Errorf("ticket is malformed")
+		return Token{}, ErrEmailVerifyFailed
 	}
 
 	var (
