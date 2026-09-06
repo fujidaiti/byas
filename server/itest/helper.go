@@ -89,16 +89,18 @@ func execOrFatal(t *testing.T, query string, args ...any) {
 // provisionTestAccount creates a usable test account at the given time and
 // returns the new user ID along with the auth token issued for device.
 func provisionTestAccount(
-	t *testing.T, email, password string, createdAt time.Time,
+	t *testing.T, email, password, device string, createdAt time.Time,
 ) (user.UserID, user.AuthToken) {
 	t.Helper()
+
+	code := "123456"
 	ticket, err := user.SignUp(
 		t.Context(),
 		must(user.ParseEmail(email)),
 		must(user.ValidatePassword(password)),
 		testenv.DB(),
 		createdAt.Add(-time.Minute),
-		user.NewVerificationCode,
+		func() (user.VerificationCode, error) { return user.VerificationCode(code), nil },
 		func(_ infra.Draft) error { return nil },
 	)
 	if err != nil {
@@ -109,9 +111,7 @@ func provisionTestAccount(
 		DB:  testenv.DB(),
 		Now: func() time.Time { return createdAt },
 	}
-	token, err := s.VerifySignUpEmailAddress(
-		t.Context(), ticket.Encode(), "123456", "Pixel9a/Android",
-	)
+	token, err := s.VerifySignUpEmailAddress(t.Context(), ticket.Encode(), code, device)
 	if err != nil {
 		t.Fatalf("failed to provision a test account (%s): %v", email, err)
 	}
@@ -129,7 +129,7 @@ func provisionTestAccount(
 func provisionDefaultTestAccount(t *testing.T, createdAt time.Time) user.UserID {
 	t.Helper()
 	uid, _ := provisionTestAccount(
-		t, "test-account@example.com", "test#password$1234", createdAt,
+		t, "test-account@example.com", "test#password$1234", "Pixel9a/Android", createdAt,
 	)
 	return uid
 }

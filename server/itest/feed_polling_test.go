@@ -458,11 +458,13 @@ func TestFeedPolling_EmptyFeed(t *testing.T) {
 func TestFeedPolling_MultipleSubscribers(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
 	uidAlice, _ := provisionTestAccount(
-		t, "alice@example.com", "alice#password$123", mustTimeUTC("2026-07-15 10:00:00"),
+		t, "alice@example.com", "alice#password$123", "Pixel9a/Android",
+		mustTimeUTC("2026-07-15 10:00:00"),
 	)
 	feedID := seedFeed(t, uidAlice, "http://feed.test/rss", "./testdata/feed_polling/seed_test_feed.xml")
 	uidBob, _ := provisionTestAccount(
-		t, "bob@example.com", "bob#password$123", mustTimeUTC("2026-07-15 10:00:00"),
+		t, "bob@example.com", "bob#password$123", "iPhone17/iOS",
+		mustTimeUTC("2026-07-15 10:00:00"),
 	)
 	seedFeed(t, uidBob, "http://feed.test/rss", "./testdata/feed_polling/seed_test_feed.xml")
 	testenv.StubHTTP("feed.test", "/rss", "./testdata/feed_polling/polling_multiple_subscribers.xml")
