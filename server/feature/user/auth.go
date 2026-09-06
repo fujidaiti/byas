@@ -227,6 +227,15 @@ func SignUp(
 		return Token{}, fmt.Errorf("failed to generate sign-up verification code: %w", err)
 	}
 
+	_, err = db.ExecContext(ctx, `
+		INSERT INTO pending_signup_attempts
+			(email, password_hash, verification_code_hash, ticket_hash, expires_at, signed_up_at)
+		VALUES ($1, $2, $3, $4, $5, $6)
+	`, email.value, pswdHash, code.Hash(), ticket.Hash(), expiresAt, currentTime)
+	if err != nil {
+		return Token{}, fmt.Errorf("failed to register sign-up attempt: %w", err)
+	}
+
 	var buf bytes.Buffer
 	err = verificationEmailTmpl.Execute(&buf, map[string]any{
 		"Code":             code,
@@ -241,16 +250,9 @@ func SignUp(
 		Body:    buf.String(),
 	})
 	if err != nil {
-		return Token{}, fmt.Errorf("failed to send sign-up verification email: %w", err)
-	}
-
-	_, err = db.ExecContext(ctx, `
-		INSERT INTO pending_signup_attempts
-			(email, password_hash, verification_code_hash, ticket_hash, expires_at, signed_up_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
-	`, email.value, pswdHash, code.Hash(), ticket.Hash(), expiresAt, currentTime)
-	if err != nil {
-		return Token{}, fmt.Errorf("failed to register sign-up attempt: %w", err)
+		// Don't return the error and issue the ticket anyway, so that users can re-request
+		// a verification email later without sending the address and password again.
+		fmt.Printf("failed to send sign-up verification email: %v", err)
 	}
 
 	return ticket, nil
@@ -342,15 +344,14 @@ func (s *Service) VerifyAuthToken(ctx context.Context, t string) (UserID, error)
 //
 // On a wrong code, the per-ticket fail count increases. Once it reaches the threshold,
 // the ticket is dead: verification never succeeds again event with the correct code.
-func (s *Service) VerifySignUpEmailAddress(
-	ctx context.Context, ticket, code, device string) (AuthToken, error) {
+func (s *Service) VerifySignUpEmailAddress(ctx context.Context, ticket, code, device string) (AuthToken, error) {
 	// The number of wrong codes that kills a ticket.
 	const maxFailCount = 5
 
 	if device == "" {
 		return AuthToken{}, ErrDeviceEmpty
 	}
-	tkt, err := decodeAuthToken(ticket)
+	tkt, err := DecodeToken(ticket)
 	if err != nil {
 		return AuthToken{}, fmt.Errorf("ticket is malformed")
 	}
