@@ -332,7 +332,7 @@ func TestAuth_SignIn_Success(t *testing.T) {
 		provisionTestAccount(t, u.email, u.password, u.signUpDevice, u.signUpAt)
 	}
 
-	var gotTokens []user.AuthToken
+	var gotTokens []user.Token
 	for i, tt := range test {
 		s.Now = func() time.Time { return tt.signInAt }
 		t.Run(tt.name, func(t *testing.T) {
@@ -470,7 +470,7 @@ func TestAuth_SignOut(t *testing.T) {
 
 	test := []struct {
 		name        string
-		token       user.AuthToken
+		token       user.Token
 		signedOutAt time.Time
 	}{
 		{
@@ -490,7 +490,7 @@ func TestAuth_SignOut(t *testing.T) {
 		},
 		{
 			name:        "unregistered user",
-			token:       user.AuthToken{},
+			token:       user.Token{},
 			signedOutAt: mustTimeUTC("2026-08-01 09:00:00"),
 		},
 		{
@@ -545,7 +545,7 @@ func TestAuth_VerifyAuthToken(t *testing.T) {
 
 	test := []struct {
 		name    string
-		token   user.AuthToken
+		token   user.Token
 		checkAt time.Time
 		want    user.UserID
 		wantErr error
@@ -577,7 +577,7 @@ func TestAuth_VerifyAuthToken(t *testing.T) {
 		},
 		{
 			name:    "unknown token",
-			token:   user.AuthToken{},
+			token:   user.Token{},
 			checkAt: mustTimeUTC("2026-08-01 09:00:00"),
 			want:    0,
 			wantErr: user.ErrTokenInvalid,
@@ -626,7 +626,7 @@ func TestAuth_VerifySignUpEmailAddress_Success(t *testing.T) {
 	}
 
 	s := user.Service{DB: testenv.DB()}
-	var gotTokens []user.AuthToken
+	var gotTokens []user.Token
 	for i, tt := range test {
 		t.Run(tt.name, func(t *testing.T) {
 			ticket := must(user.SignUp(

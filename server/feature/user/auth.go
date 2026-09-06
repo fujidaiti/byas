@@ -81,38 +81,6 @@ func ParseEmail(addr string) (CanonicalEmail, error) {
 	return CanonicalEmail{strings.ToLower(a.Address)}, nil
 }
 
-// TODO: Remove this type and use Token everywhere instead
-type AuthToken struct{ value [32]byte }
-
-func generateAuthToken() (AuthToken, error) {
-	t := AuthToken{}
-	_, err := rand.Read(t.value[:])
-	return t, err
-}
-
-func decodeAuthToken(t string) (AuthToken, error) {
-	b, err := base64.RawURLEncoding.DecodeString(t)
-	if err != nil || len(b) != 32 {
-		return AuthToken{}, ErrTokenInvalid
-	}
-	return AuthToken{[32]byte(b)}, nil
-}
-
-func (t AuthToken) Encode() string {
-	if t == (AuthToken{}) {
-		return ""
-	}
-	return base64.RawURLEncoding.EncodeToString(t.value[:])
-}
-
-func (t AuthToken) Hash() []byte {
-	if t == (AuthToken{}) {
-		return nil
-	}
-	h := sha256.Sum256(t.value[:])
-	return h[:]
-}
-
 type Token [32]byte
 
 func NewToken() (Token, error) {
@@ -260,9 +228,9 @@ func SignUp(
 
 func (s *Service) SignIn(
 	ctx context.Context, email CanonicalEmail, pswd, device string,
-) (AuthToken, error) {
+) (Token, error) {
 	if device == "" {
-		return AuthToken{}, ErrDeviceEmpty
+		return Token{}, ErrDeviceEmpty
 	}
 	var pswdHash []byte
 	var id int
@@ -271,24 +239,24 @@ func (s *Service) SignIn(
 	`, email.value).Scan(&id, &pswdHash)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
-		return AuthToken{}, ErrAuthFailed
+		return Token{}, ErrAuthFailed
 	case err != nil:
-		return AuthToken{}, err
+		return Token{}, err
 	}
 	if !(ValidPassword{pswd}).Match(pswdHash) {
-		return AuthToken{}, ErrAuthFailed
+		return Token{}, ErrAuthFailed
 	}
 	return s.issueAuthToken(ctx, id, device)
 }
 
 func (s *Service) issueAuthToken(
 	ctx context.Context, id UserID, device string,
-) (AuthToken, error) {
+) (Token, error) {
 	const tokenExpiresInDays = 30
 
-	token, err := generateAuthToken()
+	token, err := NewToken()
 	if err != nil {
-		return AuthToken{}, err
+		return Token{}, err
 	}
 	expr := s.Now().AddDate(0, 0, tokenExpiresInDays)
 	_, err = s.DB.ExecContext(ctx, `
@@ -296,7 +264,7 @@ func (s *Service) issueAuthToken(
 		VALUES ($1, $2, $3, $4)
 	`, id, device, token.Hash(), expr)
 	if err != nil {
-		return AuthToken{}, err
+		return Token{}, err
 	}
 	return token, nil
 }
@@ -307,7 +275,7 @@ func (s *Service) issueAuthToken(
 // This operation does not fail even if the token is invalid, but it may report
 // an unknown error due to infrastructure issues.
 func (s *Service) SignOut(ctx context.Context, t string) error {
-	token, err := decodeAuthToken(t)
+	token, err := DecodeToken(t)
 	if err != nil {
 		return nil
 	}
@@ -321,7 +289,7 @@ func (s *Service) SignOut(ctx context.Context, t string) error {
 // owns that token. Reports an [ErrTokenInvalid] if the token is malformed or expired.
 // TODO: Garbage-collect expired tokens
 func (s *Service) VerifyAuthToken(ctx context.Context, t string) (UserID, error) {
-	token, err := decodeAuthToken(t)
+	token, err := DecodeToken(t)
 	if err != nil {
 		return 0, err
 	}
@@ -344,16 +312,16 @@ func (s *Service) VerifyAuthToken(ctx context.Context, t string) (UserID, error)
 //
 // On a wrong code, the per-ticket fail count increases. Once it reaches the threshold,
 // the ticket is dead: verification never succeeds again event with the correct code.
-func (s *Service) VerifySignUpEmailAddress(ctx context.Context, ticket, code, device string) (AuthToken, error) {
+func (s *Service) VerifySignUpEmailAddress(ctx context.Context, ticket, code, device string) (Token, error) {
 	// The number of wrong codes that kills a ticket.
 	const maxFailCount = 5
 
 	if device == "" {
-		return AuthToken{}, ErrDeviceEmpty
+		return Token{}, ErrDeviceEmpty
 	}
 	tkt, err := DecodeToken(ticket)
 	if err != nil {
-		return AuthToken{}, fmt.Errorf("ticket is malformed")
+		return Token{}, fmt.Errorf("ticket is malformed")
 	}
 
 	var (
@@ -369,13 +337,13 @@ func (s *Service) VerifySignUpEmailAddress(ctx context.Context, ticket, code, de
 	`, tkt.Hash()).Scan(&aID, &email, &pswdHash, &codeHash, &expiresAt, &failCount)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
-		return AuthToken{}, ErrEmailVerifyFailed
+		return Token{}, ErrEmailVerifyFailed
 
 	case err != nil:
-		return AuthToken{}, fmt.Errorf("failed to lookup an attempt: %w", err)
+		return Token{}, fmt.Errorf("failed to lookup an attempt: %w", err)
 
 	case failCount >= maxFailCount || s.Now().After(expiresAt):
-		return AuthToken{}, ErrEmailVerifyCodeExpired
+		return Token{}, ErrEmailVerifyCodeExpired
 	}
 
 	if !VerificationCode(code).Match(codeHash) {
@@ -386,7 +354,7 @@ func (s *Service) VerifySignUpEmailAddress(ctx context.Context, ticket, code, de
 		if err != nil {
 			fmt.Printf("failed to increase fail count: %v\n", err)
 		}
-		return AuthToken{}, ErrEmailVerifyFailed
+		return Token{}, ErrEmailVerifyFailed
 	}
 
 	var uID UserID
@@ -396,9 +364,9 @@ func (s *Service) VerifySignUpEmailAddress(ctx context.Context, ticket, code, de
 	`, email, pswdHash).Scan(&uID)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
-		return AuthToken{}, ErrEmailTaken
+		return Token{}, ErrEmailTaken
 	case err != nil:
-		return AuthToken{}, fmt.Errorf("failed to create new account: %w", err)
+		return Token{}, fmt.Errorf("failed to create new account: %w", err)
 	}
 
 	return s.issueAuthToken(ctx, uID, device)

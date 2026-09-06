@@ -90,7 +90,7 @@ func execOrFatal(t *testing.T, query string, args ...any) {
 // returns the new user ID along with the auth token issued for device.
 func provisionTestAccount(
 	t *testing.T, email, password, device string, createdAt time.Time,
-) (user.UserID, user.AuthToken) {
+) (user.UserID, user.Token) {
 	t.Helper()
 
 	code := "123456"

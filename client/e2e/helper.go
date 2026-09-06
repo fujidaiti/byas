@@ -34,7 +34,7 @@ const (
 	testAccountPassword = "Police-Repurpose-Atypical-Gravel"
 )
 
-func provisionTestAccount(ctx context.Context, db *sql.DB) (user.AuthToken, error) {
+func provisionTestAccount(ctx context.Context, db *sql.DB) (user.Token, error) {
 	email := must(user.ParseEmail(testAccountEmail))
 	pswd := must(user.ValidatePassword(testAccountPassword))
 	code := "123456"
@@ -44,7 +44,7 @@ func provisionTestAccount(ctx context.Context, db *sql.DB) (user.AuthToken, erro
 		func(_ infra.Draft) error { return nil },
 	)
 	if err != nil {
-		return user.AuthToken{}, err
+		return user.Token{}, err
 	}
 
 	svc := &user.Service{DB: db, Now: time.Now}
