@@ -103,7 +103,7 @@ func TestAuth_SignUp_Success(t *testing.T) {
 			scanRowOrFatal(t, `
 				SELECT id, email, password_hash, verification_code_hash, ticket_hash, expires_at
 				FROM pending_signup_attempts WHERE email = $1
-				ORDER BY created_at DESC LIMIT 1
+				ORDER BY signed_up_at DESC LIMIT 1
 			`, []any{tt.email}, &gotAtmpt.ID, &gotAtmpt.Email, &gotAtmpt.PasswordHash,
 				&gotAtmpt.VerificationCodeHash, &gotAtmpt.TicketHash, &gotAtmpt.ExpiresAt,
 			)

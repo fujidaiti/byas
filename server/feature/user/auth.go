@@ -204,7 +204,7 @@ func SignUp(
 	var nAttempts int
 	err = db.QueryRowContext(ctx, `
 		SELECT COUNT(*) FROM pending_signup_attempts
-		WHERE email = $1 AND created_at >= $2
+		WHERE email = $1 AND signed_up_at >= $2
 	`, email.value, currentTime.Add(-1*throttleWindow)).Scan(&nAttempts)
 	switch {
 	case err != nil:
@@ -246,9 +246,9 @@ func SignUp(
 
 	_, err = db.ExecContext(ctx, `
 		INSERT INTO pending_signup_attempts
-			(email, password_hash, verification_code_hash, ticket_hash, expires_at)
-		VALUES ($1, $2, $3, $4, $5)
-	`, email.value, pswdHash, code.Hash(), ticket.Hash(), expiresAt)
+			(email, password_hash, verification_code_hash, ticket_hash, expires_at, signed_up_at)
+		VALUES ($1, $2, $3, $4, $5, $6)
+	`, email.value, pswdHash, code.Hash(), ticket.Hash(), expiresAt, currentTime)
 	if err != nil {
 		return Token{}, fmt.Errorf("failed to register sign-up attempt: %w", err)
 	}
