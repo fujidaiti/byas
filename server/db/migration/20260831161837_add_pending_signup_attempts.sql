@@ -7,6 +7,7 @@ CREATE TABLE pending_signup_attempts (
     ticket_hash bytea NOT NULL UNIQUE,
     expires_at timestamptz NOT NULL,
     fail_count int NOT NULL DEFAULT 0,
+    -- TODO: rename to something better (attempted_at, maybe?)
     signed_up_at timestamptz NOT NULL
 );
 

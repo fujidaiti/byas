@@ -25,16 +25,15 @@ import (
 )
 
 var (
-	ErrDeviceEmpty     = errors.New("device is empty")
-	ErrEmailInvalid    = errors.New("email has invalid format")
-	ErrEmailTaken      = errors.New("email already exists")
-	ErrPswdInvalid     = errors.New("password has invalid format")
-	ErrAuthFailed      = errors.New("email or password is incorrect")
-	ErrTokenInvalid    = errors.New("token is invalid or has been expired")
-	ErrTooManyAttempts = errors.New("too many attempts")
-
-	ErrEmailVerifyFailed      = errors.New("can not verify email address")
-	ErrEmailVerifyCodeExpired = errors.New("verification code is expired")
+	ErrDeviceEmpty       = errors.New("device is empty")
+	ErrEmailInvalid      = errors.New("email has invalid format")
+	ErrEmailTaken        = errors.New("email already exists")
+	ErrPswdInvalid       = errors.New("password has invalid format")
+	ErrAuthFailed        = errors.New("email or password is incorrect")
+	ErrTokenInvalid      = errors.New("token is invalid or has been expired")
+	ErrTooManyAttempts   = errors.New("too many attempts")
+	ErrEmailVerifyFailed = errors.New("can not verify email address")
+	ErrTicketExpired     = errors.New("email address verification ticket is expired")
 )
 
 // TODO: re-define this as a named type
@@ -114,6 +113,8 @@ func (t Token) Hash() []byte {
 
 type VerificationCode string
 
+type VerificationCodeGenerator = func() (VerificationCode, error)
+
 func NewVerificationCode() (VerificationCode, error) {
 	n, err := rand.Int(rand.Reader, big.NewInt(1_000_000))
 	if err != nil {
@@ -151,7 +152,7 @@ func (s *Service) SignUp(
 func SignUp(
 	ctx context.Context, email CanonicalEmail, pswd ValidPassword,
 	db *sql.DB, currentTime time.Time,
-	generateCode func() (VerificationCode, error),
+	generateCode VerificationCodeGenerator,
 	sendEmail infra.EmailSender,
 ) (Token, error) {
 	const ticketTTL = 10 * time.Minute
@@ -343,7 +344,7 @@ func (s *Service) VerifySignUpEmailAddress(ctx context.Context, ticket, code, de
 		return Token{}, fmt.Errorf("failed to lookup an attempt: %w", err)
 
 	case failCount >= maxFailCount || s.Now().After(expiresAt):
-		return Token{}, ErrEmailVerifyCodeExpired
+		return Token{}, ErrTicketExpired
 	}
 
 	if !VerificationCode(code).Match(codeHash) {
@@ -370,4 +371,11 @@ func (s *Service) VerifySignUpEmailAddress(ctx context.Context, ticket, code, de
 	}
 
 	return s.issueAuthToken(ctx, uID, device)
+}
+
+func ResendSignUpVerificationEmail(
+	ctx context.Context, ticket string, db *sql.DB, currentTime time.Time,
+	generateCode VerificationCodeGenerator, sendEmail infra.EmailSender,
+) (Token, error) {
+	return Token{}, nil
 }

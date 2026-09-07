@@ -1,5 +1,6 @@
 package infra
 
+// TODO: Move these types and functions to infra/email package
 type Draft struct {
 	To      string
 	Subject string
