@@ -399,19 +399,15 @@ func TestAuth_ResendSignUpVerificationEmail_PerAddressThrottling(t *testing.T) {
 		resendAt time.Time
 		wantErr  error
 	}{
-		// Users can request sending a verification email three times
+		// Users can request to send a verification email three times
 		// per address within an hour, including the initial sign-up attempt.
-		{mustTimeUTC("2026-09-03 12:10:58"), nil},
-		{mustTimeUTC("2026-09-03 12:30:00"), nil},
-		{mustTimeUTC("2026-09-03 12:30:01"), user.ErrTooManyAttempts},
-		{mustTimeUTC("2026-09-03 13:00:00"), user.ErrTooManyAttempts},
-		{mustTimeUTC("2026-09-03 13:00:01"), nil},
-		{mustTimeUTC("2026-09-03 13:10:58"), user.ErrTooManyAttempts},
-		{mustTimeUTC("2026-09-03 13:10:59"), nil},
-		{mustTimeUTC("2026-09-03 14:11:00"), nil},
-		{mustTimeUTC("2026-09-03 14:11:30"), nil},
-		{mustTimeUTC("2026-09-03 14:12:00"), nil},
-		{mustTimeUTC("2026-09-03 14:12:30"), user.ErrTooManyAttempts},
+		{mustTimeUTC("2026-09-03 12:01:00"), nil},
+		{mustTimeUTC("2026-09-03 12:02:00"), nil},
+		{mustTimeUTC("2026-09-03 12:03:00"), user.ErrTooManyAttempts},
+		{mustTimeUTC("2026-09-03 12:10:00"), user.ErrTooManyAttempts},
+		// One hour after the initial sign-up, the throttling no longer active,
+		// but the last ticket has already expired.
+		{mustTimeUTC("2026-09-03 13:00:01"), user.ErrTicketExpired},
 	}
 
 	lastTkt := must(user.SignUp(

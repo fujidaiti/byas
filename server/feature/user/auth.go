@@ -155,76 +155,13 @@ func SignUp(
 	generateCode VerificationCodeGenerator,
 	sendEmail infra.EmailSender,
 ) (Token, error) {
-	const ticketTTL = 10 * time.Minute
-	const throttleWindow = time.Hour
-	const throttleCap = 3
-
-	var emailExists bool
-	err := db.QueryRowContext(ctx, `
-		SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)
-	`, email.value).Scan(&emailExists)
-	switch {
-	case err != nil:
-		return Token{}, fmt.Errorf("can not verify email uniquness")
-	case emailExists:
-		return Token{}, ErrEmailTaken
-	}
-
-	var nAttempts int
-	err = db.QueryRowContext(ctx, `
-		SELECT COUNT(*) FROM pending_signup_attempts
-		WHERE email = $1 AND signed_up_at >= $2
-	`, email.value, currentTime.Add(-1*throttleWindow)).Scan(&nAttempts)
-	switch {
-	case err != nil:
-		return Token{}, fmt.Errorf("failed to count attempts: %w", err)
-	case nAttempts >= throttleCap:
-		return Token{}, ErrTooManyAttempts
-	}
-
-	expiresAt := currentTime.Add(ticketTTL)
 	pswdHash, err := pswd.Hash()
 	if err != nil {
-		return Token{}, fmt.Errorf("failed to hash password: %w", err)
+		return Token{}, err
 	}
-	ticket, err := NewToken()
-	if err != nil {
-		return Token{}, fmt.Errorf("failed to generate sign-up verirication ticket: %w", err)
-	}
-	code, err := generateCode()
-	if err != nil {
-		return Token{}, fmt.Errorf("failed to generate sign-up verification code: %w", err)
-	}
-
-	_, err = db.ExecContext(ctx, `
-		INSERT INTO pending_signup_attempts
-			(email, password_hash, verification_code_hash, ticket_hash, expires_at, signed_up_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
-	`, email.value, pswdHash, code.Hash(), ticket.Hash(), expiresAt, currentTime)
-	if err != nil {
-		return Token{}, fmt.Errorf("failed to register sign-up attempt: %w", err)
-	}
-
-	var buf bytes.Buffer
-	err = verificationEmailTmpl.Execute(&buf, map[string]any{
-		"Code":             code,
-		"ExpiresInMinutes": ticketTTL / time.Minute,
-	})
-	if err != nil {
-		return Token{}, fmt.Errorf("failed to write verification email body: %w", err)
-	}
-	err = sendEmail(infra.Draft{
-		To:      email.value,
-		Subject: "Your verification code",
-		Body:    buf.String(),
-	})
-	if err != nil {
-		// Don't return the error and issue the ticket anyway, so that users can re-request
-		// a verification email later without sending the address and password again.
-		fmt.Printf("failed to send sign-up verification email: %v", err)
-	}
-
-	return ticket, nil
+	return issueSignUpTicket(
+		ctx, email.value, pswdHash, db, currentTime, generateCode, sendEmail,
+	)
 }
 
 func (s *Service) SignIn(
@@ -377,5 +314,100 @@ func ResendSignUpVerificationEmail(
 	ctx context.Context, ticket string, db *sql.DB, currentTime time.Time,
 	generateCode VerificationCodeGenerator, sendEmail infra.EmailSender,
 ) (Token, error) {
-	return Token{}, nil
+	tkt, err := DecodeToken(ticket)
+	if err != nil {
+		return Token{}, ErrTokenInvalid
+	}
+
+	var (
+		email     string
+		pswdHash  []byte
+		expiresAt time.Time
+	)
+	err = db.QueryRowContext(ctx, `
+		SELECT email, password_hash, expires_at
+		FROM pending_signup_attempts WHERE ticket_hash = $1
+	`, tkt.Hash()).Scan(&email, &pswdHash, &expiresAt)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return Token{}, ErrTokenInvalid
+	case err != nil:
+		return Token{}, fmt.Errorf("failed to look up an attempt for ticket: %w", err)
+	case currentTime.After(expiresAt):
+		return Token{}, ErrTicketExpired
+	}
+
+	return issueSignUpTicket(ctx, email, pswdHash, db, currentTime, generateCode, sendEmail)
+}
+
+func issueSignUpTicket(
+	ctx context.Context, email string, passwordHash []byte, db *sql.DB,
+	now time.Time, generateCode VerificationCodeGenerator, sendEmail infra.EmailSender,
+) (Token, error) {
+	const ticketTTL = 10 * time.Minute
+	const throttleWindow = time.Hour
+	const throttleCap = 3
+
+	var emailExists bool
+	err := db.QueryRowContext(ctx, `
+		SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)
+	`, email).Scan(&emailExists)
+	switch {
+	case err != nil:
+		return Token{}, fmt.Errorf("can not verify email uniquness")
+	case emailExists:
+		return Token{}, ErrEmailTaken
+	}
+
+	var nAttempts int
+	err = db.QueryRowContext(ctx, `
+		SELECT COUNT(*) FROM pending_signup_attempts
+		WHERE email = $1 AND signed_up_at >= $2
+	`, email, now.Add(-1*throttleWindow)).Scan(&nAttempts)
+	switch {
+	case err != nil:
+		return Token{}, fmt.Errorf("failed to count attempts: %w", err)
+	case nAttempts >= throttleCap:
+		return Token{}, ErrTooManyAttempts
+	}
+
+	expiresAt := now.Add(ticketTTL)
+	ticket, err := NewToken()
+	if err != nil {
+		return Token{}, fmt.Errorf("failed to generate sign-up verirication ticket: %w", err)
+	}
+	code, err := generateCode()
+	if err != nil {
+		return Token{}, fmt.Errorf("failed to generate sign-up verification code: %w", err)
+	}
+
+	_, err = db.ExecContext(ctx, `
+		INSERT INTO pending_signup_attempts
+			(email, password_hash, verification_code_hash, ticket_hash, expires_at, signed_up_at)
+		VALUES ($1, $2, $3, $4, $5, $6)
+	`, email, passwordHash, code.Hash(), ticket.Hash(), expiresAt, now)
+	if err != nil {
+		return Token{}, fmt.Errorf("failed to register sign-up attempt: %w", err)
+	}
+
+	var buf bytes.Buffer
+	err = verificationEmailTmpl.Execute(&buf, map[string]any{
+		"Code":             code,
+		"ExpiresInMinutes": ticketTTL / time.Minute,
+	})
+	if err != nil {
+		return Token{}, fmt.Errorf("failed to write verification email body: %w", err)
+	}
+	err = sendEmail(infra.Draft{
+		To:      email,
+		Subject: "Your verification code",
+		Body:    buf.String(),
+	})
+	if err != nil {
+		// Don't return the error and issue the ticket anyway, so that users can re-request
+		// a verification email later without sending the address and password again.
+		fmt.Printf("failed to send sign-up verification email: %v", err)
+	}
+
+	return ticket, nil
 }
