@@ -8,22 +8,27 @@ the server and the client together, or version the endpoint.
 
 ## Parameters
 
-| Setting     | Value                                                      |
-| ----------- | ---------------------------------------------------------- |
-| Ticket      | 32 random bytes, the same construction as `AuthToken`      |
-| Code length | 6 digits                                                   |
-| Code hash   | bcrypt at cost 12, the same `bcryptCost` the passwords use |
-| Code TTL    | 10 minutes                                                 |
-| Throttle    | 3 sends per address per hour                               |
-| Fail cap    | 5 wrong codes per attempt                                  |
+| Setting     | Value                                                 |
+| ----------- | ----------------------------------------------------- |
+| Ticket      | 32 random bytes, the same construction as `AuthToken` |
+| Code length | 6 digits                                              |
+| Code hash   | `sha256`, the same construction the ticket uses       |
+| Code TTL    | 10 minutes                                            |
+| Throttle    | 3 sends per address per hour                          |
+| Fail cap    | 5 wrong codes per attempt                             |
 
 - Build the ticket exactly as `AuthToken` in `server/feature/user/auth.go` does:
   32 bytes from `crypto/rand`, `base64.RawURLEncoding` on the wire, `sha256` at
   rest.
 - Generate the code with `rand.Int` over `10^6`, not a modulo of a random
   integer, and format it with `%06d` so leading zeros survive.
-- bcrypt is salted, so a row cannot be looked up by its code hash: fetch the
-  attempt by ticket, then compare the submitted code against the stored hash.
+- Hash the code with `sha256`, not bcrypt. bcrypt accepts a 6-digit input
+  without any problem, but cost 12 would be paid on every verification attempt,
+  which is too expensive for this path. Note that `sha256` of a 6-digit code is
+  reversible from a database dump, because all 10^6 preimages can be enumerated.
+  The short TTL and the fail cap are what limit the damage.
+- Look the attempt up by ticket, then compare the submitted code against the
+  stored hash. Do not look a row up by its code hash.
 - The sixth wrong guess makes the attempt inert.
 
 ## Data model
