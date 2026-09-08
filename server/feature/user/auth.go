@@ -32,6 +32,7 @@ var (
 	ErrAuthFailed        = errors.New("email or password is incorrect")
 	ErrTokenInvalid      = errors.New("token is invalid")
 	ErrTooManyAttempts   = errors.New("too many attempts")
+	ErrCodeInvalid       = errors.New("verification code has invalid format")
 	ErrEmailVerifyFailed = errors.New("can not verify email address")
 	ErrTokenExpired      = errors.New("token is expired")
 )
@@ -114,6 +115,15 @@ func (t Token) Hash() []byte {
 type VerificationCode string
 
 type VerificationCodeGenerator = func() (VerificationCode, error)
+
+var verificationCodeRegex = regexp.MustCompile(`^\d{6}$`)
+
+func ParseVerificationCode(code string) (VerificationCode, bool) {
+	if verificationCodeRegex.MatchString(code) {
+		return VerificationCode(code), true
+	}
+	return "", false
+}
 
 func NewVerificationCode() (VerificationCode, error) {
 	n, err := rand.Int(rand.Reader, big.NewInt(1_000_000))
@@ -235,11 +245,13 @@ func issueSignUpTicket(
 		return Token{}, fmt.Errorf("failed to generate sign-up verification code: %w", err)
 	}
 
-	_, err = db.ExecContext(ctx, `
+	var aID int
+	err = db.QueryRowContext(ctx, `
 		INSERT INTO pending_signup_attempts
 			(email, password_hash, verification_code_hash, ticket_hash, expires_at, attempted_at)
 		VALUES ($1, $2, $3, $4, $5, $6)
-	`, email, passwordHash, code.Hash(), ticket.Hash(), expiresAt, now)
+		RETURNING id
+	`, email, passwordHash, code.Hash(), ticket.Hash(), expiresAt, now).Scan(&aID)
 	if err != nil {
 		return Token{}, fmt.Errorf("failed to register sign-up attempt: %w", err)
 	}
@@ -260,7 +272,7 @@ func issueSignUpTicket(
 	if err != nil {
 		// Don't return the error and issue the ticket anyway, so that users can re-request
 		// a verification email later without sending the address and password again.
-		fmt.Printf("failed to send sign-up verification email: %v", err)
+		fmt.Printf("failed to send sign-up verification email; attempt ID: %d; error: %v", aID, err)
 	}
 
 	return ticket, nil
@@ -277,14 +289,17 @@ func issueSignUpTicket(
 // the ticket is dead: verification never succeeds again event with the correct code.
 //
 // Reports an [ErrTokenInvalid] if the ticket is malformed or no attempt is associated
-// with it, an [ErrTokenExpired] if the ticket is expired or dead, and an
-// [ErrEmailVerifyFailed] if the code is wrong.
+// with it, an [ErrTokenExpired] if the ticket is expired or dead, an [ErrCodeInvalid]
+// if the code is malformed, and an [ErrEmailVerifyFailed] if the code is wrong.
 func (s *Service) VerifySignUpEmailAddress(ctx context.Context, ticket, code, device string) (Token, error) {
 	// The number of wrong codes that kills a ticket.
 	const maxFailCount = 5
 
 	if device == "" {
 		return Token{}, ErrDeviceEmpty
+	}
+	if _, ok := ParseVerificationCode(code); !ok {
+		return Token{}, ErrCodeInvalid
 	}
 	tkt, err := DecodeToken(ticket)
 	if err != nil {

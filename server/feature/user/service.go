@@ -3,20 +3,16 @@ package user
 import (
 	"database/sql"
 	"time"
-
-	"github.com/fujidaiti/paperdoll/server/infra"
 )
 
 type Service struct {
-	DB        *sql.DB
-	Now       func() time.Time
-	SendEmail infra.EmailSender
+	DB  *sql.DB
+	Now func() time.Time
 }
 
-func NewService(db *sql.DB, es infra.EmailSender) *Service {
+func NewService(db *sql.DB) *Service {
 	return &Service{
-		DB:        db,
-		Now:       func() time.Time { return time.Now() },
-		SendEmail: es,
+		DB:  db,
+		Now: func() time.Time { return time.Now() },
 	}
 }

@@ -936,6 +936,15 @@ func TestAuth_VerifySignUpEmailAddress_Failure(t *testing.T) {
 			wantErr:    user.ErrEmailVerifyFailed,
 		},
 		{
+			name:       "malformed code",
+			ticket:     aliceTicket,
+			code:       "12345",
+			device:     alice.device,
+			signUpAt:   mustTimeUTC("2026-07-01 09:15:00"),
+			verifiedAt: mustTimeUTC("2026-07-01 09:16:00"),
+			wantErr:    user.ErrCodeInvalid,
+		},
+		{
 			name:       "unknown ticket",
 			ticket:     must(user.DecodeToken("tLTHpBZIggBuaRO_TGmz0MQkrlQ4tsjXnwFMIQINRnY")).Encode(),
 			code:       alice.code,
@@ -1201,6 +1210,11 @@ func TestAuth_VerifySignUpEmailAddress_FailCountCap(t *testing.T) {
 		{"111111", user.ErrEmailVerifyFailed, mustTimeUTC("2026-07-01 09:20:20")},
 		{"222222", user.ErrEmailVerifyFailed, mustTimeUTC("2026-07-01 09:20:40")},
 		{"333333", user.ErrEmailVerifyFailed, mustTimeUTC("2026-07-01 09:21:00")},
+
+		// Malformed codes don't increase the fail count.
+		{"444", user.ErrCodeInvalid, mustTimeUTC("2026-07-01 09:21:00")},
+		{"abcdef", user.ErrCodeInvalid, mustTimeUTC("2026-07-01 09:21:00")},
+
 		{"444444", user.ErrEmailVerifyFailed, mustTimeUTC("2026-07-01 09:21:30")},
 		// The last wrong code reached the cap (5 times), so the ticket is dead:
 		// even the correct code must not verify it.
