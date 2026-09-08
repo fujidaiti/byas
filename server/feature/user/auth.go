@@ -174,6 +174,14 @@ func SignUp(
 	)
 }
 
+func (s *Service) ResendSignUpVerificationEmail(
+	ctx context.Context, ticket string,
+) (Token, error) {
+	return ResendSignUpVerificationEmail(
+		ctx, ticket, s.DB, s.Now(), NewVerificationCode, infra.SendEmail,
+	)
+}
+
 func ResendSignUpVerificationEmail(
 	ctx context.Context, ticket string, db *sql.DB, currentTime time.Time,
 	generateCode VerificationCodeGenerator, sendEmail infra.EmailSender,
