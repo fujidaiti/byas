@@ -120,9 +120,8 @@ Request:
 | 200    | Verified; `Body.token` carries a new auth token            |
 | 400    | Malformed request (bad code format, empty device, ...)     |
 | 401    | The code is wrong and attempts remain                      |
-| 404    | No attempt matches the ticket                              |
+| 404    | No live attempt matches the ticket (invalid, expired, ...) |
 | 409    | The address was registered by someone else in the meantime |
-| 410    | The attempt is no longer usable (expired, or exhausted)    |
 | 500    | Unknown error                                              |
 
 ### Add `POST /sign-up/resend-verification`
@@ -140,14 +139,13 @@ client holding the password a second time.
 - Return a new ticket. The client must replace the one it holds, and the code
   from the older email will not verify against it.
 
-| Status | Meaning                                                 |
-| ------ | ------------------------------------------------------- |
-| 202    | `Body.ticket`, the same shape `POST /sign-up` returns   |
-| 404    | No attempt matches the ticket                           |
-| 409    | The address was registered in the meantime              |
-| 410    | The attempt is no longer usable (expired, or exhausted) |
-| 429    | The address has been mailed too often lately            |
-| 500    | Unknown error                                           |
+| Status | Meaning                                                    |
+| ------ | ---------------------------------------------------------- |
+| 202    | `Body.ticket`, the same shape `POST /sign-up` returns      |
+| 404    | No live attempt matches the ticket (invalid, expired, ...) |
+| 409    | The address was registered in the meantime                 |
+| 429    | The address has been mailed too often lately               |
+| 500    | Unknown error                                              |
 
 ## Service layer
 
