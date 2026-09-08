@@ -312,7 +312,7 @@ func TestAuth_ResendSignUpVerificationEmail_TicketExpiry(t *testing.T) {
 	}{
 		{"before the expiry", expiresAt.Add(-time.Second), nil},
 		{"exactly at the expiry", expiresAt, nil},
-		{"after the expiry", expiresAt.Add(time.Second), user.ErrTicketExpired},
+		{"after the expiry", expiresAt.Add(time.Second), user.ErrTokenExpired},
 	}
 
 	for _, tt := range test {
@@ -380,7 +380,7 @@ func TestAuth_PerAddressThrottlingForSignupAttempts(t *testing.T) {
 				{"resend", "2026-09-03 12:10:00", user.ErrTooManyAttempts},
 				// One hour after the initial sign-up, the throttle is no longer active,
 				// but the last ticket has already expired.
-				{"resend", "2026-09-03 13:00:01", user.ErrTicketExpired},
+				{"resend", "2026-09-03 13:00:01", user.ErrTokenExpired},
 			},
 		},
 		{
@@ -777,7 +777,7 @@ func TestAuth_VerifyAuthToken(t *testing.T) {
 			token:   token4,
 			checkAt: mustTimeUTC("2026-11-04 12:00:00"),
 			want:    0,
-			wantErr: user.ErrTokenInvalid,
+			wantErr: user.ErrTokenExpired,
 		},
 		{
 			name:    "unknown token",
@@ -942,7 +942,7 @@ func TestAuth_VerifySignUpEmailAddress_Failure(t *testing.T) {
 			device:     alice.device,
 			signUpAt:   mustTimeUTC("2026-07-01 09:15:00"),
 			verifiedAt: mustTimeUTC("2026-07-01 09:16:00"),
-			wantErr:    user.ErrEmailVerifyFailed,
+			wantErr:    user.ErrTokenInvalid,
 		},
 		{
 			name:       "malformed ticket",
@@ -951,7 +951,7 @@ func TestAuth_VerifySignUpEmailAddress_Failure(t *testing.T) {
 			device:     alice.device,
 			signUpAt:   mustTimeUTC("2026-07-01 09:15:00"),
 			verifiedAt: mustTimeUTC("2026-07-01 09:16:00"),
-			wantErr:    user.ErrEmailVerifyFailed,
+			wantErr:    user.ErrTokenInvalid,
 		},
 		{
 			name:       "no device info",
@@ -1067,7 +1067,7 @@ func TestAuth_VerifySignUpEmailAddress_TicketExpiry(t *testing.T) {
 			name:        "after the expiry",
 			email:       "carol@example.com",
 			verifyAt:    expiresAt.Add(time.Second),
-			wantErr:     user.ErrTicketExpired,
+			wantErr:     user.ErrTokenExpired,
 			wantAccount: false,
 		},
 	}
@@ -1204,7 +1204,7 @@ func TestAuth_VerifySignUpEmailAddress_FailCountCap(t *testing.T) {
 		{"444444", user.ErrEmailVerifyFailed, mustTimeUTC("2026-07-01 09:21:30")},
 		// The last wrong code reached the cap (5 times), so the ticket is dead:
 		// even the correct code must not verify it.
-		{code, user.ErrTicketExpired, mustTimeUTC("2026-07-01 09:22:00")},
+		{code, user.ErrTokenExpired, mustTimeUTC("2026-07-01 09:22:00")},
 	}
 
 	s := user.Service{DB: testenv.DB()}

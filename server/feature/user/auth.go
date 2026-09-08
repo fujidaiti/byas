@@ -30,10 +30,10 @@ var (
 	ErrEmailTaken        = errors.New("email already exists")
 	ErrPswdInvalid       = errors.New("password has invalid format")
 	ErrAuthFailed        = errors.New("email or password is incorrect")
-	ErrTokenInvalid      = errors.New("token is invalid or has been expired")
+	ErrTokenInvalid      = errors.New("token is invalid")
 	ErrTooManyAttempts   = errors.New("too many attempts")
 	ErrEmailVerifyFailed = errors.New("can not verify email address")
-	ErrTicketExpired     = errors.New("email address verification ticket is expired")
+	ErrTokenExpired      = errors.New("token is expired")
 )
 
 // TODO: re-define this as a named type
@@ -188,7 +188,7 @@ func ResendSignUpVerificationEmail(
 	case err != nil:
 		return Token{}, fmt.Errorf("failed to look up an attempt for ticket: %w", err)
 	case currentTime.After(expiresAt):
-		return Token{}, ErrTicketExpired
+		return Token{}, ErrTokenExpired
 	}
 
 	return issueSignUpTicket(ctx, email, pswdHash, db, currentTime, generateCode, sendEmail)
@@ -275,6 +275,10 @@ func issueSignUpTicket(
 //
 // On a wrong code, the per-ticket fail count increases. Once it reaches the threshold,
 // the ticket is dead: verification never succeeds again event with the correct code.
+//
+// Reports an [ErrTokenInvalid] if the ticket is malformed or no attempt is associated
+// with it, an [ErrTokenExpired] if the ticket is expired or dead, and an
+// [ErrEmailVerifyFailed] if the code is wrong.
 func (s *Service) VerifySignUpEmailAddress(ctx context.Context, ticket, code, device string) (Token, error) {
 	// The number of wrong codes that kills a ticket.
 	const maxFailCount = 5
@@ -284,7 +288,7 @@ func (s *Service) VerifySignUpEmailAddress(ctx context.Context, ticket, code, de
 	}
 	tkt, err := DecodeToken(ticket)
 	if err != nil {
-		return Token{}, ErrEmailVerifyFailed
+		return Token{}, ErrTokenInvalid
 	}
 
 	var (
@@ -300,13 +304,13 @@ func (s *Service) VerifySignUpEmailAddress(ctx context.Context, ticket, code, de
 	`, tkt.Hash()).Scan(&aID, &email, &pswdHash, &codeHash, &expiresAt, &failCount)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
-		return Token{}, ErrEmailVerifyFailed
+		return Token{}, ErrTokenInvalid
 
 	case err != nil:
 		return Token{}, fmt.Errorf("failed to lookup an attempt: %w", err)
 
 	case failCount >= maxFailCount || s.Now().After(expiresAt):
-		return Token{}, ErrTicketExpired
+		return Token{}, ErrTokenExpired
 	}
 
 	if !VerificationCode(code).Match(codeHash) {
@@ -395,7 +399,8 @@ func (s *Service) SignOut(ctx context.Context, t string) error {
 }
 
 // VerifyAuthToken checks if the encoded token t is valid and finds the user who
-// owns that token. Reports an [ErrTokenInvalid] if the token is malformed or expired.
+// owns that token. Reports an [ErrTokenInvalid] if the token is malformed or no user
+// is associated with it, and an [ErrTokenExpired] if the token is expired.
 // TODO: Garbage-collect expired tokens
 func (s *Service) VerifyAuthToken(ctx context.Context, t string) (UserID, error) {
 	token, err := DecodeToken(t)
@@ -403,11 +408,17 @@ func (s *Service) VerifyAuthToken(ctx context.Context, t string) (UserID, error)
 		return 0, err
 	}
 	var id UserID
+	var expiresAt time.Time
 	err = s.DB.QueryRowContext(ctx, `
-		SELECT user_id FROM auth_tokens WHERE expires_at > $1 AND token_hash = $2
-	`, s.Now(), token.Hash()).Scan(&id)
-	if err != nil {
+		SELECT user_id, expires_at FROM auth_tokens WHERE token_hash = $1
+	`, token.Hash()).Scan(&id, &expiresAt)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
 		return 0, ErrTokenInvalid
+	case err != nil:
+		return 0, fmt.Errorf("failed to look up an auth token: %w", err)
+	case s.Now().After(expiresAt):
+		return 0, ErrTokenExpired
 	}
 	return id, nil
 }
