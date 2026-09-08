@@ -164,152 +164,6 @@ func SignUp(
 	)
 }
 
-func (s *Service) SignIn(
-	ctx context.Context, email CanonicalEmail, pswd, device string,
-) (Token, error) {
-	if device == "" {
-		return Token{}, ErrDeviceEmpty
-	}
-	var pswdHash []byte
-	var id int
-	err := s.DB.QueryRowContext(ctx, `
-		SELECT id, password_hash FROM users WHERE email = $1
-	`, email.value).Scan(&id, &pswdHash)
-	switch {
-	case errors.Is(err, sql.ErrNoRows):
-		return Token{}, ErrAuthFailed
-	case err != nil:
-		return Token{}, err
-	}
-	if !(ValidPassword{pswd}).Match(pswdHash) {
-		return Token{}, ErrAuthFailed
-	}
-	return s.issueAuthToken(ctx, id, device)
-}
-
-func (s *Service) issueAuthToken(
-	ctx context.Context, id UserID, device string,
-) (Token, error) {
-	const tokenExpiresInDays = 30
-
-	token, err := NewToken()
-	if err != nil {
-		return Token{}, err
-	}
-	expr := s.Now().AddDate(0, 0, tokenExpiresInDays)
-	_, err = s.DB.ExecContext(ctx, `
-		INSERT INTO auth_tokens (user_id, device, token_hash, expires_at)
-		VALUES ($1, $2, $3, $4)
-	`, id, device, token.Hash(), expr)
-	if err != nil {
-		return Token{}, err
-	}
-	return token, nil
-}
-
-// SignOut revokes the encoded token t. The user who owns that token remains
-// authorized as long as their other tokens are valid.
-//
-// This operation does not fail even if the token is invalid, but it may report
-// an unknown error due to infrastructure issues.
-func (s *Service) SignOut(ctx context.Context, t string) error {
-	token, err := DecodeToken(t)
-	if err != nil {
-		return nil
-	}
-	_, err = s.DB.ExecContext(ctx, `
-		DELETE FROM auth_tokens WHERE token_hash = $1
-	`, token.Hash())
-	return err
-}
-
-// VerifyAuthToken checks if the encoded token t is valid and finds the user who
-// owns that token. Reports an [ErrTokenInvalid] if the token is malformed or expired.
-// TODO: Garbage-collect expired tokens
-func (s *Service) VerifyAuthToken(ctx context.Context, t string) (UserID, error) {
-	token, err := DecodeToken(t)
-	if err != nil {
-		return 0, err
-	}
-	var id UserID
-	err = s.DB.QueryRowContext(ctx, `
-		SELECT user_id FROM auth_tokens WHERE expires_at > $1 AND token_hash = $2
-	`, s.Now(), token.Hash()).Scan(&id)
-	if err != nil {
-		return 0, ErrTokenInvalid
-	}
-	return id, nil
-}
-
-// VerifySignUpEmailAddress verifies the submitted email address and promotes it
-// to a new account if confirmed. Clients call this after the user signs up and
-// receives an email with a verification code.
-//
-// The email is verified only if the pair of ticket and code is correct, which are
-// generated in the same sign-up attempt.
-//
-// On a wrong code, the per-ticket fail count increases. Once it reaches the threshold,
-// the ticket is dead: verification never succeeds again event with the correct code.
-func (s *Service) VerifySignUpEmailAddress(ctx context.Context, ticket, code, device string) (Token, error) {
-	// The number of wrong codes that kills a ticket.
-	const maxFailCount = 5
-
-	if device == "" {
-		return Token{}, ErrDeviceEmpty
-	}
-	tkt, err := DecodeToken(ticket)
-	if err != nil {
-		return Token{}, ErrEmailVerifyFailed
-	}
-
-	var (
-		aID                int
-		email              string
-		pswdHash, codeHash []byte
-		expiresAt          time.Time
-		failCount          int
-	)
-	err = s.DB.QueryRowContext(ctx, `
-		SELECT id, email, password_hash, verification_code_hash, expires_at, fail_count
-		FROM pending_signup_attempts WHERE ticket_hash = $1
-	`, tkt.Hash()).Scan(&aID, &email, &pswdHash, &codeHash, &expiresAt, &failCount)
-	switch {
-	case errors.Is(err, sql.ErrNoRows):
-		return Token{}, ErrEmailVerifyFailed
-
-	case err != nil:
-		return Token{}, fmt.Errorf("failed to lookup an attempt: %w", err)
-
-	case failCount >= maxFailCount || s.Now().After(expiresAt):
-		return Token{}, ErrTicketExpired
-	}
-
-	if !VerificationCode(code).Match(codeHash) {
-		_, err := s.DB.ExecContext(ctx, `
-			UPDATE pending_signup_attempts
-			SET fail_count = fail_count + 1 WHERE id = $1
-		`, aID)
-		if err != nil {
-			fmt.Printf("failed to increase fail count: %v\n", err)
-		}
-		return Token{}, ErrEmailVerifyFailed
-	}
-
-	var uID UserID
-	err = s.DB.QueryRowContext(ctx, `
-		INSERT INTO users (email, password_hash) VALUES ($1, $2)
-		ON CONFLICT (email) DO NOTHING RETURNING id
-	`, email, pswdHash).Scan(&uID)
-	switch {
-	case errors.Is(err, sql.ErrNoRows):
-		return Token{}, ErrEmailTaken
-	case err != nil:
-		return Token{}, fmt.Errorf("failed to create new account: %w", err)
-	}
-
-	return s.issueAuthToken(ctx, uID, device)
-}
-
 func ResendSignUpVerificationEmail(
 	ctx context.Context, ticket string, db *sql.DB, currentTime time.Time,
 	generateCode VerificationCodeGenerator, sendEmail infra.EmailSender,
@@ -410,4 +264,150 @@ func issueSignUpTicket(
 	}
 
 	return ticket, nil
+}
+
+// VerifySignUpEmailAddress verifies the submitted email address and promotes it
+// to a new account if confirmed. Clients call this after the user signs up and
+// receives an email with a verification code.
+//
+// The email is verified only if the pair of ticket and code is correct, which are
+// generated in the same sign-up attempt.
+//
+// On a wrong code, the per-ticket fail count increases. Once it reaches the threshold,
+// the ticket is dead: verification never succeeds again event with the correct code.
+func (s *Service) VerifySignUpEmailAddress(ctx context.Context, ticket, code, device string) (Token, error) {
+	// The number of wrong codes that kills a ticket.
+	const maxFailCount = 5
+
+	if device == "" {
+		return Token{}, ErrDeviceEmpty
+	}
+	tkt, err := DecodeToken(ticket)
+	if err != nil {
+		return Token{}, ErrEmailVerifyFailed
+	}
+
+	var (
+		aID                int
+		email              string
+		pswdHash, codeHash []byte
+		expiresAt          time.Time
+		failCount          int
+	)
+	err = s.DB.QueryRowContext(ctx, `
+		SELECT id, email, password_hash, verification_code_hash, expires_at, fail_count
+		FROM pending_signup_attempts WHERE ticket_hash = $1
+	`, tkt.Hash()).Scan(&aID, &email, &pswdHash, &codeHash, &expiresAt, &failCount)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return Token{}, ErrEmailVerifyFailed
+
+	case err != nil:
+		return Token{}, fmt.Errorf("failed to lookup an attempt: %w", err)
+
+	case failCount >= maxFailCount || s.Now().After(expiresAt):
+		return Token{}, ErrTicketExpired
+	}
+
+	if !VerificationCode(code).Match(codeHash) {
+		_, err := s.DB.ExecContext(ctx, `
+			UPDATE pending_signup_attempts
+			SET fail_count = fail_count + 1 WHERE id = $1
+		`, aID)
+		if err != nil {
+			fmt.Printf("failed to increase fail count: %v\n", err)
+		}
+		return Token{}, ErrEmailVerifyFailed
+	}
+
+	var uID UserID
+	err = s.DB.QueryRowContext(ctx, `
+		INSERT INTO users (email, password_hash) VALUES ($1, $2)
+		ON CONFLICT (email) DO NOTHING RETURNING id
+	`, email, pswdHash).Scan(&uID)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return Token{}, ErrEmailTaken
+	case err != nil:
+		return Token{}, fmt.Errorf("failed to create new account: %w", err)
+	}
+
+	return s.issueAuthToken(ctx, uID, device)
+}
+
+func (s *Service) SignIn(
+	ctx context.Context, email CanonicalEmail, pswd, device string,
+) (Token, error) {
+	if device == "" {
+		return Token{}, ErrDeviceEmpty
+	}
+	var pswdHash []byte
+	var id int
+	err := s.DB.QueryRowContext(ctx, `
+		SELECT id, password_hash FROM users WHERE email = $1
+	`, email.value).Scan(&id, &pswdHash)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return Token{}, ErrAuthFailed
+	case err != nil:
+		return Token{}, err
+	}
+	if !(ValidPassword{pswd}).Match(pswdHash) {
+		return Token{}, ErrAuthFailed
+	}
+	return s.issueAuthToken(ctx, id, device)
+}
+
+func (s *Service) issueAuthToken(
+	ctx context.Context, id UserID, device string,
+) (Token, error) {
+	const tokenExpiresInDays = 30
+
+	token, err := NewToken()
+	if err != nil {
+		return Token{}, err
+	}
+	expr := s.Now().AddDate(0, 0, tokenExpiresInDays)
+	_, err = s.DB.ExecContext(ctx, `
+		INSERT INTO auth_tokens (user_id, device, token_hash, expires_at)
+		VALUES ($1, $2, $3, $4)
+	`, id, device, token.Hash(), expr)
+	if err != nil {
+		return Token{}, err
+	}
+	return token, nil
+}
+
+// SignOut revokes the encoded token t. The user who owns that token remains
+// authorized as long as their other tokens are valid.
+//
+// This operation does not fail even if the token is invalid, but it may report
+// an unknown error due to infrastructure issues.
+func (s *Service) SignOut(ctx context.Context, t string) error {
+	token, err := DecodeToken(t)
+	if err != nil {
+		return nil
+	}
+	_, err = s.DB.ExecContext(ctx, `
+		DELETE FROM auth_tokens WHERE token_hash = $1
+	`, token.Hash())
+	return err
+}
+
+// VerifyAuthToken checks if the encoded token t is valid and finds the user who
+// owns that token. Reports an [ErrTokenInvalid] if the token is malformed or expired.
+// TODO: Garbage-collect expired tokens
+func (s *Service) VerifyAuthToken(ctx context.Context, t string) (UserID, error) {
+	token, err := DecodeToken(t)
+	if err != nil {
+		return 0, err
+	}
+	var id UserID
+	err = s.DB.QueryRowContext(ctx, `
+		SELECT user_id FROM auth_tokens WHERE expires_at > $1 AND token_hash = $2
+	`, s.Now(), token.Hash()).Scan(&id)
+	if err != nil {
+		return 0, ErrTokenInvalid
+	}
+	return id, nil
 }
