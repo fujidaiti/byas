@@ -224,46 +224,6 @@ func TestAuth_SignUp_EmailUniqueness(t *testing.T) {
 	}
 }
 
-func TestAuth_SignUp_PerAddressThrottle(t *testing.T) {
-	t.Cleanup(testenv.TearDown)
-
-	test := []struct {
-		signUpAt time.Time
-		wantErr  error
-	}{
-		// Users can try three times per address within an hour.
-		{mustTimeUTC("2026-09-03 12:00:00"), nil},
-		{mustTimeUTC("2026-09-03 12:10:58"), nil},
-		{mustTimeUTC("2026-09-03 12:30:00"), nil},
-		{mustTimeUTC("2026-09-03 12:30:01"), user.ErrTooManyAttempts},
-		{mustTimeUTC("2026-09-03 13:00:00"), user.ErrTooManyAttempts},
-		{mustTimeUTC("2026-09-03 13:00:01"), nil},
-		{mustTimeUTC("2026-09-03 13:10:58"), user.ErrTooManyAttempts},
-		{mustTimeUTC("2026-09-03 13:10:59"), nil},
-		{mustTimeUTC("2026-09-03 14:11:00"), nil},
-		{mustTimeUTC("2026-09-03 14:11:30"), nil},
-		{mustTimeUTC("2026-09-03 14:12:00"), nil},
-		{mustTimeUTC("2026-09-03 14:12:30"), user.ErrTooManyAttempts},
-	}
-
-	for i, tt := range test {
-		t.Run(fmt.Sprintf("attempt %d", i+1), func(t *testing.T) {
-			_, got := user.SignUp(
-				t.Context(),
-				must(user.ParseEmail("alice@example.com")),
-				must(user.ValidatePassword("Test$Password#1234")),
-				testenv.DB(),
-				tt.signUpAt,
-				func() (user.VerificationCode, error) { return "123456", nil },
-				func(_ infra.Draft) error { return nil },
-			)
-			if !errors.Is(got, tt.wantErr) {
-				t.Errorf("got %q, want %q", got, tt.wantErr)
-			}
-		})
-	}
-}
-
 func TestAuth_ResendSignUpVerificationEmail_Success(t *testing.T) {
 	t.Cleanup(testenv.TearDown)
 
@@ -367,102 +327,9 @@ func TestAuth_ResendSignUpVerificationEmail_TicketExpiry(t *testing.T) {
 				testenv.DB(), signUpAt, user.NewVerificationCode,
 				func(_ infra.Draft) error { return nil },
 			))
-
-			var emailSent bool
-			captureEmailSend := func(_ infra.Draft) error {
-				emailSent = true
-				return nil
-			}
-
 			_, gotErr := user.ResendSignUpVerificationEmail(
-				t.Context(), tkt.Encode(), testenv.DB(), tt.resendAt,
-				user.NewVerificationCode, captureEmailSend,
-			)
-			if !errors.Is(gotErr, tt.wantErr) {
-				t.Errorf("got %q, want %q", gotErr, tt.wantErr)
-			}
-			switch {
-			case gotErr != nil && emailSent:
-				t.Errorf("email must not be sent when got error: %q", gotErr)
-			case gotErr == nil && !emailSent:
-				t.Errorf("email is not sent but no error is reported")
-			}
-		})
-	}
-}
-
-func TestAuth_ResendSignUpVerificationEmail_PerAddressThrottling(t *testing.T) {
-	t.Cleanup(testenv.TearDown)
-
-	signUpAt := mustTimeUTC("2026-09-03 12:00:00")
-	test := []struct {
-		resendAt time.Time
-		wantErr  error
-	}{
-		// Users can request to send a verification email three times
-		// per address within an hour, including the initial sign-up attempt.
-		{mustTimeUTC("2026-09-03 12:01:00"), nil},
-		{mustTimeUTC("2026-09-03 12:02:00"), nil},
-		{mustTimeUTC("2026-09-03 12:03:00"), user.ErrTooManyAttempts},
-		{mustTimeUTC("2026-09-03 12:10:00"), user.ErrTooManyAttempts},
-		// One hour after the initial sign-up, the throttling no longer active,
-		// but the last ticket has already expired.
-		{mustTimeUTC("2026-09-03 13:00:01"), user.ErrTicketExpired},
-	}
-
-	lastTkt := must(user.SignUp(
-		t.Context(),
-		must(user.ParseEmail("alice@example.com")),
-		must(user.ValidatePassword("Test$Password#1234")),
-		testenv.DB(), signUpAt,
-		func() (user.VerificationCode, error) { return "123456", nil },
-		func(_ infra.Draft) error { return nil },
-	))
-
-	for i, tt := range test {
-		t.Run(fmt.Sprintf("attempt %d", i+1), func(t *testing.T) {
-			gotTkt, gotErr := user.ResendSignUpVerificationEmail(
-				t.Context(), lastTkt.Encode(), testenv.DB(), tt.resendAt,
-				func() (user.VerificationCode, error) { return "123456", nil },
-				func(_ infra.Draft) error { return nil },
-			)
-			if gotErr == nil {
-				lastTkt = gotTkt
-			}
-			if !errors.Is(gotErr, tt.wantErr) {
-				t.Errorf("got %q, want %q", gotErr, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestAuth_ResendSignUpVerificationEmail_PerAddressThrottlingWithSameTicket(t *testing.T) {
-	t.Cleanup(testenv.TearDown)
-
-	signUpAt := mustTimeUTC("2026-09-03 12:00:00")
-	test := []struct {
-		resendAt time.Time
-		wantErr  error
-	}{
-		{mustTimeUTC("2026-09-03 12:00:30"), nil},
-		{mustTimeUTC("2026-09-03 12:01:00"), nil},
-		{mustTimeUTC("2026-09-03 12:02:00"), user.ErrTooManyAttempts},
-	}
-
-	tkt := must(user.SignUp(
-		t.Context(),
-		must(user.ParseEmail("alice@example.com")),
-		must(user.ValidatePassword("Test$Password#1234")),
-		testenv.DB(), signUpAt,
-		func() (user.VerificationCode, error) { return "123456", nil },
-		func(_ infra.Draft) error { return nil },
-	))
-
-	for i, tt := range test {
-		t.Run(fmt.Sprintf("attempt %d", i+1), func(t *testing.T) {
-			_, gotErr := user.ResendSignUpVerificationEmail(
-				t.Context(), tkt.Encode(), testenv.DB(), tt.resendAt,
-				func() (user.VerificationCode, error) { return "654321", nil },
+				t.Context(), tkt.Encode(), testenv.DB(),
+				tt.resendAt, user.NewVerificationCode,
 				func(_ infra.Draft) error { return nil },
 			)
 			if !errors.Is(gotErr, tt.wantErr) {
@@ -472,63 +339,129 @@ func TestAuth_ResendSignUpVerificationEmail_PerAddressThrottlingWithSameTicket(t
 	}
 }
 
-func TestAuth_PerAddressThrottling_SignUpResendCombinations(t *testing.T) {
-	t.Cleanup(testenv.TearDown)
-
-	test := []struct {
-		operation, attemptAt string
-		wantErr              error
-	}{
-		// Users can request to send a verification email three times
-		// per address within an hour, including the initial sign-up attempt.
-		{"signup", "2026-09-03 12:00:00", nil},
-		{"resend", "2026-09-03 12:02:00", nil},
-		{"resend", "2026-09-03 12:05:00", nil},
-		{"resend", "2026-09-03 12:09:00", user.ErrTooManyAttempts},
-		{"signup", "2026-09-03 12:10:00", user.ErrTooManyAttempts},
-		{"signup", "2026-09-03 13:00:01", nil},
-		{"resend", "2026-09-03 13:01:00", user.ErrTooManyAttempts},
-		{"signup", "2026-09-03 13:02:00", user.ErrTooManyAttempts},
-		{"resend", "2026-09-03 13:02:01", nil},
-		{"signup", "2026-09-03 14:02:02", nil},
-		{"signup", "2026-09-03 14:30:00", nil},
-		{"resend", "2026-09-03 14:39:59", nil},
-		{"resend", "2026-09-03 14:45:00", user.ErrTooManyAttempts},
-		{"signup", "2026-09-03 14:46:00", user.ErrTooManyAttempts},
+func TestAuth_PerAddressThrottlingForSignupAttempts(t *testing.T) {
+	type Op struct {
+		name, attemptAt string
+		wantErr         error
 	}
 
-	var lastTkt user.Token
-	for i, tt := range test {
-		t.Run(fmt.Sprintf("attempt %d (%s)", i+1, tt.operation), func(t *testing.T) {
-			var gotTkt user.Token
-			var gotErr error
-			switch tt.operation {
-			case "signup":
-				gotTkt, gotErr = user.SignUp(
-					t.Context(),
-					must(user.ParseEmail("alice@example.com")),
-					must(user.ValidatePassword("Test$Password#1234")),
-					testenv.DB(), mustTimeUTC(tt.attemptAt),
-					func() (user.VerificationCode, error) { return "123456", nil },
-					func(_ infra.Draft) error { return nil },
-				)
+	test := []struct {
+		name        string
+		reuseTicket bool
+		operations  []Op
+	}{
+		{
+			name: "signup",
+			operations: []Op{
+				// Users can try three times per address within an hour.
+				{"signup", "2026-09-03 12:00:00", nil},
+				{"signup", "2026-09-03 12:10:58", nil},
+				{"signup", "2026-09-03 12:30:00", nil},
+				{"signup", "2026-09-03 12:30:01", user.ErrTooManyAttempts},
+				{"signup", "2026-09-03 13:00:00", user.ErrTooManyAttempts},
+				{"signup", "2026-09-03 13:00:01", nil},
+				{"signup", "2026-09-03 13:10:58", user.ErrTooManyAttempts},
+				{"signup", "2026-09-03 13:10:59", nil},
+				{"signup", "2026-09-03 14:11:00", nil},
+				{"signup", "2026-09-03 14:11:30", nil},
+				{"signup", "2026-09-03 14:12:00", nil},
+				{"signup", "2026-09-03 14:12:30", user.ErrTooManyAttempts},
+			},
+		},
+		{
+			name: "resend",
+			operations: []Op{
+				{"signup", "2026-09-03 12:00:00", nil},
+				// Users can request to send a verification email three times
+				// per address within an hour, including the initial sign-up attempt.
+				{"resend", "2026-09-03 12:01:00", nil},
+				{"resend", "2026-09-03 12:02:00", nil},
+				{"resend", "2026-09-03 12:03:00", user.ErrTooManyAttempts},
+				{"resend", "2026-09-03 12:10:00", user.ErrTooManyAttempts},
+				// One hour after the initial sign-up, the throttle is no longer active,
+				// but the last ticket has already expired.
+				{"resend", "2026-09-03 13:00:01", user.ErrTicketExpired},
+			},
+		},
+		{
+			name:        "resend with same ticket",
+			reuseTicket: true,
+			operations: []Op{
+				{"signup", "2026-09-03 12:00:00", nil},
+				{"resend", "2026-09-03 12:00:30", nil},
+				{"resend", "2026-09-03 12:01:00", nil},
+				{"resend", "2026-09-03 12:02:00", user.ErrTooManyAttempts},
+			},
+		},
+		{
+			name: "signup and resend",
+			operations: []Op{
+				// Users can request to send a verification email three times
+				// per address within an hour, including the initial sign-up attempt.
+				{"signup", "2026-09-03 12:00:00", nil},
+				{"resend", "2026-09-03 12:02:00", nil},
+				{"resend", "2026-09-03 12:05:00", nil},
+				{"resend", "2026-09-03 12:09:00", user.ErrTooManyAttempts},
+				{"signup", "2026-09-03 12:10:00", user.ErrTooManyAttempts},
+				{"signup", "2026-09-03 13:00:01", nil},
+				{"resend", "2026-09-03 13:01:00", user.ErrTooManyAttempts},
+				{"signup", "2026-09-03 13:02:00", user.ErrTooManyAttempts},
+				{"resend", "2026-09-03 13:02:01", nil},
+				{"signup", "2026-09-03 14:02:02", nil},
+				{"signup", "2026-09-03 14:30:00", nil},
+				{"resend", "2026-09-03 14:39:59", nil},
+				{"resend", "2026-09-03 14:45:00", user.ErrTooManyAttempts},
+				{"signup", "2026-09-03 14:46:00", user.ErrTooManyAttempts},
+			},
+		},
+	}
 
-			case "resend":
-				gotTkt, gotErr = user.ResendSignUpVerificationEmail(
-					t.Context(), lastTkt.Encode(), testenv.DB(), mustTimeUTC(tt.attemptAt),
-					func() (user.VerificationCode, error) { return "123456", nil },
-					func(_ infra.Draft) error { return nil },
-				)
+	for _, tt := range test {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Cleanup(testenv.TearDown)
+			var lastTkt user.Token
+			for i, op := range tt.operations {
+				tag := fmt.Sprintf("attempt %d (%s)", i+1, op.name)
+				var gotTkt user.Token
+				var gotErr error
 
-			default:
-				t.Fatalf("invalid operation: %s", tt.operation)
-			}
+				var emailSent bool
+				captureEmailSend := func(_ infra.Draft) error {
+					emailSent = true
+					return nil
+				}
 
-			if gotErr == nil {
-				lastTkt = gotTkt
-			}
-			if !errors.Is(gotErr, tt.wantErr) {
-				t.Errorf("got %q, want %q", gotErr, tt.wantErr)
+				switch op.name {
+				case "signup":
+					gotTkt, gotErr = user.SignUp(
+						t.Context(),
+						must(user.ParseEmail("alice@example.com")),
+						must(user.ValidatePassword("Test$Password#1234")),
+						testenv.DB(), mustTimeUTC(op.attemptAt),
+						user.NewVerificationCode, captureEmailSend,
+					)
+				case "resend":
+					gotTkt, gotErr = user.ResendSignUpVerificationEmail(
+						t.Context(), lastTkt.Encode(),
+						testenv.DB(), mustTimeUTC(op.attemptAt),
+						user.NewVerificationCode, captureEmailSend,
+					)
+				default:
+					t.Fatalf("%s: invalid operation: %s", tag, op.name)
+				}
+
+				if i == 0 || (!tt.reuseTicket && gotErr == nil) {
+					lastTkt = gotTkt
+				}
+				if !errors.Is(gotErr, op.wantErr) {
+					t.Errorf("%s: got %q, want %q", tag, gotErr, op.wantErr)
+				}
+				switch {
+				case gotErr != nil && emailSent:
+					t.Errorf("email must not be sent when got error: %q", gotErr)
+				case gotErr == nil && !emailSent:
+					t.Errorf("email is not sent but no error is reported")
+				}
 			}
 		})
 	}
