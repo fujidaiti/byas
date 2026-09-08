@@ -37,10 +37,10 @@ const (
 func provisionTestAccount(ctx context.Context, db *sql.DB) (user.Token, error) {
 	email := must(user.ParseEmail(testAccountEmail))
 	pswd := must(user.ValidatePassword(testAccountPassword))
-	code := "123456"
+	code := must(user.NewVerificationCode())
 	ticket, err := user.SignUp(
 		ctx, email, pswd, db, time.Now(),
-		func() (user.VerificationCode, error) { return user.VerificationCode(code), nil },
+		func() (user.VerificationCode, error) { return code, nil },
 		func(_ infra.EmailDraft) error { return nil },
 	)
 	if err != nil {
@@ -48,7 +48,7 @@ func provisionTestAccount(ctx context.Context, db *sql.DB) (user.Token, error) {
 	}
 
 	svc := &user.Service{DB: db, Now: time.Now}
-	return svc.VerifySignUpEmailAddress(ctx, ticket.Encode(), code, "TestDevice/OS")
+	return svc.VerifySignUpEmailAddress(ctx, ticket.Encode(), string(code), "TestDevice/OS")
 }
 
 func seedDB(ctx context.Context, db *sql.DB, seederID string) error {
