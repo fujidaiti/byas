@@ -482,18 +482,19 @@ func TestAuth_PerAddressThrottling_SignUpResendCombinations(t *testing.T) {
 		// Users can request to send a verification email three times
 		// per address within an hour, including the initial sign-up attempt.
 		{"signup", "2026-09-03 12:00:00", nil},
-		{"resend", "2026-09-03 12:10:58", nil},
-		{"resend", "2026-09-03 12:30:00", nil},
-		{"resend", "2026-09-03 12:30:01", user.ErrTooManyAttempts},
-		{"signup", "2026-09-03 13:00:00", user.ErrTooManyAttempts},
-		{"resend", "2026-09-03 13:00:01", nil},
-		{"resend", "2026-09-03 13:10:58", user.ErrTooManyAttempts},
-		{"signup", "2026-09-03 13:10:59", nil},
-		{"resend", "2026-09-03 14:11:00", nil},
-		{"resend", "2026-09-03 14:11:30", nil},
-		{"signup", "2026-09-03 14:12:00", nil},
-		{"resend", "2026-09-03 14:12:30", user.ErrTooManyAttempts},
-		{"signup", "2026-09-03 14:13:00", user.ErrTooManyAttempts},
+		{"resend", "2026-09-03 12:02:00", nil},
+		{"resend", "2026-09-03 12:05:00", nil},
+		{"resend", "2026-09-03 12:09:00", user.ErrTooManyAttempts},
+		{"signup", "2026-09-03 12:10:00", user.ErrTooManyAttempts},
+		{"signup", "2026-09-03 13:00:01", nil},
+		{"resend", "2026-09-03 13:01:00", user.ErrTooManyAttempts},
+		{"signup", "2026-09-03 13:02:00", user.ErrTooManyAttempts},
+		{"resend", "2026-09-03 13:02:01", nil},
+		{"signup", "2026-09-03 14:02:02", nil},
+		{"signup", "2026-09-03 14:30:00", nil},
+		{"resend", "2026-09-03 14:39:59", nil},
+		{"resend", "2026-09-03 14:45:00", user.ErrTooManyAttempts},
+		{"signup", "2026-09-03 14:46:00", user.ErrTooManyAttempts},
 	}
 
 	var lastTkt user.Token
