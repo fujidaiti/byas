@@ -216,7 +216,7 @@ func issueSignUpTicket(
 	var nAttempts int
 	err = db.QueryRowContext(ctx, `
 		SELECT COUNT(*) FROM pending_signup_attempts
-		WHERE email = $1 AND signed_up_at >= $2
+		WHERE email = $1 AND attempted_at >= $2
 	`, email, now.Add(-1*throttleWindow)).Scan(&nAttempts)
 	switch {
 	case err != nil:
@@ -237,7 +237,7 @@ func issueSignUpTicket(
 
 	_, err = db.ExecContext(ctx, `
 		INSERT INTO pending_signup_attempts
-			(email, password_hash, verification_code_hash, ticket_hash, expires_at, signed_up_at)
+			(email, password_hash, verification_code_hash, ticket_hash, expires_at, attempted_at)
 		VALUES ($1, $2, $3, $4, $5, $6)
 	`, email, passwordHash, code.Hash(), ticket.Hash(), expiresAt, now)
 	if err != nil {

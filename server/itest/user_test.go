@@ -104,7 +104,7 @@ func TestAuth_SignUp_Success(t *testing.T) {
 			scanRowOrFatal(t, `
 				SELECT id, email, password_hash, verification_code_hash, ticket_hash, expires_at
 				FROM pending_signup_attempts WHERE email = $1
-				ORDER BY signed_up_at DESC LIMIT 1
+				ORDER BY attempted_at DESC LIMIT 1
 			`, []any{tt.email}, &gotAtmpt.ID, &gotAtmpt.Email, &gotAtmpt.PasswordHash,
 				&gotAtmpt.VerificationCodeHash, &gotAtmpt.TicketHash, &gotAtmpt.ExpiresAt,
 			)
@@ -262,8 +262,8 @@ func TestAuth_ResendSignUpVerificationEmail_Success(t *testing.T) {
 
 	var gotAtmpt pendingSignUpAttemptRecord
 	scanRowOrFatal(t, `
-		SELECT id, email, password_hash, verification_code_hash, ticket_hash, expires_at, signed_up_at
-		FROM pending_signup_attempts ORDER BY signed_up_at DESC LIMIT 1
+		SELECT id, email, password_hash, verification_code_hash, ticket_hash, expires_at, attempted_at
+		FROM pending_signup_attempts ORDER BY attempted_at DESC LIMIT 1
 	`, []any{}, &gotAtmpt.ID, &gotAtmpt.Email, &gotAtmpt.PasswordHash,
 		&gotAtmpt.VerificationCodeHash, &gotAtmpt.TicketHash,
 		&gotAtmpt.ExpiresAt, &gotAtmpt.SignedUpAt,

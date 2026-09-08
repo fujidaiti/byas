@@ -7,12 +7,11 @@ CREATE TABLE pending_signup_attempts (
     ticket_hash bytea NOT NULL UNIQUE,
     expires_at timestamptz NOT NULL,
     fail_count int NOT NULL DEFAULT 0,
-    -- TODO: rename to something better (attempted_at, maybe?)
-    signed_up_at timestamptz NOT NULL
+    attempted_at timestamptz NOT NULL
 );
 
-CREATE INDEX pending_signup_attempts_email_signed_up_at_idx
-    ON pending_signup_attempts (email, signed_up_at);
+CREATE INDEX pending_signup_attempts_email_attempted_at_idx
+    ON pending_signup_attempts (email, attempted_at);
 
 -- +goose Down
 DROP TABLE pending_signup_attempts;
