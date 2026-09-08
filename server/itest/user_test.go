@@ -78,8 +78,8 @@ func TestAuth_SignUp_Success(t *testing.T) {
 	var gotTickets []user.Token
 	for _, tt := range test {
 		t.Run(tt.name, func(t *testing.T) {
-			var gotEmailDraft infra.Draft
-			captureEmailSent := func(d infra.Draft) error {
+			var gotEmailDraft infra.EmailDraft
+			captureEmailSent := func(d infra.EmailDraft) error {
 				gotEmailDraft = d
 				return nil
 			}
@@ -202,7 +202,7 @@ func TestAuth_SignUp_EmailUniqueness(t *testing.T) {
 				testenv.DB(),
 				tt.signUpAt,
 				user.NewVerificationCode,
-				func(_ infra.Draft) error { return nil },
+				func(_ infra.EmailDraft) error { return nil },
 			)
 			if want := user.ErrEmailTaken; !errors.Is(got, want) {
 				t.Errorf("got %q, want %q", got, want)
@@ -237,18 +237,18 @@ func TestAuth_ResendSignUpVerificationEmail_Success(t *testing.T) {
 		must(user.ValidatePassword(password)),
 		testenv.DB(), mustTimeUTC("2026-09-07 13:00:00"),
 		user.NewVerificationCode,
-		func(_ infra.Draft) error { return nil },
+		func(_ infra.EmailDraft) error { return nil },
 	))
 
 	var (
-		gotEmailDraft infra.Draft
+		gotEmailDraft infra.EmailDraft
 		code          = user.VerificationCode("385942")
 		resendAt      = mustTimeUTC("2026-09-07 13:01:00")
 	)
 	gotTkt, gotErr := user.ResendSignUpVerificationEmail(
 		t.Context(), signUpTkt.Encode(), testenv.DB(), resendAt,
 		func() (user.VerificationCode, error) { return code, nil },
-		func(d infra.Draft) error {
+		func(d infra.EmailDraft) error {
 			gotEmailDraft = d
 			return nil
 		},
@@ -325,12 +325,12 @@ func TestAuth_ResendSignUpVerificationEmail_TicketExpiry(t *testing.T) {
 				must(user.ParseEmail("alice@example.com")),
 				must(user.ValidatePassword("Test$Password#1234")),
 				testenv.DB(), signUpAt, user.NewVerificationCode,
-				func(_ infra.Draft) error { return nil },
+				func(_ infra.EmailDraft) error { return nil },
 			))
 			_, gotErr := user.ResendSignUpVerificationEmail(
 				t.Context(), tkt.Encode(), testenv.DB(),
 				tt.resendAt, user.NewVerificationCode,
-				func(_ infra.Draft) error { return nil },
+				func(_ infra.EmailDraft) error { return nil },
 			)
 			if !errors.Is(gotErr, tt.wantErr) {
 				t.Errorf("got %q, want %q", gotErr, tt.wantErr)
@@ -426,7 +426,7 @@ func TestAuth_PerAddressThrottlingForSignupAttempts(t *testing.T) {
 				var gotErr error
 
 				var emailSent bool
-				captureEmailSend := func(_ infra.Draft) error {
+				captureEmailSend := func(_ infra.EmailDraft) error {
 					emailSent = true
 					return nil
 				}
@@ -840,7 +840,7 @@ func TestAuth_VerifySignUpEmailAddress_Success(t *testing.T) {
 				testenv.DB(),
 				tt.signUpAt,
 				func() (user.VerificationCode, error) { return user.VerificationCode(tt.code), nil },
-				func(infra.Draft) error { return nil },
+				func(infra.EmailDraft) error { return nil },
 			))
 			s.Now = func() time.Time { return tt.verifiedAt }
 			gotToken, gotErr := s.VerifySignUpEmailAddress(t.Context(), ticket.Encode(), tt.code, tt.device)
@@ -918,7 +918,7 @@ func TestAuth_VerifySignUpEmailAddress_Failure(t *testing.T) {
 		testenv.DB(),
 		alice.signUpAt,
 		func() (user.VerificationCode, error) { return user.VerificationCode(alice.code), nil },
-		func(infra.Draft) error { return nil },
+		func(infra.EmailDraft) error { return nil },
 	)).Encode()
 
 	test := []struct {
@@ -1016,7 +1016,7 @@ func TestAuth_VerifySignUpEmailAddress_DuplicateVerifications(t *testing.T) {
 		must(user.ValidatePassword("Test#Password$1234")),
 		testenv.DB(), mustTimeUTC("2026-09-03 11:50:00"),
 		func() (user.VerificationCode, error) { return user.VerificationCode(code), nil },
-		func(infra.Draft) error { return nil },
+		func(infra.EmailDraft) error { return nil },
 	)).Encode()
 
 	s := user.Service{
@@ -1089,7 +1089,7 @@ func TestAuth_VerifySignUpEmailAddress_TicketExpiry(t *testing.T) {
 			must(user.ValidatePassword("test#password$123")),
 			testenv.DB(), signUpAt,
 			func() (user.VerificationCode, error) { return user.VerificationCode("123456"), nil },
-			func(infra.Draft) error { return nil },
+			func(infra.EmailDraft) error { return nil },
 		))
 		s.Now = func() time.Time { return tt.verifyAt }
 
@@ -1140,7 +1140,7 @@ func TestAuth_VerifySignUpEmailAddress_EmailAlreadyRegistered(t *testing.T) {
 		testenv.DB(),
 		mustTimeUTC("2026-07-01 09:20:00"),
 		func() (user.VerificationCode, error) { return user.VerificationCode(pendingCode), nil },
-		func(infra.Draft) error { return nil },
+		func(infra.EmailDraft) error { return nil },
 	)).Encode()
 
 	provisionTestAccount(
@@ -1198,7 +1198,7 @@ func TestAuth_VerifySignUpEmailAddress_FailCountCap(t *testing.T) {
 		must(user.ValidatePassword("alice#password$123")),
 		testenv.DB(), mustTimeUTC("2026-07-01 09:20:00"),
 		func() (user.VerificationCode, error) { return user.VerificationCode(code), nil },
-		func(infra.Draft) error { return nil },
+		func(infra.EmailDraft) error { return nil },
 	))
 
 	test := []struct {

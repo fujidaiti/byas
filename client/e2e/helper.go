@@ -41,7 +41,7 @@ func provisionTestAccount(ctx context.Context, db *sql.DB) (user.Token, error) {
 	ticket, err := user.SignUp(
 		ctx, email, pswd, db, time.Now(),
 		func() (user.VerificationCode, error) { return user.VerificationCode(code), nil },
-		func(_ infra.Draft) error { return nil },
+		func(_ infra.EmailDraft) error { return nil },
 	)
 	if err != nil {
 		return user.Token{}, err

@@ -1,15 +1,14 @@
 package infra
 
-// TODO: Move these types and functions to infra/email package
-type Draft struct {
+type EmailDraft struct {
 	To      string
 	Subject string
 	Body    string
 }
 
-type EmailSender = func(d Draft) error
+type EmailSender = func(d EmailDraft) error
 
-func SendEmail(d Draft) error {
+func SendEmail(d EmailDraft) error {
 	// TODO: Send an email using Resend
 	return nil
 }

@@ -101,7 +101,7 @@ func provisionTestAccount(
 		testenv.DB(),
 		createdAt.Add(-time.Minute),
 		func() (user.VerificationCode, error) { return user.VerificationCode(code), nil },
-		func(_ infra.Draft) error { return nil },
+		func(_ infra.EmailDraft) error { return nil },
 	)
 	if err != nil {
 		t.Fatalf("failed to sign up for provisioning a test account (%s): %v", email, err)

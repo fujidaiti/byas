@@ -264,7 +264,7 @@ func issueSignUpTicket(
 	if err != nil {
 		return Token{}, fmt.Errorf("failed to write verification email body: %w", err)
 	}
-	err = sendEmail(infra.Draft{
+	err = sendEmail(infra.EmailDraft{
 		To:      email,
 		Subject: "Your verification code",
 		Body:    buf.String(),
